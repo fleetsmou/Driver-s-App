@@ -26,7 +26,7 @@
     --shadow2:0 6px 24px rgba(16,30,54,.10);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;}
   .hidden{display:none !important;}
   a{color:inherit;}
   .appbar{background:var(--header);color:#fff;border-bottom:1px solid #0a1420;position:sticky;top:0;z-index:30;}
@@ -150,7 +150,7 @@
   .robot{width:52px;height:52px;border-radius:13px;background:linear-gradient(135deg,#1f5066,#123a4d);display:grid;place-items:center;font-size:26px;position:relative;flex-shrink:0;}
   .robot .rd{position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;border:2px solid #16293b;} .rd.on{background:var(--green);} .rd.off{background:#64748b;}
   .dband-main{flex:1;min-width:0;} .dband-name{font-size:19px;font-weight:800;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
-  .pill-status{font-size:11px;font-weight:800;letter-spacing:.5px;padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;}
+  .pill-status{font-size:11px;font-weight:800;letter-spacing:.5px;padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
   .pill-status.off{background:rgba(255,255,255,.08);color:#c3cfdc;} .pill-status.on{background:rgba(16,185,129,.18);color:#4fe0ac;} .pill-status .d{width:7px;height:7px;border-radius:50%;background:currentColor;}
   .dband-sub{font-size:13px;color:#9db0c3;margin-top:6px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;} .dband-sub .tag-plate{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.16);color:#dfe8f0;}
   .dchips{display:flex;gap:7px;flex-wrap:wrap;} .dchips .chip-plat{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#dfe8f0;}
@@ -217,7 +217,24 @@
   .loading{display:grid;place-items:center;min-height:70vh;color:var(--ink2);text-align:center;}
   .spin{width:38px;height:38px;border:3px solid var(--line2);border-top-color:var(--green);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 14px;} @keyframes sp{to{transform:rotate(360deg)}}
   @media(max-width:1000px){.kpis,.dstats{grid-template-columns:1fr 1fr;}.ctl-filters{grid-template-columns:1fr 1fr;}}
-  @media(max-width:680px){.kpis,.dstats,.ctl-filters,.grid2,.rec-cols,.fc-grid{grid-template-columns:1fr;} .hstats{display:none;}.wrap{padding:16px;}}
+  @media(max-width:680px){
+    .kpis,.dstats,.ctl-filters,.grid2,.rec-cols,.fc-grid{grid-template-columns:1fr;}
+    .hstats{display:none;} .wrap{padding:16px;}
+    .appbar-in{flex-wrap:wrap;gap:9px;padding:11px 14px;}
+    .appbar-spacer{display:none;}
+    .brand{flex:1 1 100%;gap:10px;min-width:0;}
+    .brand .b-sub{display:none;}
+    .brand h1{font-size:17px;}
+    .brand .logo{width:40px;height:40px;font-size:20px;}
+    .who{margin-left:auto;font-size:12px;padding:7px 12px;}
+    .who .plate{display:none;}
+    .btn-logout{padding:8px 13px;flex-shrink:0;}
+    #leafmap{height:400px;}
+    .ctl-actions{width:100%;} .ctl-actions .btn{flex:1;}
+    .tabgroup{width:100%;} .tabgroup button{flex:1;justify-content:center;font-size:12px;padding:9px 8px;}
+    .ab-acts{grid-template-columns:1fr;}
+    .dband{padding:16px;gap:12px;} .dband-name{font-size:17px;}
+  }
 </style>
 </head>
 <body>
@@ -350,18 +367,50 @@ function detectGps(kind){
 function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime()};refreshGps(kind);toast("Hub location set ✓");}
 function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);}
 
-/* live position streaming while on duty */
-let watchId=null,lastLiveWrite=0;
-function startLiveWatch(shiftId){
-  if(!navigator.geolocation)return;stopLiveWatch();
-  watchId=navigator.geolocation.watchPosition(async pos=>{
-    const now=Date.now();if(now-lastLiveWrite<6000)return;lastLiveWrite=now;
-    const {latitude:lat,longitude:lng,speed}=pos.coords;
-    const kmh=(speed!=null&&speed>=0)?Math.round(speed*3.6):null;
-    try{await sb.from("shifts").update({live_lat:+lat.toFixed(5),live_lng:+lng.toFixed(5),speed:kmh,live_time:nowTime()}).eq("id",shiftId);}catch(e){}
-  },err=>{},{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+/* live position streaming while on duty — writes every 7s even if stationary */
+let watchId=null,liveHb=null,lastGeo=null,lastPos=null;
+function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+async function writeLive(shiftId,lat,lng){
+  let kmh=0;
+  if(lastPos){const dist=haversine(lastPos.lat,lastPos.lng,lat,lng);const dt=(Date.now()-lastPos.t)/1000;if(dt>0)kmh=Math.round((dist/dt)*3.6);}
+  lastPos={lat,lng,t:Date.now()};
+  try{await sb.from("shifts").update({live_lat:+lat.toFixed(5),live_lng:+lng.toFixed(5),speed:kmh,live_time:nowTime()}).eq("id",shiftId);}catch(e){}
 }
-function stopLiveWatch(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}}
+function startLiveWatch(shiftId){
+  stopLiveWatch();
+  if(!navigator.geolocation){toast("This device can't share GPS.");return;}
+  acquireWake();
+  const opts={enableHighAccuracy:true,maximumAge:0,timeout:15000};
+  navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts); // immediate
+  watchId=navigator.geolocation.watchPosition(p=>{lastGeo={lat:p.coords.latitude,lng:p.coords.longitude};},e=>{},opts);
+  liveHb=setInterval(()=>{
+    if(lastGeo){writeLive(shiftId,lastGeo.lat,lastGeo.lng);}
+    else navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);
+  },7000);
+}
+function stopLiveWatch(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}if(liveHb){clearInterval(liveHb);liveHb=null;}lastGeo=null;lastPos=null;releaseWake();}
+
+/* admin polling — refresh live driver positions every 5s (works even if realtime is off) */
+let adminPoll=null;
+function startAdminPoll(){stopAdminPoll();adminPoll=setInterval(async()=>{
+  if(state.screen!=="admin")return;
+  try{const {data}=await sb.from("shifts").select("*").eq("status","ACTIVE");
+    if(data){data.forEach(r=>{const ms=mapShift(r);const i=state.shifts.findIndex(x=>x.id===ms.id);if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);});
+      if(state.adminTab==="map")refreshLiveMarkers();}
+  }catch(e){}
+},5000);}
+function stopAdminPoll(){if(adminPoll){clearInterval(adminPoll);adminPoll=null;}}
+
+/* keep the driver's screen awake while on duty so GPS keeps streaming */
+let wakeLock=null;
+async function acquireWake(){try{if("wakeLock" in navigator){wakeLock=await navigator.wakeLock.request("screen");}}catch(e){}}
+function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"&&state.screen==="driver"){
+    const sh=activeShift(state.driverId);
+    if(sh){acquireWake();if(lastGeo)writeLive(sh.id,lastGeo.lat,lastGeo.lng);}
+  }
+});
 
 /* ============================================================ ROUTER ============================================================ */
 function render(){
@@ -380,7 +429,7 @@ function postRender(){
     if(sh){timerInt=setInterval(()=>{const el=$("#liveTimer");if(!el)return;const m=Math.floor((Date.now()-sh.startedAt)/60000);el.textContent=`${Math.floor(m/60)}h ${m%60}m`;},1000);
       startLiveWatch(sh.id);} else stopLiveWatch();
   } else stopLiveWatch();
-  if(state.screen==="admin"&&state.adminTab==="map")mountMap();
+  if(state.screen==="admin"){if(state.adminTab==="map")mountMap();startAdminPoll();} else stopAdminPoll();
 }
 
 /* ---------- APP BAR ---------- */
@@ -388,12 +437,12 @@ function appbarDriver(d){return `<div class="appbar"><div class="appbar-in">
     <div class="brand"><div class="logo">🚚</div><div><div class="b-title"><h1>SUMOU</h1><span class="app-badge driver">Driver App</span></div><div class="b-sub">Driver: ${d.name}</div></div></div>
     <div class="appbar-spacer"></div>
     <div class="who"><span class="gdot"></span>${d.name} <span class="plate">(${d.plate})</span></div>
-    <button class="btn-logout" data-act="logout">⎋ Log Out</button></div></div>`;}
+    <button class="btn-logout" data-act="logout">⎋ <span class="lotext">Log Out</span></button></div></div>`;}
 function appbarAdmin(){return `<div class="appbar"><div class="appbar-in">
     <div class="brand"><div class="logo">🚚</div><div><div class="b-title"><h1>SUMOU</h1><span class="app-badge admin">Admin Portal</span></div><div class="b-sub">Fleet Operations & Driver Locations</div></div></div>
     <div class="appbar-spacer"></div>
     <div class="hstats"><span><span class="gdot"></span>Active On-Duty: <b>${activeCount()} drivers</b></span><span class="sep"></span><span>⏱ Today's Fleet KMs: <b>${km(totalFleetKm())} KM</b></span></div>
-    <button class="btn-logout" data-act="logout">⎋ Log Out</button></div></div>`;}
+    <button class="btn-logout" data-act="logout">⎋ <span class="lotext">Log Out</span></button></div></div>`;}
 
 /* ---------- LANDING (separate gates) ---------- */
 function viewLanding(){return isAdminGate()?landingAdmin():landingDriver();}
