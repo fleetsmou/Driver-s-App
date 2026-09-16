@@ -249,6 +249,14 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverId:null,ready:f
   drivers:[],shifts:[],kmRecords:[],fuelRecords:[],
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{}};
 
+/* ---------- session persistence (stay logged in across refresh) ---------- */
+const SESSION_KEY="sumou_session_v1";
+function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
+function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
+function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
+function isAdminGate(){return /admin/i.test((location.hash||"")+(location.search||""));}
+const digitsOnly=s=>(s||"").replace(/\D/g,"");
+
 const $=s=>document.querySelector(s);
 const app=$("#app");
 const money=n=>Number(n||0).toFixed(3);
@@ -387,26 +395,30 @@ function appbarAdmin(){return `<div class="appbar"><div class="appbar-in">
     <div class="hstats"><span><span class="gdot"></span>Active On-Duty: <b>${activeCount()} drivers</b></span><span class="sep"></span><span>⏱ Today's Fleet KMs: <b>${km(totalFleetKm())} KM</b></span></div>
     <button class="btn-logout" data-act="logout">⎋ Log Out</button></div></div>`;}
 
-/* ---------- LANDING ---------- */
-function viewLanding(){
-  const has=state.drivers.length>0;
-  const driverPane=`<div class="${state.role==="driver"?"":"hidden"}">
-    ${has?`<label class="fld">Select Driver Account:</label>
-      <select id="driverSelect">${state.drivers.map(d=>`<option value="${d.id}">${d.name} (${d.plate} – ${d.model})</option>`).join("")}</select>
-      <label class="fld" style="margin-top:16px">Enter Your 4-Digit Security PIN:</label>
-      <input id="driverPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" />
-      <button class="btn btn-primary btn-lg" style="margin-top:16px" data-act="driverLogin">Sign In as Driver →</button>`
-    :`<div class="empty"><div class="eic">👤➕</div><h3>No Drivers Registered Yet</h3>
-      <p>Welcome to Sumou Fleet. The Fleet Admin needs to log in first and register your company's drivers.</p>
-      <button class="btn btn-primary btn-lg" data-role="admin">🛡️ Log in as Admin to Add Drivers</button></div>`}</div>`;
-  const adminPane=`<div class="${state.role==="admin"?"":"hidden"}">
-    <div class="note admin">🛡️ <b>Fleet Administration:</b> Manage all Sumou drivers, view live driver locations on the interactive map, and oversee daily KM and fuel audits.</div>
-    <label class="fld">Admin Passcode:</label><input id="adminPass" type="password" placeholder="Enter admin passcode (Default: 9999)" />
-    <button class="btn btn-dark btn-lg" style="margin-top:16px" data-act="adminLogin">🛡️ Sign In to Admin Portal</button></div>`;
+/* ---------- LANDING (separate gates) ---------- */
+function viewLanding(){return isAdminGate()?landingAdmin():landingDriver();}
+function landingDriver(){
   return `<div class="wrap"><div class="land">
-    <div class="land-hero"><div class="logo">🚚</div><h1>SUMOU FLEET</h1><p>Duty Logging, GPS Location Check-in & Fuel Records</p></div>
-    <div class="card pad"><div class="seg"><button class="${state.role==="driver"?"active":""}" data-role="driver">👤 Driver Sign In</button>
-      <button class="${state.role==="admin"?"active admin":""}" data-role="admin">🛡️ Admin Portal</button></div>${driverPane}${adminPane}</div></div></div>`;
+    <div class="land-hero"><div class="logo">🚚</div><h1>SUMOU FLEET</h1><p>Driver Duty & GPS Check-in</p></div>
+    <div class="card pad">
+      <div style="text-align:center;margin-bottom:14px"><div style="font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px">👤 Driver Sign In</div>
+        <div style="font-size:12.5px;color:var(--ink2);margin-top:4px">Enter your phone number and 4-digit PIN</div></div>
+      <label class="fld">Phone Number:</label><input id="dlPhone" inputmode="tel" placeholder="e.g. 5123 4567" />
+      <label class="fld" style="margin-top:14px">Security PIN:</label><input id="dlPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" />
+      <button class="btn btn-primary btn-lg" style="margin-top:16px" data-act="driverLogin">Sign In as Driver →</button>
+      ${state.drivers.length?"":`<div class="note" style="margin-top:16px">No driver accounts exist yet. Please ask your fleet admin to create your account.</div>`}
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--muted)">Fleet admin? Open the admin link you were given.</div>
+  </div></div>`;
+}
+function landingAdmin(){
+  return `<div class="wrap"><div class="land">
+    <div class="land-hero"><div class="logo">🛡️</div><h1>SUMOU FLEET</h1><p>Admin Portal — Fleet Operations</p></div>
+    <div class="card pad">
+      <div class="note admin">🛡️ <b>Fleet Administration:</b> Manage drivers, view the live driver map, and oversee daily KM & fuel audits.</div>
+      <label class="fld">Admin Passcode:</label><input id="adminPass" type="password" placeholder="Enter admin passcode" />
+      <button class="btn btn-dark btn-lg" style="margin-top:14px" data-act="adminLogin">🛡️ Sign In to Admin Portal</button>
+    </div></div></div>`;
 }
 
 /* ============================================================ ADMIN ============================================================ */
@@ -590,6 +602,7 @@ function modalEndDuty(id){const d=driverById(id);const sh=activeShift(id);state.
 
 /* ============================================================ ACTIONS (async → Supabase) ============================================================ */
 async function doAddDriver(){const name=$("#ndName").value.trim();if(!name)return toast("Driver name is required.");
+  if(digitsOnly($("#ndPhone").value).length<6)return toast("A valid phone number is required (it's the driver's login ID).");
   const plats=[...document.querySelectorAll(".ndPlat:checked")].map(c=>c.value);
   const {data,error}=await sb.from("drivers").insert({name,phone:$("#ndPhone").value.trim(),pin:($("#ndPin").value||"1234").slice(0,4),plate:($("#ndPlate").value.trim()||"00000 KWT").toUpperCase(),model:$("#ndModel").value.trim()||"Vehicle",platforms:plats.length?plats:["Talabat"]}).select().single();
   if(error){toast("Error: "+error.message);return;}
@@ -625,10 +638,9 @@ function doExportKm(){const rows=[["Date","Driver","Plate","Platform","Start KM"
 
 /* ============================================================ EVENTS ============================================================ */
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-role],[data-act],[data-tab],[data-addkm],[data-addfuel],[data-deldriver],[data-drtab],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-close]");
+  const t=e.target.closest("[data-act],[data-tab],[data-addkm],[data-addfuel],[data-deldriver],[data-drtab],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-close]");
   if(!t)return;
   if(t.hasAttribute("data-close")){closeModal();return;}
-  if(t.dataset.role){state.role=t.dataset.role;render();return;}
   if(t.dataset.tab){state.adminTab=t.dataset.tab;document.querySelectorAll(".tabgroup button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t.dataset.tab));paintAdmin();return;}
   if(t.dataset.drtab){const sh=t.dataset.drtab;$("#drShifts").classList.toggle("hidden",sh!=="shifts");$("#drFuel").classList.toggle("hidden",sh!=="fuel");t.parentElement.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b===t));return;}
   if(t.dataset.addkm){modalPostKm(t.dataset.addkm);return;}
@@ -640,9 +652,14 @@ document.addEventListener("click",e=>{
   if(t.dataset.hubpick){const[k,i]=t.dataset.hubpick.split(":");setHubGps(k,+i);return;}
   const a=t.dataset.act;if(!a)return;
   switch(a){
-    case "adminLogin":if($("#adminPass").value===ADMIN_PASSCODE){state.screen="admin";render();}else toast("Wrong passcode. Try 9999.");break;
-    case "driverLogin":{const id=$("#driverSelect").value,d=driverById(id);if(!d){toast("Select a driver.");break;}if($("#driverPin").value!==d.pin){toast("Incorrect PIN for "+d.name);break;}state.driverId=id;state.screen="driver";render();break;}
-    case "logout":stopLiveWatch();state.screen="landing";state.driverId=null;state.gps={};render();break;
+    case "adminLogin":if($("#adminPass").value===ADMIN_PASSCODE){state.screen="admin";saveSession({role:"admin"});render();}else toast("Wrong passcode.");break;
+    case "driverLogin":{const e=digitsOnly($("#dlPhone").value),pin=$("#dlPin").value;
+      if(e.length<4){toast("Enter your phone number.");break;}
+      const d=state.drivers.find(x=>{const p=digitsOnly(x.phone);return p&&(p===e||p.slice(-8)===e.slice(-8)||p.endsWith(e)||e.endsWith(p));});
+      if(!d){toast("No account found for this phone number.");break;}
+      if(d.pin!==pin){toast("Incorrect PIN.");break;}
+      state.driverId=d.id;state.screen="driver";saveSession({role:"driver",driverId:d.id});render();break;}
+    case "logout":stopLiveWatch();clearSession();state.screen="landing";state.driverId=null;state.gps={};render();break;
     case "openAddDriver":modalAddDriver();break;
     case "saveDriver":doAddDriver();break;
     case "startDuty":doStartDuty();break;
@@ -669,6 +686,9 @@ document.addEventListener("change",e=>{
     await loadAll();
     state.ready=true;
     subscribeRealtime();
+    const sess=loadSession();
+    if(sess&&sess.role==="admin"){state.screen="admin";}
+    else if(sess&&sess.role==="driver"&&driverById(sess.driverId)){state.screen="driver";state.driverId=sess.driverId;}
     render();
   }catch(err){
     console.error(err);
