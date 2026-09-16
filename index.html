@@ -249,6 +249,11 @@ const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const ADMIN_PASSCODE="9999";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
+/* native background-GPS bridge (only exists inside the Android/Capacitor app) */
+const isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+let BGGeo=null;
+try{if(isNativeApp&&window.Capacitor.registerPlugin){BGGeo=window.Capacitor.registerPlugin("BackgroundGeolocation");}}catch(e){}
+
 const HUBS=[
   {name:"Kuwait City Delivery Hub – Sharq",addr:"Ahmad Al Jaber Street, Sharq, Kuwait City",lat:29.3798,lng:47.9860},
   {name:"Shuwaikh Industrial Logistics Center",addr:"Street 10, Shuwaikh Industrial Area, Kuwait",lat:29.3416,lng:47.9364},
@@ -368,7 +373,7 @@ function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.
 function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);}
 
 /* live position streaming while on duty — writes every 7s even if stationary */
-let watchId=null,liveHb=null,lastGeo=null,lastPos=null;
+let watchId=null,liveHb=null,lastGeo=null,lastPos=null,bgWatcherId=null;
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
 async function writeLive(shiftId,lat,lng){
   let kmh=0;
@@ -378,17 +383,29 @@ async function writeLive(shiftId,lat,lng){
 }
 function startLiveWatch(shiftId){
   stopLiveWatch();
+  if(BGGeo){ // native app: true background tracking (screen off / app minimised)
+    BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:8},
+      (location,error)=>{if(error)return;if(location)writeLive(shiftId,location.latitude,location.longitude);})
+      .then(id=>{bgWatcherId=id;}).catch(()=>startWebWatch(shiftId));
+    return;
+  }
+  startWebWatch(shiftId);
+}
+function startWebWatch(shiftId){ // browser fallback (needs app open + screen on)
   if(!navigator.geolocation){toast("This device can't share GPS.");return;}
   acquireWake();
   const opts={enableHighAccuracy:true,maximumAge:0,timeout:15000};
-  navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts); // immediate
+  navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);
   watchId=navigator.geolocation.watchPosition(p=>{lastGeo={lat:p.coords.latitude,lng:p.coords.longitude};},e=>{},opts);
   liveHb=setInterval(()=>{
     if(lastGeo){writeLive(shiftId,lastGeo.lat,lastGeo.lng);}
     else navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);
   },7000);
 }
-function stopLiveWatch(){if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}if(liveHb){clearInterval(liveHb);liveHb=null;}lastGeo=null;lastPos=null;releaseWake();}
+function stopLiveWatch(){
+  if(BGGeo&&bgWatcherId){try{BGGeo.removeWatcher({id:bgWatcherId});}catch(e){}bgWatcherId=null;}
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  if(liveHb){clearInterval(liveHb);liveHb=null;}lastGeo=null;lastPos=null;releaseWake();}
 
 /* admin polling — refresh live driver positions every 5s (works even if realtime is off) */
 let adminPoll=null;
