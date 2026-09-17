@@ -1,809 +1,829 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sumou Fleet - Driver Duty & Fuel Tracker</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  :root{
-    --bg:#e9edf3; --panel:#ffffff;
-    --ink:#1b2433; --ink2:#556072; --muted:#8794a6; --muted2:#a3adbd;
-    --line:#e5eaf1; --line2:#dbe2ec; --soft:#f5f8fb; --soft2:#eef2f7;
-    --green:#10b981; --green-d:#0e9d6e; --green-tint:#e6f7f0; --green-ink:#0c7a56;
-    --red:#ef4444; --red-tint:#fdecec; --red-ink:#d13a3a;
-    --amber:#f59e0b; --amber-tint:#fbf1de; --amber-ink:#b9760a;
-    --blue:#3b82f6; --blue-tint:#e8f0fe;
-    --violet:#8b5cf6; --violet-tint:#eee9fd; --violet-ink:#6d40d8;
-    --header:#0f1b28; --header2:#132534;
-    --mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;
-    --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    --shadow:0 1px 2px rgba(16,30,54,.05),0 1px 3px rgba(16,30,54,.04);
-    --shadow2:0 6px 24px rgba(16,30,54,.10);
-  }
-  /* ===== DARK — Executive Obsidian (night theme) ===== */
-  :root[data-theme="dark"]{
-    --bg:#07090e; --panel:#10141c;
-    --ink:#eef2f8; --ink2:#aeb7c6; --muted:#828d9f; --muted2:#5b6474;
-    --line:#1e232e; --line2:#2b3340; --soft:#12161f; --soft2:#181d27;
-    --green:#13e29a; --green-d:#0cc487; --green-tint:rgba(19,226,154,.13); --green-ink:#41f0b6;
-    --red:#ff5c5c; --red-tint:rgba(255,92,92,.13); --red-ink:#ff8888;
-    --amber:#f6b44e; --amber-tint:rgba(246,180,78,.14); --amber-ink:#f7c579;
-    --blue:#57a9ff; --blue-tint:rgba(87,169,255,.14);
-    --violet:#a98bff; --violet-tint:rgba(169,139,255,.14); --violet-ink:#c3aaff;
-    --header:#0a0d14; --header2:#121722;
-    --shadow:0 1px 2px rgba(0,0,0,.5); --shadow2:0 22px 48px -20px rgba(0,0,0,.85);
-  }
-  :root[data-theme="dark"] body{background:radial-gradient(720px 360px at 85% -10%,rgba(19,226,154,.06),transparent 60%),radial-gradient(520px 320px at 5% 8%,rgba(87,169,255,.05),transparent 55%),var(--bg);}
-  [data-theme="dark"] .btn-outline,[data-theme="dark"] .btn-red-o,[data-theme="dark"] .btn-green-o,[data-theme="dark"] .btn-gps,[data-theme="dark"] .btn-hubs{background:var(--soft);}
-  [data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:var(--soft);}
-  [data-theme="dark"] .chip-plat{background:var(--soft);}
-  [data-theme="dark"] .kpi,[data-theme="dark"] .rec,[data-theme="dark"] .dstat,[data-theme="dark"] .ddir,[data-theme="dark"] .fuel-card,[data-theme="dark"] .gps-card,[data-theme="dark"] .hubmenu,[data-theme="dark"] .map-legend,[data-theme="dark"] .ab-loc,[data-theme="dark"] .lr-loc,[data-theme="dark"] .modal{background:var(--panel);}
-  [data-theme="dark"] .btn-green-o,[data-theme="dark"] .btn-gps{border-color:rgba(19,226,154,.3);}
-  [data-theme="dark"] .btn-red-o{border-color:rgba(255,92,92,.3);}
-  [data-theme="dark"] .note,[data-theme="dark"] .calc,[data-theme="dark"] .badge-lock,[data-theme="dark"] .pin-badge{border-color:rgba(19,226,154,.25);}
-  [data-theme="dark"] .note.admin{border-color:rgba(246,180,78,.3);}
-  [data-theme="dark"] .active-box{background:linear-gradient(180deg,rgba(19,226,154,.07),var(--panel));border-color:rgba(19,226,154,.28);}
-  [data-theme="dark"] .ddir .chip-plat{background:var(--soft)!important;border-color:var(--line2)!important;color:var(--ink2)!important;}
-  [data-theme="dark"] .btn-primary{box-shadow:0 10px 26px -8px rgba(19,226,154,.5);}
-  [data-theme="dark"] .brand .logo,[data-theme="dark"] .land-hero .logo{box-shadow:0 8px 24px rgba(19,226,154,.4);}
-  [data-theme="dark"] input:focus,[data-theme="dark"] select:focus,[data-theme="dark"] textarea:focus{box-shadow:0 0 0 3px rgba(19,226,154,.18);}
-  /* theme toggle button */
-  .theme-toggle{padding:9px 12px;font-size:15px;line-height:1;}
-  .theme-toggle .ic-sun{display:none;} .theme-toggle .ic-moon{display:inline;}
-  [data-theme="dark"] .theme-toggle .ic-sun{display:inline;} [data-theme="dark"] .theme-toggle .ic-moon{display:none;}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;}
-  .hidden{display:none !important;}
-  a{color:inherit;}
-  .appbar{background:var(--header);color:#fff;border-bottom:1px solid #0a1420;position:sticky;top:0;z-index:30;}
-  .appbar-in{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:15px 24px;}
-  .brand{display:flex;align-items:center;gap:13px;}
-  .brand .logo{width:50px;height:50px;border-radius:13px;background:linear-gradient(135deg,#13c78a,#0c8f63);display:grid;place-items:center;font-size:25px;box-shadow:0 6px 16px rgba(16,185,129,.28);}
-  .brand .b-title{display:flex;align-items:center;gap:9px;}
-  .brand h1{font-size:20px;font-weight:800;letter-spacing:.4px;}
-  .brand .b-sub{font-size:12px;color:#8fa0b3;margin-top:3px;}
-  .app-badge{font-size:10.5px;font-weight:800;letter-spacing:.7px;padding:3px 9px;border-radius:7px;text-transform:uppercase;}
-  .app-badge.driver{color:#3fd9a3;border:1px solid rgba(63,217,163,.45);background:rgba(16,185,129,.12);}
-  .app-badge.admin{color:#f7b53f;border:1px solid rgba(247,181,63,.45);background:rgba(245,158,11,.12);}
-  .appbar-spacer{flex:1;}
-  .hstats{display:flex;align-items:center;gap:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:11px;padding:9px 16px;font-size:13px;color:#c3cfdc;}
-  .hstats b{color:#fff;font-weight:700;}
-  .hstats .gdot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;box-shadow:0 0 0 3px rgba(16,185,129,.2);}
-  .hstats .sep{width:1px;height:16px;background:rgba(255,255,255,.14);}
-  .who{display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:22px;padding:7px 14px;font-size:13px;font-weight:700;}
-  .who .gdot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.2);}
-  .who .plate{color:#3fd9a3;font-family:var(--mono);font-weight:600;font-size:12px;}
-  .btn-logout{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#e7edf4;padding:9px 15px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;}
-  .btn-logout:hover{background:rgba(255,255,255,.12);}
-  .wrap{max-width:1280px;margin:0 auto;padding:22px 24px 60px;}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);}
-  .pad{padding:20px;}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-family:inherit;border:0;border-radius:10px;padding:11px 16px;font-size:13.5px;font-weight:700;white-space:nowrap;}
-  .btn-primary{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(16,185,129,.25);}
-  .btn-primary:hover{background:var(--green-d);}
-  .btn-dark{background:var(--header);color:#fff;} .btn-dark:hover{background:var(--header2);}
-  .btn-outline{background:#fff;border:1px solid var(--line2);color:var(--ink2);} .btn-outline:hover{background:var(--soft);}
-  .btn-red-o{background:#fff;border:1px solid #f3c6c6;color:var(--red-ink);} .btn-red-o:hover{background:var(--red-tint);}
-  .btn-green-o{background:#fff;border:1px solid #b6e6d3;color:var(--green-ink);} .btn-green-o:hover{background:var(--green-tint);}
-  .btn-lg{width:100%;padding:15px;font-size:15px;border-radius:12px;}
-  label.fld{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);font-weight:600;margin:0 0 7px;}
-  label.fld .i{color:var(--muted);}
-  input,select,textarea{width:100%;background:#fff;border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:12px 13px;font-size:14px;font-family:inherit;outline:none;transition:.15s;}
-  input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.13);}
-  input::placeholder{color:var(--muted2);}
-  select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 18px,calc(100% - 13px) 18px;background-size:5px 5px;background-repeat:no-repeat;cursor:pointer;}
-  .fhint{font-size:11.5px;color:var(--muted);margin-top:6px;}
-  .num-wrap{position:relative;} .num-wrap .suffix{position:absolute;right:14px;top:12px;font-size:13px;color:var(--muted);font-weight:700;font-family:var(--mono);}
-  .tag-plate{font-family:var(--mono);font-size:11.5px;font-weight:600;background:var(--soft2);color:var(--ink2);border:1px solid var(--line2);padding:3px 8px;border-radius:6px;letter-spacing:.5px;}
-  .st-badge{font-size:11px;font-weight:800;letter-spacing:.5px;padding:4px 10px;border-radius:20px;text-transform:uppercase;}
-  .st-done{background:var(--soft2);color:var(--ink2);} .st-active{background:var(--green-tint);color:var(--green-ink);}
-  .chip-plat{font-size:11px;font-weight:600;background:#fff;border:1px solid var(--line2);color:var(--ink2);padding:5px 12px;border-radius:20px;}
-  .badge-count{font-size:12px;font-weight:700;background:var(--soft2);color:var(--ink2);border:1px solid var(--line2);padding:6px 12px;border-radius:9px;}
-  .land{max-width:460px;margin:6vh auto 0;}
-  .land-hero{text-align:center;margin-bottom:22px;}
-  .land-hero .logo{width:74px;height:74px;border-radius:19px;margin:0 auto 14px;background:linear-gradient(135deg,#13c78a,#0c8f63);display:grid;place-items:center;font-size:36px;box-shadow:0 12px 30px rgba(16,185,129,.3);}
-  .land-hero h1{font-size:29px;font-weight:800;letter-spacing:.5px;} .land-hero p{color:var(--ink2);font-size:14px;margin-top:6px;}
-  .seg{display:flex;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:6px;margin-bottom:6px;}
-  .seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:var(--ink2);border:0;border-radius:9px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
-  .seg button.active{background:var(--green);color:#fff;box-shadow:0 3px 10px rgba(16,185,129,.25);}
-  .seg button.active.admin{background:var(--header);}
-  .note{background:var(--green-tint);border:1px solid #cdeede;border-radius:11px;padding:13px;font-size:12.5px;color:var(--green-ink);margin:16px 0;}
-  .note.admin{background:var(--amber-tint);border-color:#f2dcb4;color:var(--amber-ink);}
-  .empty{text-align:center;padding:26px 12px;}
-  .empty .eic{width:60px;height:60px;border-radius:50%;background:var(--soft);border:1px solid var(--line);display:grid;place-items:center;font-size:26px;margin:0 auto 12px;}
-  .empty h3{font-size:17px;} .empty p{color:var(--ink2);font-size:13px;margin:7px auto 16px;max-width:340px;line-height:1.5;}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;}
-  .kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);}
-  .kpi-top{display:flex;justify-content:space-between;align-items:flex-start;}
-  .kpi-label{font-size:11px;font-weight:700;letter-spacing:.7px;color:var(--muted);text-transform:uppercase;}
-  .kpi-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;}
-  .ic-green{background:var(--green-tint);} .ic-blue{background:var(--blue-tint);} .ic-amber{background:var(--amber-tint);} .ic-violet{background:var(--violet-tint);}
-  .kpi-num{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--ink);margin-top:12px;letter-spacing:-1px;}
-  .kpi-num small{font-size:14px;color:var(--muted);font-weight:600;letter-spacing:0;}
-  .kpi-sub{font-size:12px;margin-top:6px;color:var(--ink2);} .kpi-sub.green{color:var(--green-ink);} .kpi-sub.violet{color:var(--violet-ink);}
-  .controls{margin-bottom:16px;}
-  .ctl-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-  .tabgroup{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;}
-  .tabgroup button{display:flex;align-items:center;gap:7px;background:transparent;border:0;color:var(--ink2);padding:10px 13px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
-  .tabgroup button:hover{background:var(--soft);} .tabgroup button.active{background:var(--header);color:#fff;}
-  .tabgroup button .ct{opacity:.6;font-weight:700;} .tabgroup button.active .ct{opacity:.85;}
-  .ctl-actions{display:flex;gap:9px;flex-wrap:wrap;}
-  .ctl-filters{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
-  .search{position:relative;} .search .si{position:absolute;left:13px;top:12px;color:var(--muted);} .search input{padding-left:37px;}
-  .sec-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px;}
-  .sec-head h3{font-size:16px;display:flex;align-items:center;gap:9px;color:var(--ink);}
-  .sec-head p{font-size:12.5px;color:var(--ink2);margin-top:4px;} .sec-ic{color:var(--green);}
-  #leafmap{height:520px;border-radius:12px;margin-top:16px;z-index:1;}
-  .map-legend{position:absolute;top:12px;left:12px;z-index:500;background:#fff;border:1px solid var(--line2);border-radius:11px;padding:9px 13px;display:flex;gap:14px;align-items:center;font-size:12px;box-shadow:var(--shadow);}
-  .map-legend .lg{display:flex;align-items:center;gap:6px;color:var(--ink2);font-weight:600;} .map-legend .lgd{width:11px;height:11px;border-radius:50%;} .map-legend .sep{width:1px;height:14px;background:var(--line2);}
-  .mapholder{position:relative;}
-  .mpin{width:34px;height:34px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);display:grid;place-items:center;box-shadow:0 3px 8px rgba(0,0,0,.3);border:2px solid #fff;}
-  .mpin span{transform:rotate(-45deg);font-size:15px;color:#fff;font-weight:800;}
-  .mpin.in{background:var(--green);} .mpin.out{background:var(--red);}
-  .mpin.live{border-radius:50%;background:var(--blue);transform:none;position:relative;} .mpin.live span{transform:none;}
-  .mpin.live .ring{position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--blue);animation:pulse 1.6s infinite;}
-  @keyframes pulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.4);opacity:0}}
-  .live-head{display:flex;align-items:center;gap:9px;justify-content:space-between;}
-  .live-row{display:flex;align-items:center;gap:12px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px;}
-  .live-row .av{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;}
-  .live-row .lr-m{flex:1;min-width:0;} .live-row .lr-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .live-row .lr-sub{font-size:12px;color:var(--ink2);margin-top:3px;font-family:var(--mono);} .live-row .lr-sub .spd{color:var(--amber-ink);font-weight:700;}
-  .live-row .lr-r{text-align:right;flex-shrink:0;}
-  .livedot{font-size:10.5px;font-weight:800;color:var(--green-ink);letter-spacing:.5px;display:inline-flex;align-items:center;gap:5px;}
-  .livedot::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);animation:blip 1.3s infinite;}
-  @keyframes blip{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 6px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
-  .lr-time{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px;}
-  .lr-loc{margin-top:6px;background:#fff;border:1px solid var(--line2);color:var(--blue);border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;}
-  .live-empty{text-align:center;color:var(--ink2);font-size:13px;padding:18px 10px;}
-  .rec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;box-shadow:var(--shadow);}
-  .rec-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
-  .rec-title{display:flex;align-items:center;gap:10px;font-size:15.5px;font-weight:700;flex-wrap:wrap;}
-  .rec-date{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:8px;} .rec-date b{color:var(--ink);}
-  .rec-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
-  .rsub{background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:14px;}
-  .rsub-head{font-size:12px;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:6px;} .rsub-head.in{color:var(--green-ink);} .rsub-head.out{color:var(--red-ink);}
-  .rsub-place{font-size:14px;font-weight:700;margin-top:9px;} .rsub-addr{font-size:12px;color:var(--ink2);margin-top:2px;}
-  .rsub-odo{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:11px;border-top:1px solid var(--line2);font-size:12.5px;color:var(--ink2);}
-  .rsub-odo b{font-family:var(--mono);font-size:13.5px;color:var(--ink);letter-spacing:.5px;}
-  .rsub-pending{font-size:12.5px;color:var(--ink2);font-style:italic;margin-top:9px;}
-  .rec-foot{display:flex;gap:22px;align-items:center;margin-top:14px;flex-wrap:wrap;}
-  .rec-foot .dist{color:var(--green-ink);font-weight:800;font-size:13.5px;} .rec-foot .trips{color:var(--ink2);font-size:13px;} .rec-foot .rnote{color:var(--muted);font-size:12px;font-style:italic;margin-left:auto;}
-  .pilltabs{display:inline-flex;gap:6px;background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:6px;}
-  .pilltabs button{display:flex;align-items:center;gap:7px;background:transparent;border:0;color:var(--ink2);padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
-  .pilltabs button.active{background:var(--header);color:#fff;}
-  .dcard{overflow:hidden;}
-  .dband{background:linear-gradient(120deg,#0f1b28,#16293b);color:#fff;padding:18px 20px;display:flex;align-items:center;gap:15px;}
-  .robot{width:52px;height:52px;border-radius:13px;background:linear-gradient(135deg,#1f5066,#123a4d);display:grid;place-items:center;font-size:26px;position:relative;flex-shrink:0;}
-  .robot .rd{position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;border-radius:50%;border:2px solid #16293b;} .rd.on{background:var(--green);} .rd.off{background:#64748b;}
-  .dband-main{flex:1;min-width:0;} .dband-name{font-size:19px;font-weight:800;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
-  .pill-status{font-size:11px;font-weight:800;letter-spacing:.5px;padding:5px 12px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
-  .pill-status.off{background:rgba(255,255,255,.08);color:#c3cfdc;} .pill-status.on{background:rgba(16,185,129,.18);color:#4fe0ac;} .pill-status .d{width:7px;height:7px;border-radius:50%;background:currentColor;}
-  .dband-sub{font-size:13px;color:#9db0c3;margin-top:6px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;} .dband-sub .tag-plate{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.16);color:#dfe8f0;}
-  .dchips{display:flex;gap:7px;flex-wrap:wrap;} .dchips .chip-plat{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#dfe8f0;}
-  .dbody{padding:22px;} .dbody h3{font-size:17px;display:flex;align-items:center;gap:9px;} .dbody .dhint{color:var(--ink2);font-size:13px;margin:6px 0 18px;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
-  .gpsbox{background:var(--soft);border:1px solid var(--line);border-radius:13px;padding:16px;margin-top:18px;}
-  .gps-head{display:flex;align-items:flex-start;gap:12px;}
-  .gps-ic{width:38px;height:38px;border-radius:11px;background:var(--green-tint);display:grid;place-items:center;font-size:18px;flex-shrink:0;}
-  .gps-head .gh-t{flex:1;} .gps-head .gh-t b{font-size:14px;} .gps-head .gh-t span{display:block;font-size:12px;color:var(--ink2);margin-top:2px;}
-  .gps-actions{display:flex;gap:8px;position:relative;}
-  .btn-gps{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #b6e6d3;color:var(--green-ink);border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
-  .btn-hubs{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line2);color:var(--ink2);border-radius:9px;padding:9px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;}
-  .hubmenu{position:absolute;right:0;top:44px;background:#fff;border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow2);width:290px;padding:7px;z-index:20;}
-  .hubmenu .hm-t{font-size:10.5px;color:var(--muted);padding:8px 10px 6px;letter-spacing:.5px;font-weight:700;}
-  .hubmenu button{width:100%;display:flex;justify-content:space-between;gap:10px;background:transparent;border:0;color:var(--ink);padding:9px 10px;border-radius:8px;cursor:pointer;font-size:12.5px;text-align:left;font-family:inherit;}
-  .hubmenu button:hover{background:var(--soft);} .hubmenu button span{color:var(--muted);font-family:var(--mono);font-size:11px;}
-  .gps-card{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:14px;margin-top:14px;}
-  .gc-head{display:flex;justify-content:space-between;align-items:center;gap:10px;} .gc-place{font-size:14px;font-weight:700;}
-  .badge-lock{font-size:11px;font-weight:700;color:var(--green-ink);background:var(--green-tint);border:1px solid #cdeede;padding:4px 10px;border-radius:20px;white-space:nowrap;}
-  .gc-addr{font-size:12.5px;color:var(--ink2);margin-top:5px;}
-  .gc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);font-family:var(--mono);}
-  .dstats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px;}
-  .dstat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);}
-  .dstat .ds-l{font-size:12.5px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:7px;} .dstat .ds-l .i{color:var(--muted);}
-  .dstat .ds-n{font-family:var(--mono);font-size:26px;font-weight:700;margin-top:12px;letter-spacing:-.5px;} .dstat .ds-n small{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:0;}
-  .dstat .ds-s{font-size:11.5px;color:var(--muted);margin-top:5px;}
-  .dstat.act{background:var(--header);display:flex;flex-direction:column;justify-content:center;gap:10px;padding:16px;}
-  .dstat.act .btn{width:100%;} .dstat.act .btn-d2{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.14);} .dstat.act .btn-d2:hover{background:rgba(255,255,255,.14);}
-  .active-box{border:1px solid #cdeede;background:linear-gradient(180deg,#f0fbf6,#fff);border-radius:14px;padding:18px;margin-top:18px;}
-  .ab-head{display:flex;align-items:center;gap:13px;}
-  .ab-clock{width:46px;height:46px;border-radius:12px;background:var(--green-tint);display:grid;place-items:center;font-size:23px;}
-  .ab-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-  .ab-timer{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green-ink);background:var(--green-tint);padding:4px 10px;border-radius:20px;}
-  .ab-meta{font-size:12.5px;color:var(--ink2);margin-top:3px;}
-  .ab-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
-  .ab-loc{background:#fff;border:1px solid var(--line2);border-radius:11px;padding:13px;margin-top:14px;}
-  .ab-loc .abl-l{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.4px;} .ab-loc .abl-p{font-size:14px;font-weight:700;margin-top:5px;} .ab-loc .abl-a{font-size:12px;color:var(--ink2);}
-  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:16px;}
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  th,td{padding:13px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line);}
-  th{background:var(--soft);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;} td{color:var(--ink2);}
-  tr:last-child td{border-bottom:0;} td b{color:var(--ink);font-family:var(--mono);} .td-dist{color:var(--green-ink);font-weight:700;font-family:var(--mono);}
-  .ddir{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;box-shadow:var(--shadow);}
-  .ddir-h{display:flex;gap:14px;align-items:flex-start;}
-  .ddir-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
-  .ddir-acts{display:flex;gap:8px;} .ddir-life{text-align:right;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;} .ddir-life b{display:block;font-size:18px;color:var(--ink);font-family:var(--mono);letter-spacing:-.5px;}
-  .pin-badge{font-family:var(--mono);font-size:11.5px;background:var(--green-tint);color:var(--green-ink);padding:3px 9px;border-radius:6px;border:1px solid #cdeede;font-weight:600;}
-  .fuel-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px;box-shadow:var(--shadow);}
-  .fc-top{display:flex;gap:14px;align-items:flex-start;} .fc-ic{width:44px;height:44px;border-radius:12px;background:var(--amber-tint);display:grid;place-items:center;font-size:22px;flex-shrink:0;}
-  .fc-cost{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green-ink);}
-  .fc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--ink2);} .fc-grid b{display:block;color:var(--ink);font-family:var(--mono);font-size:13px;margin-top:3px;}
-  .overlay{position:fixed;inset:0;background:rgba(20,30,45,.5);backdrop-filter:blur(2px);display:grid;place-items:start center;padding:24px;overflow-y:auto;z-index:1000;}
-  .modal{background:#fff;border-radius:18px;width:100%;max-width:560px;margin:20px 0;box-shadow:0 30px 80px rgba(16,30,54,.3);}
-  .m-head{display:flex;align-items:center;gap:13px;padding:20px;border-bottom:1px solid var(--line);}
-  .m-ic{width:42px;height:42px;border-radius:12px;background:var(--green);display:grid;place-items:center;font-size:20px;color:#fff;} .m-ic.amber{background:var(--amber);} .m-ic.red{background:var(--red);}
-  .m-head h3{font-size:17px;} .m-head p{font-size:12.5px;color:var(--ink2);margin-top:2px;} .m-head .x{margin-left:auto;background:transparent;border:0;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;}
-  .m-body{padding:20px;} .m-body label.fld{margin-top:16px;} .m-body label.fld:first-child{margin-top:0;}
-  .m-foot{display:flex;justify-content:flex-end;gap:10px;padding:0 20px 20px;}
-  .calc{display:flex;justify-content:space-between;align-items:center;background:var(--green-tint);border:1px solid #cdeede;border-radius:11px;padding:14px;margin-top:16px;}
-  .calc .c-l{font-size:12px;color:var(--green-ink);font-weight:700;} .calc .c-s{font-size:11px;color:var(--green-ink);opacity:.75;margin-top:2px;} .calc .c-v{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--green-ink);letter-spacing:-1px;}
-  .checks{display:flex;gap:20px;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:13px;} .checks label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;font-weight:500;} .checks input{width:auto;}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--header);color:#fff;padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;z-index:2000;box-shadow:var(--shadow2);opacity:0;transition:.25s;pointer-events:none;max-width:90%;text-align:center;} .toast.show{opacity:1;bottom:34px;}
-  .foot{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin-top:26px;flex-wrap:wrap;gap:8px;} .foot b{color:var(--ink2);}
-  .loading{display:grid;place-items:center;min-height:70vh;color:var(--ink2);text-align:center;}
-  .spin{width:38px;height:38px;border:3px solid var(--line2);border-top-color:var(--green);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 14px;} @keyframes sp{to{transform:rotate(360deg)}}
-  @media(max-width:1000px){.kpis,.dstats{grid-template-columns:1fr 1fr;}.ctl-filters{grid-template-columns:1fr 1fr;}}
-  @media(max-width:680px){
-    .kpis,.dstats,.ctl-filters,.grid2,.rec-cols,.fc-grid{grid-template-columns:1fr;}
-    .hstats{display:none;} .wrap{padding:16px;}
-    .appbar-in{flex-wrap:wrap;gap:9px;padding:11px 14px;}
-    .appbar-spacer{display:none;}
-    .brand{flex:1 1 100%;gap:10px;min-width:0;}
-    .brand .b-sub{display:none;}
-    .brand h1{font-size:17px;}
-    .brand .logo{width:40px;height:40px;font-size:20px;}
-    .who{margin-left:auto;font-size:12px;padding:7px 12px;}
-    .who .plate{display:none;}
-    .btn-logout{padding:8px 13px;flex-shrink:0;}
-    #leafmap{height:400px;}
-    .ctl-actions{width:100%;} .ctl-actions .btn{flex:1;}
-    .tabgroup{width:100%;} .tabgroup button{flex:1;justify-content:center;font-size:12px;padding:9px 8px;}
-    .ab-acts{grid-template-columns:1fr;}
-    .dband{padding:16px;gap:12px;} .dband-name{font-size:17px;}
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sumou Driver - Unified Dual-Theme App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ------------------------------------------------------------
+       1. DUAL THEME COLOR SYSTEM (CSS Variables)
+       ------------------------------------------------------------ */
+    :root {
+      --sans: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+      --display: 'Outfit', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* THEME 1: CYBER-LUXURY DARK */
+    html[data-theme="dark"] {
+      --bg: #090a0f;
+      --card-bg: #10131d;
+      --tile-bg: rgba(18, 22, 33, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(0, 245, 155, 0.4);
+      --txt-main: #f4f4f5;
+      --txt-muted: #8e95a5;
+      --txt-sub: #5b6275;
+      --accent: #00f59b;
+      --accent-glow: rgba(0, 245, 155, 0.25);
+      --accent-bg: rgba(0, 245, 155, 0.12);
+      --btn-duty-start: linear-gradient(135deg, #00f59b 0%, #05c270 100%);
+      --btn-duty-txt: #05140d;
+      --btn-duty-end: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      --badge-bg: rgba(255, 255, 255, 0.06);
+      --badge-txt: #e2e8f0;
+      --theme-toggle-bg: #181c28;
+      --theme-toggle-txt: #f59e0b;
+      --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+    }
+
+    /* THEME 2: SWISS EDITORIAL LIGHT */
+    html[data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --tile-bg: #f8fafc;
+      --border: rgba(15, 23, 42, 0.1);
+      --border-focus: rgba(6, 95, 70, 0.4);
+      --txt-main: #0f172a;
+      --txt-muted: #64748b;
+      --txt-sub: #94a3b8;
+      --accent: #065f46;
+      --accent-glow: rgba(6, 95, 70, 0.15);
+      --accent-bg: #e6f4ea;
+      --btn-duty-start: #0f172a;
+      --btn-duty-txt: #ffffff;
+      --btn-duty-end: #dc2626;
+      --badge-bg: #e2e8f0;
+      --badge-txt: #1e293b;
+      --theme-toggle-bg: #e2e8f0;
+      --theme-toggle-txt: #475569;
+      --shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.08);
+    }
+
+    /* ------------------------------------------------------------
+       2. ZERO-SCROLL 1-SCREEN VIEWPORT LAYOUT
+       ------------------------------------------------------------ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* 100% Zero-scroll fit */
+      background: var(--bg);
+      color: var(--txt-main);
+      font-family: var(--sans);
+      transition: background-color 0.25s ease, color 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2.2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    /* TOP HEADER */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .brand-logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      display: grid;
+      place-items: center;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+    .brand-title {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 14px;
+      line-height: 1.1;
+    }
+    .brand-badge {
+      font-family: var(--mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-bg);
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    .veh-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 10.5px;
+      color: var(--txt-muted);
+    }
+    .plate-val {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: var(--txt-main);
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* THEME SWITCHER BUTTON */
+    .theme-toggle-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--theme-toggle-bg);
+      color: var(--theme-toggle-txt);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: var(--transition);
+    }
+    .theme-toggle-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px 3px 4px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .user-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: var(--transition);
+    }
+    .status-dot.active {
+      background: #00f59b;
+      box-shadow: 0 0 8px #00f59b;
+    }
+
+    /* PLATFORM SELECTOR */
+    .dispatch-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 7px 0 6px;
+    }
+    .dispatch-label {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--txt-sub);
+    }
+    .platform-pills {
+      display: flex;
+      gap: 4px;
+    }
+    .platform-btn {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--tile-bg);
+      color: var(--txt-muted);
+      transition: var(--transition);
+    }
+    .platform-btn.active {
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      border-color: transparent;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* MAIN COCKPIT BOX */
+    .cockpit-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .cockpit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cockpit-tile {
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .cockpit-tile:hover {
+      border-color: var(--border-focus);
+    }
+    .tile-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tile-val {
+      font-family: var(--mono);
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--txt-main);
+      margin-top: 3px;
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+    .tile-val small {
+      font-size: 10px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .tile-sub {
+      font-size: 9.5px;
+      color: var(--txt-sub);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .timer-strip {
+      margin-top: 8px;
+      padding: 5px 10px;
+      background: var(--accent-bg);
+      border: 1px solid var(--border-focus);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* TACTILE DUTY CTA */
+    .btn-duty {
+      width: 100%;
+      height: 42px;
+      margin-top: 8px;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 13.5px;
+      letter-spacing: 0.4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    .btn-duty:active {
+      transform: scale(0.98);
+    }
+    .btn-duty.on-shift {
+      background: var(--btn-duty-end) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    }
+
+    /* TELEMETRY ROW */
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--txt-sub);
+      margin: 8px 2px 4px;
+      font-weight: 700;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 7px 5px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-label {
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      font-weight: 600;
+    }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--txt-main);
+      margin-top: 1px;
+    }
+    .stat-num span {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--txt-muted);
+    }
+
+    .actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .btn-action {
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--txt-main);
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-action:hover {
+      border-color: var(--border-focus);
+    }
+    .btn-action.fuel {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border-color: var(--border-focus);
+    }
+
+    /* RECENT SHIFT DRAWER */
+    .recent-strip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-top: 7px;
+    }
+    .recent-header {
+      width: 100%;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-family: var(--sans);
+    }
+    .recent-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    .recent-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .recent-metrics {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .recent-km {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .recent-badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--badge-bg);
+      color: var(--badge-txt);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .recent-body {
+      display: none;
+      padding: 6px 10px 8px;
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      line-height: 1.6;
+    }
+    .recent-body.open {
+      display: block;
+    }
+    .recent-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .recent-row b {
+      color: var(--txt-main);
+    }
+
+    /* TOAST */
+    .toast {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      opacity: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--accent);
+      color: var(--txt-main);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
 </head>
 <body>
-<div id="app"><div class="loading"><div><div class="spin"></div>Connecting to Sumou Fleet…</div></div></div>
-<div class="toast" id="toast"></div>
-<script>
-/* ============================================================
-   SUMOU FLEET — Supabase backend + real GPS + live tracking
-   ============================================================ */
-const SUPABASE_URL="https://yuxklzcdqorzlqagvyql.supabase.co";
-const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1eGtsemNkcW9yemxxYWd2eXFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NjA0MDIsImV4cCI6MjEwNTEzNjQwMn0.0Jn2LUj8SoGEVV-3B-pN-IAOE9tArf4k02r-gU8wzhw";
-const ADMIN_PASSCODE="9999";
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-/* native background-GPS bridge (only exists inside the Android/Capacitor app) */
-const isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
-let BGGeo=null;
-try{if(isNativeApp&&window.Capacitor.registerPlugin){BGGeo=window.Capacitor.registerPlugin("BackgroundGeolocation");}}catch(e){}
+<div class="app-viewport">
+  <div id="toast" class="toast">Duty Status Updated</div>
 
-const HUBS=[
-  {name:"Kuwait City Delivery Hub – Sharq",addr:"Ahmad Al Jaber Street, Sharq, Kuwait City",lat:29.3798,lng:47.9860},
-  {name:"Shuwaikh Industrial Logistics Center",addr:"Street 10, Shuwaikh Industrial Area, Kuwait",lat:29.3416,lng:47.9364},
-  {name:"Salmiya Commercial Depot",addr:"Salem Al Mubarak Street, Salmiya, Kuwait",lat:29.3332,lng:48.0766},
-  {name:"Hawally Delivery Ring Point",addr:"Tunis Street, Hawally, Kuwait",lat:29.3400,lng:48.0100},
-  {name:"Farwaniya Central Logistics Point",addr:"Habib Munawer St, Farwaniya, Kuwait",lat:29.2800,lng:47.9600},
-  {name:"Mahboula & Fahaheel Coastal Hub",addr:"Coastal Road, Mahboula, Kuwait",lat:29.1400,lng:48.1300},
-];
-const PLATFORMS=["Talabat","Keeta"];
-const STATIONS=["KNPC Petrol Station (Kuwait National Petroleum)","Q8 Fuel Station","Al-Soor Fuel & Gas","Independent Station"];
-const PAYMENTS=["Fleet Fuel Card (Company)","Company Cash Advance","Driver Personal (Reimburse)"];
-const FUEL_TYPES=[{label:"91 Petrol / Mumtaz",price:0.085},{label:"95 Petrol / Ultra",price:0.105},{label:"98 Petrol / Super",price:0.165},{label:"Diesel",price:0.115}];
-
-const state={screen:"landing",role:"driver",adminTab:"map",driverId:null,ready:false,
-  drivers:[],shifts:[],kmRecords:[],fuelRecords:[],
-  filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{}};
-
-/* ---------- session persistence (stay logged in across refresh) ---------- */
-const SESSION_KEY="sumou_session_v1";
-function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
-function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
-function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
-function isAdminGate(){return /admin/i.test((location.hash||"")+(location.search||""));}
-const digitsOnly=s=>(s||"").replace(/\D/g,"");
-
-const $=s=>document.querySelector(s);
-const app=$("#app");
-const money=n=>Number(n||0).toFixed(3);
-const km=n=>Number(n||0).toLocaleString("en-US");
-const initials=n=>(n||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
-const nowTime=()=>new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:true}).toLowerCase();
-const today=()=>new Date().toISOString().slice(0,10);
-const fmtDate=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
-function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
-
-/* ---------- DB <-> app mappers ---------- */
-const mapDriver=r=>({id:r.id,name:r.name,phone:r.phone,pin:r.pin,plate:r.plate,model:r.model,platforms:r.platforms||[]});
-const mapShift=r=>({id:r.id,driverId:r.driver_id,platform:r.platform,date:r.date,status:r.status,
-  startOdo:r.start_odo,endOdo:r.end_odo,distance:r.distance,trips:r.trips,
-  loginTime:r.login_time,loginPlace:r.login_place,loginAddr:r.login_addr,loginLat:r.login_lat,loginLng:r.login_lng,
-  logoutTime:r.logout_time,logoutPlace:r.logout_place,logoutAddr:r.logout_addr,logoutLat:r.logout_lat,logoutLng:r.logout_lng,
-  duration:r.duration,preNote:r.pre_note,summary:r.summary,
-  liveLat:r.live_lat,liveLng:r.live_lng,speed:r.speed,lastPing:r.live_time,
-  startedAt:r.started_at?new Date(r.started_at).getTime():Date.now()});
-const mapKm=r=>({id:r.id,driverId:r.driver_id,plate:r.plate,platform:r.platform,date:r.date,startOdo:r.start_odo,endOdo:r.end_odo,distance:r.distance,trips:r.trips,note:r.note});
-const mapFuel=r=>({id:r.id,driverId:r.driver_id,plate:r.plate,station:r.station,payment:r.payment,fuelType:r.fuel_type,price:r.price,liters:r.liters,cost:r.cost,odo:r.odo,receipt:r.receipt,place:r.place,lat:r.lat,lng:r.lng,note:r.note,date:r.date,time:r.time});
-
-/* ---------- derived ---------- */
-const driverById=id=>state.drivers.find(d=>d.id===id);
-const driverShifts=id=>state.shifts.filter(s=>s.driverId===id);
-const activeShift=id=>state.shifts.find(s=>s.driverId===id&&s.status==="ACTIVE");
-const driverLifetimeKm=id=>state.kmRecords.filter(r=>r.driverId===id).reduce((a,r)=>a+(r.distance||0),0);
-function lastOdometer(id){const s=driverShifts(id).filter(x=>x.endOdo!=null).sort((a,b)=>b.startedAt-a.startedAt)[0];return s?s.endOdo:30000;}
-const totalFleetKm=()=>state.kmRecords.reduce((a,r)=>a+(r.distance||0),0);
-const totalFuelKwd=()=>state.fuelRecords.reduce((a,f)=>a+(f.cost||0),0);
-const totalLiters=()=>state.fuelRecords.reduce((a,f)=>a+(f.liters||0),0);
-const activeCount=()=>state.drivers.filter(d=>activeShift(d.id)).length;
-const onDutyShifts=()=>state.shifts.filter(s=>s.status==="ACTIVE");
-
-/* ============================================================ DATA LAYER ============================================================ */
-async function loadAll(){
-  const [d,s,k,f]=await Promise.all([
-    sb.from("drivers").select("*").order("created_at"),
-    sb.from("shifts").select("*").order("created_at"),
-    sb.from("km_records").select("*").order("created_at"),
-    sb.from("fuel_records").select("*").order("created_at"),
-  ]);
-  if(d.error||s.error||k.error||f.error){console.error(d.error||s.error||k.error||f.error);throw (d.error||s.error||k.error||f.error);}
-  state.drivers=(d.data||[]).map(mapDriver);
-  state.shifts=(s.data||[]).map(mapShift);
-  state.kmRecords=(k.data||[]).map(mapKm);
-  state.fuelRecords=(f.data||[]).map(mapFuel);
-}
-function subscribeRealtime(){
-  sb.channel("sumou-live")
-    .on("postgres_changes",{event:"*",schema:"public"},onRealtime)
-    .subscribe();
-}
-function applyChange(table,ev,nw,oldRow){
-  const cfg={drivers:["drivers",mapDriver],shifts:["shifts",mapShift],km_records:["kmRecords",mapKm],fuel_records:["fuelRecords",mapFuel]}[table];
-  if(!cfg)return;const [arrName,mapper]=cfg;const arr=state[arrName];
-  if(ev==="DELETE"){const id=oldRow&&oldRow.id;const i=arr.findIndex(x=>x.id===id);if(i>=0)arr.splice(i,1);return;}
-  const row=mapper(nw);const i=arr.findIndex(x=>x.id===row.id);if(i>=0)arr[i]=row;else arr.push(row);
-}
-let renderT=null;
-function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(()=>{
-  if($("#overlay"))return;const ae=document.activeElement;
-  if(ae&&["INPUT","SELECT","TEXTAREA"].includes(ae.tagName))return;render();},450);}
-function onRealtime(p){
-  applyChange(p.table,p.eventType,p.new,p.old);
-  const liveMove=p.table==="shifts"&&p.eventType==="UPDATE"&&p.new&&p.new.status==="ACTIVE"&&p.old&&p.old.status==="ACTIVE";
-  if(state.screen==="admin"&&state.adminTab==="map"&&liveMove){refreshLiveMarkers();return;}
-  scheduleRender();
-}
-
-/* ============================================================ GPS ============================================================ */
-async function reverseGeocode(lat,lng){
-  try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lng}`,{headers:{"Accept":"application/json"}});
-    const j=await r.json();const a=j.address||{};
-    const place=a.neighbourhood||a.suburb||a.city_district||a.quarter||a.road||a.city||a.town||a.village||j.name||"Current Location";
-    const city=a.city||a.town||a.state||"Kuwait";
-    return {place,addr:j.display_name?j.display_name.split(",").slice(0,3).join(", "):`${place}, ${city}`};
-  }catch(e){return {place:"Current Location",addr:`${(+lat).toFixed(5)}, ${(+lng).toFixed(5)}`};}
-}
-function detectGps(kind){
-  if(!navigator.geolocation){toast("GPS not supported on this device — pick a Hub");return;}
-  toast("📡 Getting your GPS location…");
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    const {latitude:lat,longitude:lng,accuracy}=pos.coords;
-    const g=await reverseGeocode(lat,lng);
-    state.gps[kind]={place:g.place,addr:g.addr,lat:+lat.toFixed(5),lng:+lng.toFixed(5),acc:Math.max(1,Math.round(accuracy||15)),time:nowTime()};
-    refreshGps(kind);toast("✓ GPS locked");
-  },err=>{toast(err.code===1?"GPS permission denied — allow location or pick a Hub":"Couldn't get GPS — pick a Hub");},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
-}
-function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime()};refreshGps(kind);toast("Hub location set ✓");}
-function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);}
-
-/* live position streaming while on duty — writes every 7s even if stationary */
-let watchId=null,liveHb=null,lastGeo=null,lastPos=null,bgWatcherId=null;
-function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
-async function writeLive(shiftId,lat,lng){
-  let kmh=0;
-  if(lastPos){const dist=haversine(lastPos.lat,lastPos.lng,lat,lng);const dt=(Date.now()-lastPos.t)/1000;if(dt>0)kmh=Math.round((dist/dt)*3.6);}
-  lastPos={lat,lng,t:Date.now()};
-  try{await sb.from("shifts").update({live_lat:+lat.toFixed(5),live_lng:+lng.toFixed(5),speed:kmh,live_time:nowTime()}).eq("id",shiftId);}catch(e){}
-}
-function startLiveWatch(shiftId){
-  stopLiveWatch();
-  if(BGGeo){ // native app: true background tracking (screen off / app minimised)
-    BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:8},
-      (location,error)=>{if(error)return;if(location)writeLive(shiftId,location.latitude,location.longitude);})
-      .then(id=>{bgWatcherId=id;}).catch(()=>startWebWatch(shiftId));
-    return;
-  }
-  startWebWatch(shiftId);
-}
-function startWebWatch(shiftId){ // browser fallback (needs app open + screen on)
-  if(!navigator.geolocation){toast("This device can't share GPS.");return;}
-  acquireWake();
-  const opts={enableHighAccuracy:true,maximumAge:0,timeout:15000};
-  navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);
-  watchId=navigator.geolocation.watchPosition(p=>{lastGeo={lat:p.coords.latitude,lng:p.coords.longitude};},e=>{},opts);
-  liveHb=setInterval(()=>{
-    if(lastGeo){writeLive(shiftId,lastGeo.lat,lastGeo.lng);}
-    else navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);
-  },7000);
-}
-function stopLiveWatch(){
-  if(BGGeo&&bgWatcherId){try{BGGeo.removeWatcher({id:bgWatcherId});}catch(e){}bgWatcherId=null;}
-  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
-  if(liveHb){clearInterval(liveHb);liveHb=null;}lastGeo=null;lastPos=null;releaseWake();}
-
-/* admin polling — refresh live driver positions every 5s (works even if realtime is off) */
-let adminPoll=null;
-function startAdminPoll(){stopAdminPoll();adminPoll=setInterval(async()=>{
-  if(state.screen!=="admin")return;
-  try{const {data}=await sb.from("shifts").select("*").eq("status","ACTIVE");
-    if(data){data.forEach(r=>{const ms=mapShift(r);const i=state.shifts.findIndex(x=>x.id===ms.id);if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);});
-      if(state.adminTab==="map")refreshLiveMarkers();}
-  }catch(e){}
-},5000);}
-function stopAdminPoll(){if(adminPoll){clearInterval(adminPoll);adminPoll=null;}}
-
-/* keep the driver's screen awake while on duty so GPS keeps streaming */
-let wakeLock=null;
-async function acquireWake(){try{if("wakeLock" in navigator){wakeLock=await navigator.wakeLock.request("screen");}}catch(e){}}
-function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
-document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible"&&state.screen==="driver"){
-    const sh=activeShift(state.driverId);
-    if(sh){acquireWake();if(lastGeo)writeLive(sh.id,lastGeo.lat,lastGeo.lng);}
-  }
-});
-
-/* ============================================================ ROUTER ============================================================ */
-function render(){
-  teardownMap();
-  if(!state.ready){return;}
-  if(state.screen==="landing")app.innerHTML=viewLanding();
-  else if(state.screen==="admin")app.innerHTML=viewAdmin();
-  else if(state.screen==="driver")app.innerHTML=viewDriver();
-  postRender();
-}
-let timerInt=null;
-function postRender(){
-  if(timerInt){clearInterval(timerInt);timerInt=null;}
-  if(state.screen==="driver"){
-    const sh=activeShift(state.driverId);
-    if(sh){timerInt=setInterval(()=>{const el=$("#liveTimer");if(!el)return;const m=Math.floor((Date.now()-sh.startedAt)/60000);el.textContent=`${Math.floor(m/60)}h ${m%60}m`;},1000);
-      startLiveWatch(sh.id);} else stopLiveWatch();
-  } else stopLiveWatch();
-  if(state.screen==="admin"){if(state.adminTab==="map")mountMap();startAdminPoll();} else stopAdminPoll();
-}
-
-/* ---------- APP BAR ---------- */
-function appbarDriver(d){return `<div class="appbar"><div class="appbar-in">
-    <div class="brand"><div class="logo">🚚</div><div><div class="b-title"><h1>SUMOU</h1><span class="app-badge driver">Driver App</span></div><div class="b-sub">Driver: ${d.name}</div></div></div>
-    <div class="appbar-spacer"></div>
-    <div class="who"><span class="gdot"></span>${d.name} <span class="plate">(${d.plate})</span></div>
-    <button class="btn-logout theme-toggle" data-act="toggleTheme" title="Switch theme"><span class="ic-moon">🌙</span><span class="ic-sun">☀️</span></button>
-    <button class="btn-logout" data-act="logout">⎋ <span class="lotext">Log Out</span></button></div></div>`;}
-function appbarAdmin(){return `<div class="appbar"><div class="appbar-in">
-    <div class="brand"><div class="logo">🚚</div><div><div class="b-title"><h1>SUMOU</h1><span class="app-badge admin">Admin Portal</span></div><div class="b-sub">Fleet Operations & Driver Locations</div></div></div>
-    <div class="appbar-spacer"></div>
-    <div class="hstats"><span><span class="gdot"></span>Active On-Duty: <b>${activeCount()} drivers</b></span><span class="sep"></span><span>⏱ Today's Fleet KMs: <b>${km(totalFleetKm())} KM</b></span></div>
-    <button class="btn-logout theme-toggle" data-act="toggleTheme" title="Switch theme"><span class="ic-moon">🌙</span><span class="ic-sun">☀️</span></button>
-    <button class="btn-logout" data-act="logout">⎋ <span class="lotext">Log Out</span></button></div></div>`;}
-
-/* ---------- LANDING (separate gates) ---------- */
-function viewLanding(){return isAdminGate()?landingAdmin():landingDriver();}
-function landingDriver(){
-  return `<div class="wrap"><div class="land">
-    <div class="land-hero"><div class="logo">🚚</div><h1>SUMOU FLEET</h1><p>Driver Duty & GPS Check-in</p></div>
-    <div class="card pad">
-      <div style="text-align:center;margin-bottom:14px"><div style="font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px">👤 Driver Sign In</div>
-        <div style="font-size:12.5px;color:var(--ink2);margin-top:4px">Enter your phone number and 4-digit PIN</div></div>
-      <label class="fld">Phone Number:</label><input id="dlPhone" inputmode="tel" placeholder="e.g. 5123 4567" />
-      <label class="fld" style="margin-top:14px">Security PIN:</label><input id="dlPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" />
-      <button class="btn btn-primary btn-lg" style="margin-top:16px" data-act="driverLogin">Sign In as Driver →</button>
-      ${state.drivers.length?"":`<div class="note" style="margin-top:16px">No driver accounts exist yet. Please ask your fleet admin to create your account.</div>`}
+  <!-- 1. Header with Moon/Sun Theme Toggle -->
+  <header class="top-bar">
+    <div class="brand-group">
+      <div class="brand-logo">S</div>
+      <div>
+        <div class="brand-title">SUMOU</div>
+        <div class="brand-badge">DRIVER v2.5</div>
+      </div>
     </div>
-    <div style="text-align:center;margin-top:16px;font-size:11.5px;color:var(--muted)">Fleet admin? Open the admin link you were given.</div>
-  </div></div>`;
-}
-function landingAdmin(){
-  return `<div class="wrap"><div class="land">
-    <div class="land-hero"><div class="logo">🛡️</div><h1>SUMOU FLEET</h1><p>Admin Portal — Fleet Operations</p></div>
-    <div class="card pad">
-      <div class="note admin">🛡️ <b>Fleet Administration:</b> Manage drivers, view the live driver map, and oversee daily KM & fuel audits.</div>
-      <label class="fld">Admin Passcode:</label><input id="adminPass" type="password" placeholder="Enter admin passcode" />
-      <button class="btn btn-dark btn-lg" style="margin-top:14px" data-act="adminLogin">🛡️ Sign In to Admin Portal</button>
-    </div></div></div>`;
-}
 
-/* ============================================================ ADMIN ============================================================ */
-function viewAdmin(){return `${appbarAdmin()}<div class="wrap">${adminKpis()}
-  <div class="card pad controls"><div class="ctl-row"><div class="tabgroup">
-      ${atab("map","📍 Interactive Map View")}${atab("logs","🧭 Login & Logout Logs",state.shifts.length)}
-      ${atab("km","📊 Daily KM Records")}${atab("fuel","⛽ Fuel Refill Audits",state.fuelRecords.length)}${atab("drivers","👥 Drivers & Vehicles",state.drivers.length)}</div>
-    <div class="ctl-actions"><button class="btn btn-red-o" data-act="clearData">🗑️ Clear Test Data</button>
-      <button class="btn btn-outline" data-act="exportCsv">⬇️ Export CSV</button><button class="btn btn-primary" data-act="openAddDriver">＋ Add Driver</button></div></div>
-    <div class="ctl-filters"><div class="search"><span class="si">🔍</span><input id="fSearch" placeholder="Search driver, plate, or place..." value="${state.filters.search}"/></div>
-      <select id="fDriver"><option value="all">All Drivers (${state.drivers.length})</option>${state.drivers.map(d=>`<option value="${d.id}" ${state.filters.driver===d.id?"selected":""}>${d.name}</option>`).join("")}</select>
-      <select id="fPlatform"><option value="all">All Online Platforms</option>${PLATFORMS.map(p=>`<option ${state.filters.platform===p?"selected":""}>${p}</option>`).join("")}</select>
-      <select id="fStatus"><option value="all">All Shift Statuses</option><option ${state.filters.status==="ACTIVE"?"selected":""}>ACTIVE</option><option ${state.filters.status==="COMPLETED"?"selected":""}>COMPLETED</option></select></div></div>
-  <div id="adminSection">${adminSection()}</div>${footer()}</div>`;}
-function atab(id,label,c){return `<button class="${state.adminTab===id?"active":""}" data-tab="${id}">${label}${c!=null?` <span class="ct">(${c})</span>`:""}</button>`;}
-function adminKpis(){return `<div class="kpis">
-  <div class="kpi"><div class="kpi-top"><span class="kpi-label">Active On Duty</span><span class="kpi-ic ic-green">〰️</span></div><div class="kpi-num">${activeCount()} <small>/ ${state.drivers.length} drivers</small></div><div class="kpi-sub green">Currently logged in & delivering</div></div>
-  <div class="kpi"><div class="kpi-top"><span class="kpi-label">Total Fleet KMs</span><span class="kpi-ic ic-blue">🚗</span></div><div class="kpi-num">${km(totalFleetKm())} <small>KM</small></div><div class="kpi-sub">Across all online platforms</div></div>
-  <div class="kpi"><div class="kpi-top"><span class="kpi-label">Fuel Spend</span><span class="kpi-ic ic-amber">⛽</span></div><div class="kpi-num">${money(totalFuelKwd())} <small>KWD</small></div><div class="kpi-sub">${totalLiters().toFixed(1)} Liters total pumped</div></div>
-  <div class="kpi"><div class="kpi-top"><span class="kpi-label">Shifts & Locations</span><span class="kpi-ic ic-violet">📍</span></div><div class="kpi-num">${state.shifts.length} <small>Records</small></div><div class="kpi-sub violet">GPS login & logout points stored</div></div></div>`;}
-function passFilter(sh){const f=state.filters,d=driverById(sh.driverId);
-  if(f.driver!=="all"&&sh.driverId!==f.driver)return false;
-  if(f.platform!=="all"&&sh.platform!==f.platform)return false;
-  if(f.status!=="all"&&sh.status!==f.status)return false;
-  if(f.search){const q=f.search.toLowerCase();if(!`${d?.name} ${d?.plate} ${sh.loginPlace} ${sh.logoutPlace||""}`.toLowerCase().includes(q))return false;}return true;}
-function adminSection(){return {map:secMap,logs:secLogs,km:secKm,fuel:secFuel,drivers:secDrivers}[state.adminTab]();}
-function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?mountMap():teardownMap();}
+    <div class="veh-pill">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-4H7l-2 4v5zM5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+      <span>Toyota</span>
+      <span class="plate-val">546413</span>
+    </div>
 
-function livePanelInner(){
-  const live=onDutyShifts().filter(passFilter);
-  const rows=live.map(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;
-    return `<div class="live-row"><div class="av">${initials(d?.name)}</div>
-      <div class="lr-m"><div class="lr-name">${d?.name||"Driver"} <span class="tag-plate">${d?.plate||""}</span> <span class="chip-plat">${s.platform}</span></div>
-        <div class="lr-sub">📍 ${lat!=null?(+lat).toFixed(5):"—"}, ${lng!=null?(+lng).toFixed(5):"—"} · <span class="spd">${s.speed?s.speed+" km/h":"awaiting GPS…"}</span></div></div>
-      <div class="lr-r"><span class="livedot">LIVE</span><div class="lr-time">ping ${s.lastPing||s.loginTime}</div><button class="lr-loc" data-map="${lat},${lng}">Locate ↗</button></div></div>`;}).join("");
-  return `<div class="live-head"><div class="sec-head" style="margin:0"><div><h3>🛰️ Live Driver Tracking</h3><p>Real-time GPS position of every driver currently on duty. Updates automatically.</p></div></div>
-    <span class="badge-count" style="${live.length?'color:var(--green-ink);border-color:#cdeede;background:var(--green-tint)':''}">${live.length} on duty</span></div>
-    ${live.length?rows:`<div class="live-empty">No drivers on duty right now. When a driver logs in and starts duty, their live location streams here and moves on the map below.</div>`}`;
-}
-function secMap(){return `<div class="card pad" style="margin-top:16px"><div id="livePanel">${livePanelInner()}</div></div>
-  <div class="card pad" style="margin-top:16px"><div class="sec-head"><div><h3><span class="sec-ic">📍</span> Driver Login & Logout Location Map</h3>
-    <p>Click any green marker for duty start, red for logout, blue pulse = live driver position.</p></div>
-    <span class="badge-count">Filtered: ${state.shifts.filter(passFilter).length} shift locations</span></div>
-    <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login Spot</span><span class="sep"></span>
-      <span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout Spot</span><span class="sep"></span>
-      <span class="lg"><span class="lgd" style="background:var(--blue)"></span>Live Driver</span></div><div id="leafmap"></div></div></div>`;}
-let liveMarkers={},LMAP=null;
-function pinIcon(kind){const inner=kind==="live"?`<span class="ring"></span><span>●</span>`:`<span>${kind==="in"?"⇥":"⇤"}</span>`;
-  return L.divIcon({className:"",html:`<div class="mpin ${kind}">${inner}</div>`,iconSize:[34,34],iconAnchor:[17,kind==="live"?17:32]});}
-function teardownMap(){if(LMAP){try{LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};}}
-function mountMap(){
-  const el=$("#leafmap");if(!el)return;
-  if(typeof L==="undefined"){el.innerHTML=`<div style="height:100%;display:grid;place-items:center;background:var(--soft);border-radius:12px;color:var(--ink2);font-size:13px;text-align:center;padding:20px">🗺️ Map is loading… check internet (map uses OpenStreetMap).</div>`;return;}
-  teardownMap();
-  LMAP=L.map(el,{scrollWheelZoom:true}).setView([29.32,47.98],11);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
-  const bounds=[];
-  state.shifts.filter(passFilter).forEach(s=>{
-    if(s.loginLat!=null){L.marker([s.loginLat,s.loginLng],{icon:pinIcon("in")}).addTo(LMAP).bindPopup(`<b>Login</b><br>${s.loginPlace||""}`);bounds.push([s.loginLat,s.loginLng]);}
-    if(s.logoutLat!=null){L.marker([s.logoutLat,s.logoutLng],{icon:pinIcon("out")}).addTo(LMAP).bindPopup(`<b>Logout</b><br>${s.logoutPlace||""}`);bounds.push([s.logoutLat,s.logoutLng]);
-      if(s.loginLat!=null)L.polyline([[s.loginLat,s.loginLng],[s.logoutLat,s.logoutLng]],{color:"#3b82f6",weight:2,dashArray:"6 7",opacity:.7}).addTo(LMAP);}
+    <div class="controls-group">
+      <!-- Theme Switcher Button -->
+      <button id="themeToggle" class="theme-toggle-btn" title="Switch Theme">
+        <svg id="themeIcon" class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+      </button>
+
+      <div class="user-pill">
+        <div class="user-avatar">H</div>
+        <span id="userName">hardik</span>
+        <div id="dutyDot" class="status-dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Platform Dispatch Strip -->
+  <div class="dispatch-strip">
+    <span class="dispatch-label">Active Platform</span>
+    <div class="platform-pills">
+      <button class="platform-btn active" onclick="setPlatform('Talabat')">Talabat</button>
+      <button class="platform-btn" onclick="setPlatform('Keeta')">Keeta</button>
+      <button class="platform-btn" onclick="setPlatform('Deliveroo')">Deliveroo</button>
+      <button class="platform-btn" onclick="setPlatform('Jahez')">Jahez</button>
+    </div>
+  </div>
+
+  <!-- 3. Side-by-Side Cockpit Box (Odometer + GPS) -->
+  <div class="cockpit-card">
+    <div class="cockpit-grid">
+      <!-- Odometer Tile -->
+      <div class="cockpit-tile" onclick="promptOdometer()">
+        <div class="tile-head">
+          <span>Odometer</span>
+          <span>Edit ✎</span>
+        </div>
+        <div class="tile-val">
+          <span id="odoVal">30,085</span>
+          <small>KM</small>
+        </div>
+        <div class="tile-sub">Shift Origin 30,000 KM</div>
+      </div>
+
+      <!-- GPS Geofence Tile -->
+      <div class="cockpit-tile" onclick="detectGps()">
+        <div class="tile-head">
+          <span>GPS Geofence</span>
+          <span id="gpsRefreshIcon">↻</span>
+        </div>
+        <div class="tile-val" style="font-size: 13px; font-weight: 700; margin-top: 4px;">
+          <span id="gpsLabel">Shuwaikh Ind. 3</span>
+        </div>
+        <div class="tile-sub" id="gpsSub">±12m Precision · Gate 4</div>
+      </div>
+    </div>
+
+    <!-- Live Shift Timer -->
+    <div id="timerStrip" class="timer-strip" style="display: none;">
+      <span>● SHIFT RUNNING</span>
+      <span id="shiftTimer">00:00:00</span>
+    </div>
+
+    <!-- Primary Duty Action Button -->
+    <button id="dutyBtn" class="btn-duty" onclick="toggleDuty()">
+      <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span id="dutyBtnText">START DUTY SHIFT</span>
+    </button>
+  </div>
+
+  <!-- 4. Today's Telemetry Metrics -->
+  <div>
+    <div class="section-head">
+      <span>Shift Telemetry (Today)</span>
+      <span id="dateStr">16 Sep</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Distance</div>
+        <div class="stat-num" id="distKm">85 <span>km</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Shifts</div>
+        <div class="stat-num" id="shiftCount">1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Fuel</div>
+        <div class="stat-num" id="fuelKwd">0 <span>kwd</span></div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn-action" onclick="promptOdometer()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        + Post KM
+      </button>
+      <button class="btn-action fuel" onclick="promptFuel()">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 22h12M4 9h10M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></svg>
+        + Log Fuel
+      </button>
+    </div>
+  </div>
+
+  <!-- 5. Collapsible Recent Shift Strip -->
+  <div class="recent-strip">
+    <button class="recent-header" onclick="toggleShiftDrawer()">
+      <div class="recent-title">
+        <div class="recent-dot"></div>
+        <span>Last Shift: Talabat</span>
+      </div>
+      <div class="recent-metrics">
+        <span class="recent-km">+85 KM</span>
+        <span class="recent-badge">12 drops</span>
+        <span id="drawerArrow">▾</span>
+      </div>
+    </button>
+    <div id="shiftDrawer" class="recent-body">
+      <div class="recent-row">
+        <span>Start: Shuwaikh 3 (16:39)</span>
+        <b>30,000 KM</b>
+      </div>
+      <div class="recent-row">
+        <span>End: Mirqab Block 2 (23:22)</span>
+        <b>30,085 KM</b>
+      </div>
+      <div class="recent-row" style="margin-top: 2px;">
+        <span>Platform: Talabat · 6h 43m</span>
+        <b style="color: var(--accent)">COMPLETED</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentTheme = localStorage.getItem('sumou_theme') || 'dark';
+  let isDutyActive = false;
+  let odo = 30085;
+  let distanceKm = 85;
+  let shifts = 1;
+  let fuelKwd = 0;
+  let selectedPlatform = 'Talabat';
+  let shiftSeconds = 0;
+  let timerInterval = null;
+
+  const htmlEl = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const dutyBtn = document.getElementById('dutyBtn');
+  const dutyBtnText = document.getElementById('dutyBtnText');
+  const dutyDot = document.getElementById('dutyDot');
+  const timerStrip = document.getElementById('timerStrip');
+  const shiftTimer = document.getElementById('shiftTimer');
+  const toast = document.getElementById('toast');
+  const shiftDrawer = document.getElementById('shiftDrawer');
+  const drawerArrow = document.getElementById('drawerArrow');
+
+  function applyTheme(theme) {
+    htmlEl.setAttribute('data-theme', theme);
+    currentTheme = theme;
+    localStorage.setItem('sumou_theme', theme);
+    if (theme === 'dark') {
+      themeIcon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>';
+      themeToggle.setAttribute('title', 'Switch to Swiss Editorial Light');
+    } else {
+      themeIcon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+      themeToggle.setAttribute('title', 'Switch to Cyber-Luxury Dark');
+    }
+  }
+
+  themeToggle.addEventListener('click', () => {
+    const next = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    showToast(next === 'dark' ? 'Switched to Cyber-Luxury Dark' : 'Switched to Swiss Editorial Light');
   });
-  onDutyShifts().filter(passFilter).forEach(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;if(lat==null)return;
-    const m=L.marker([lat,lng],{icon:pinIcon("live"),zIndexOffset:1000}).addTo(LMAP).bindPopup(`<b>${d?.name||"Driver"}</b><br>Live · ${s.speed||0} km/h`);liveMarkers[s.id]=m;bounds.push([lat,lng]);});
-  if(bounds.length)LMAP.fitBounds(bounds,{padding:[50,50],maxZoom:14});
-  setTimeout(()=>{if(LMAP)LMAP.invalidateSize();},60);
-}
-function refreshLiveMarkers(){
-  const lp=$("#livePanel");if(lp)lp.innerHTML=livePanelInner();
-  if(!LMAP)return;
-  onDutyShifts().forEach(s=>{const m=liveMarkers[s.id];if(m&&s.liveLat!=null)m.setLatLng([s.liveLat,s.liveLng]);});
-  if(onDutyShifts().some(s=>s.liveLat!=null&&!liveMarkers[s.id]))mountMap();
-}
 
-function secLogs(){
-  const shifts=state.shifts.filter(passFilter).sort((a,b)=>b.startedAt-a.startedAt);
-  const body=shifts.length?shifts.map(s=>{const d=driverById(s.driverId);
-    return `<div class="rec"><div class="rec-head"><div class="rec-title">${s.platform} Shift <span class="tag-plate">${d?.plate||""}</span> <span class="st-badge ${s.status==="ACTIVE"?"st-active":"st-done"}">${s.status}</span></div>
-        <div class="rec-date">📅 ${fmtDate(s.date)} • Duration: <b>${s.duration||"0h 0m"}</b></div></div>
-      <div class="rec-cols"><div class="rsub"><div class="rsub-head in">↗ LOGGED IN AT (${s.loginTime||"—"})</div><div class="rsub-place">${s.loginPlace||"—"}</div><div class="rsub-addr">${s.loginAddr||""}</div><div class="rsub-odo"><span>Start Odometer:</span><b>${km(s.startOdo)} KM</b></div></div>
-        ${s.status==="ACTIVE"?`<div class="rsub"><div class="rsub-head out">↙ LOGOUT PENDING (ON DUTY)</div><div class="rsub-pending">Currently on road. Logout location will be captured when duty ends.</div></div>`
-          :`<div class="rsub"><div class="rsub-head out">↙ LOGGED OUT AT (${s.logoutTime||"—"})</div><div class="rsub-place">${s.logoutPlace||"—"}</div><div class="rsub-addr">${s.logoutAddr||""}</div><div class="rsub-odo"><span>End Odometer:</span><b>${km(s.endOdo)} KM</b></div></div>`}</div>
-      <div class="rec-foot"><span class="dist">Distance: ${s.distance!=null?"+"+s.distance+" KM":"in progress"}</span><span class="trips">Deliveries/Trips: ${s.trips!=null?s.trips:"—"}</span>${s.summary?`<span class="rnote">Note: "${s.summary}"</span>`:""}</div></div>`;}).join(""):emptyBox("No shift logs match your filters.");
-  return `<div class="card pad" style="margin-top:16px"><div class="sec-head"><h3><span class="sec-ic">🧭</span> Driver Shift Duty & Detailed Location Logs</h3><span class="badge-count">Total: ${shifts.length} shifts</span></div>${body}</div>`;
-}
-function secKm(){
-  const recs=state.kmRecords.filter(r=>passFilter({driverId:r.driverId,platform:r.platform,status:"COMPLETED",loginPlace:"",logoutPlace:""})).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  const rows=recs.map(r=>{const d=driverById(r.driverId);return `<tr><td>${fmtDate(r.date)}</td><td style="color:var(--ink);font-weight:600">${d?d.name:"—"}</td><td><span class="tag-plate">${r.plate}</span></td><td><span class="chip-plat">${r.platform}</span></td><td><b>${km(r.startOdo)} KM</b></td><td><b>${r.endOdo!=null?km(r.endOdo)+" KM":"—"}</b></td><td class="td-dist">${r.distance!=null?"+"+r.distance+" KM":"—"}</td><td><b>${r.trips!=null?r.trips:"—"}</b></td></tr>`;}).join("");
-  return `<div class="card pad" style="margin-top:16px"><div class="sec-head"><div><h3><span class="sec-ic">📊</span> Daily Vehicle KM & Odometer Postings</h3><p>Track mileage logs submitted by drivers for online platform assignments.</p></div><button class="btn btn-outline" data-act="exportKm">⬇️ Export KM Report</button></div>
-    ${recs.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Driver</th><th>Plate</th><th>Platform</th><th>Start KM</th><th>End KM</th><th>Distance</th><th>Trips</th></tr></thead><tbody>${rows}</tbody></table></div>`:emptyBox("No KM postings yet.")}</div>`;
-}
-function secFuel(){
-  const recs=state.fuelRecords.filter(r=>{const f=state.filters,d=driverById(r.driverId);if(f.driver!=="all"&&r.driverId!==f.driver)return false;if(f.search&&!`${d?.name} ${r.plate} ${r.station} ${r.place}`.toLowerCase().includes(f.search.toLowerCase()))return false;return true;}).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  const cards=recs.map(r=>{const d=driverById(r.driverId);return `<div class="fuel-card"><div class="fc-top"><div class="fc-ic">⛽</div><div style="flex:1"><div style="font-size:15px;font-weight:700">${r.station}</div><div style="font-size:12.5px;color:var(--ink2);margin-top:2px">📍 ${r.place}</div></div><div style="text-align:right"><div class="fc-cost">${money(r.cost)} KWD</div><div style="font-size:12px;color:var(--ink2)">${r.liters} L of ${r.fuelType} @ ${r.price} KWD/L</div></div></div>
-    <div class="fc-grid"><div>Driver<b style="font-family:var(--sans)">${d?d.name:"—"}</b></div><div>Refuel Odometer<b>${km(r.odo)} KM</b></div><div>Payment<b style="font-family:var(--sans)">${(r.payment||"").split(" (")[0]}</b></div><div>Receipt / Ref #<b>${r.receipt||"—"}</b></div><div>Date & Time<b style="font-family:var(--sans)">${fmtDate(r.date)} ${r.time||""}</b></div><div>Plate<b>${r.plate}</b></div></div>${r.note?`<div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:10px">Note: "${r.note}"</div>`:""}</div>`;}).join("");
-  return `<div class="card pad" style="margin-top:16px"><div class="sec-head"><div><h3><span class="sec-ic">⛽</span> Daily Fuel Refilling Records & Invoices</h3><p>Review petrol station pump logs, liters refilled, and cost calculations.</p></div><span class="badge-count" style="color:var(--green-ink);border-color:#cdeede;background:var(--green-tint)">Total Spend: ${money(totalFuelKwd())} KWD</span></div>${recs.length?cards:emptyBox("No fuel records yet.")}</div>`;
-}
-function secDrivers(){
-  const list=state.drivers.filter(d=>{const f=state.filters;if(f.search&&!`${d.name} ${d.plate} ${d.model}`.toLowerCase().includes(f.search.toLowerCase()))return false;if(f.driver!=="all"&&d.id!==f.driver)return false;return true;});
-  const cards=list.map(d=>{const on=!!activeShift(d.id);return `<div class="ddir"><div class="ddir-h"><div class="robot" style="background:linear-gradient(135deg,#1f5066,#123a4d)">🤖<span class="rd ${on?"on":"off"}"></span></div>
-      <div style="flex:1"><div class="rec-title" style="font-size:16px">${d.name} <span class="st-badge ${on?"st-active":"st-done"}">${on?"ON DUTY":"OFF DUTY"}</span></div>
-        <div style="font-size:12.5px;color:var(--ink2);margin-top:5px">📞 ${d.phone||"—"} • 🚗 ${d.model} <span class="tag-plate">${d.plate}</span></div>
-        <div style="margin-top:8px"><span class="pin-badge">Driver PIN: ${d.pin}</span></div>
-        <div class="dchips" style="margin-top:8px">${(d.platforms||[]).map(p=>`<span class="chip-plat" style="background:#fff;border-color:var(--line2);color:var(--ink2)">${p}</span>`).join("")}</div></div></div>
-      <div class="ddir-foot"><div class="ddir-acts"><button class="btn btn-outline" data-addkm="${d.id}">＋ KM</button><button class="btn btn-green-o" data-addfuel="${d.id}">＋ Fuel</button><button class="btn btn-outline" data-deldriver="${d.id}">🗑️</button></div>
-        <div class="ddir-life">Lifetime Fleet KMs<b>${km(driverLifetimeKm(d.id))} KM</b></div></div></div>`;}).join("");
-  return `<div class="card pad" style="margin-top:16px"><div class="sec-head"><div><h3><span class="sec-ic">👥</span> Sumou Driver Fleet Directory</h3><p>Manage all active fleet drivers and their assigned delivery vehicles.</p></div><button class="btn btn-primary" data-act="openAddDriver">＋ Add Driver</button></div>${list.length?cards:emptyBox("No drivers yet. Add your first driver.")}</div>`;
-}
+  applyTheme(currentTheme);
 
-/* ============================================================ DRIVER ============================================================ */
-function viewDriver(){const d=driverById(state.driverId);if(!d){state.screen="landing";return viewLanding();}const sh=activeShift(d.id);
-  return `${appbarDriver(d)}<div class="wrap"><div class="card dcard"><div class="dband"><div class="robot">🤖<span class="rd ${sh?"on":"off"}"></span></div>
-      <div class="dband-main"><div class="dband-name">${d.name} <span class="pill-status ${sh?"on":"off"}"><span class="d"></span>${sh?"ON DUTY":"OFF DUTY"}</span></div><div class="dband-sub">🚗 ${d.model} <span class="tag-plate">${d.plate}</span> • ${d.phone||""}</div></div>
-      <div class="dchips">${(d.platforms||[]).map(p=>`<span class="chip-plat">${p}</span>`).join("")}</div></div>${sh?dutyActive(d,sh):dutyStart(d)}</div>${driverStats(d)}${driverRecords(d)}${footer()}</div>`;}
-function dutyStart(d){return `<div class="dbody"><h3>➜ Duty Log In & Shift Start</h3><p class="dhint">Record your starting odometer and verified GPS check-in location to begin duty for Sumou Fleet.</p>
-    <div class="grid2"><div><label class="fld"><span class="i">🧾</span> Online Delivery / Ride Platform:</label><select id="dPlatform">${(d.platforms||PLATFORMS).map(p=>`<option>${p}</option>`).join("")}</select><div class="fhint">Select which online platform duty you will be driving for today.</div></div>
-      <div><label class="fld"><span class="i">⏱</span> Starting Vehicle Odometer (KM):</label><div class="num-wrap"><input id="dStartOdo" type="number" value="${lastOdometer(d.id)}" /><span class="suffix">KM</span></div><div class="fhint">Odometer reading on vehicle dashboard before rolling out.</div></div></div>
-    <div id="loginGps">${gpsPickerMini("login")}</div>
-    <label class="fld" style="margin-top:18px"><span class="i">📝</span> Pre-Shift Notes / Vehicle Condition (Optional):</label><input id="dNote" placeholder="e.g. Tires checked, full mobile battery, morning rush shift" />
-    <button class="btn btn-primary btn-lg" style="margin-top:20px" data-act="startDuty">➜ Start Duty (Log In Now)</button></div>`;}
-function dutyActive(d,sh){return `<div class="dbody"><div class="active-box"><div class="ab-head"><div class="ab-clock">🕐</div>
-      <div style="flex:1"><div class="ab-title">Duty Active on ${sh.platform} <span class="ab-timer" id="liveTimer">0h 0m</span></div><div class="ab-meta">Logged in at ${sh.loginTime} on ${fmtDate(sh.date)} · 📡 Live location sharing ON</div></div></div>
-    <div class="ab-acts"><button class="btn btn-outline" data-act="openFuel">⛽ Log Fuel Refill</button><button class="btn btn-outline" data-act="openKm">📊 Post Daily KMs</button></div>
-    <button class="btn btn-primary btn-lg" style="margin-top:10px;background:var(--red);box-shadow:none" data-act="openEndDuty">➜ End Duty (Log Out)</button>
-    <div class="ab-loc"><div class="abl-l">CHECK-IN LOCATION:</div><div class="abl-p">${sh.loginPlace}</div><div class="abl-a">${sh.loginAddr||""}</div><div class="rsub-odo" style="margin-top:12px"><span>Starting Odometer:</span><b>${km(sh.startOdo)} KM</b></div></div></div></div>`;}
-function driverStats(d){const kmv=driverLifetimeKm(d.id);const done=driverShifts(d.id).filter(s=>s.status==="COMPLETED").length;const fuel=state.fuelRecords.filter(f=>f.driverId===d.id);const fk=fuel.reduce((a,f)=>a+(f.cost||0),0),fl=fuel.reduce((a,f)=>a+(f.liters||0),0);
-  return `<div class="dstats"><div class="dstat"><div class="ds-l"><span class="i">⏱</span> Total KMs Logged</div><div class="ds-n">${km(kmv)} <small>KM</small></div><div class="ds-s">Recorded duty shifts</div></div>
-    <div class="dstat"><div class="ds-l"><span class="i">🕐</span> Shifts Completed</div><div class="ds-n">${done}</div><div class="ds-s">Duty check-ins</div></div>
-    <div class="dstat"><div class="ds-l"><span class="i">⛽</span> Fuel Spent</div><div class="ds-n">${money(fk)} <small>KWD</small></div><div class="ds-s">${fl.toFixed(1)} Liters total</div></div>
-    <div class="dstat act"><button class="btn btn-d2" data-addkm="${d.id}">＋ Post Daily KM</button><button class="btn btn-primary" data-addfuel="${d.id}">＋ Log Fuel Refill</button></div></div>`;}
-function driverRecords(d){const shifts=driverShifts(d.id).sort((a,b)=>b.startedAt-a.startedAt);const fuel=state.fuelRecords.filter(f=>f.driverId===d.id);
-  const shiftCards=shifts.length?shifts.map(s=>`<div class="rec"><div class="rec-head"><div class="rec-title">${s.platform} Shift <span class="tag-plate">${d.plate}</span> <span class="st-badge ${s.status==="ACTIVE"?"st-active":"st-done"}">${s.status}</span></div><div class="rec-date">📅 ${fmtDate(s.date)} • Duration: <b>${s.duration||"0h 0m"}</b></div></div>
-    <div class="rec-cols"><div class="rsub"><div class="rsub-head in">↗ LOGGED IN AT (${s.loginTime||"—"})</div><div class="rsub-place">${s.loginPlace||"—"}</div><div class="rsub-addr">${s.loginAddr||""}</div><div class="rsub-odo"><span>Start Odometer:</span><b>${km(s.startOdo)} KM</b></div></div>
-      ${s.status==="ACTIVE"?`<div class="rsub"><div class="rsub-head out">↙ LOGOUT PENDING (ON DUTY)</div><div class="rsub-pending">Currently on road. Logout location captured when duty ends.</div></div>`:`<div class="rsub"><div class="rsub-head out">↙ LOGGED OUT AT (${s.logoutTime||"—"})</div><div class="rsub-place">${s.logoutPlace||"—"}</div><div class="rsub-addr">${s.logoutAddr||""}</div><div class="rsub-odo"><span>End Odometer:</span><b>${km(s.endOdo)} KM</b></div></div>`}</div>
-    ${s.distance!=null||s.trips!=null?`<div class="rec-foot">${s.distance!=null?`<span class="dist">Distance: +${s.distance} KM</span>`:""}${s.trips!=null?`<span class="trips">Deliveries/Trips: ${s.trips}</span>`:""}</div>`:""}</div>`).join(""):emptyBox("No shifts yet — start a duty above.");
-  const fuelCards=fuel.length?fuel.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(r=>`<div class="rec"><div class="rec-head"><div class="rec-title" style="font-size:14px">${r.station}</div><span class="st-badge st-active">${money(r.cost)} KWD</span></div><div class="rec-date" style="margin-top:4px">📍 ${r.place}</div>
-    <div class="fc-grid" style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px"><div>Fuel Type<b style="font-family:var(--sans)">${r.fuelType}</b></div><div>Volume<b>${r.liters} L</b></div><div>Rate<b>${r.price} KWD/L</b></div><div>Odometer<b>${km(r.odo)} KM</b></div><div>Payment<b style="font-family:var(--sans)">${(r.payment||"").split(" (")[0]}</b></div><div>Receipt<b>${r.receipt||"—"}</b></div></div></div>`).join(""):emptyBox("No fuel records yet.");
-  return `<div class="card pad" style="margin-top:16px"><div class="pilltabs"><button class="active" data-drtab="shifts">🕐 Shift & Location Records (${shifts.length})</button><button data-drtab="fuel">⛽ Fuel Refill Records (${fuel.length})</button></div><div id="drShifts">${shiftCards}</div><div id="drFuel" class="hidden">${fuelCards}</div></div>`;}
-
-/* ---------- shared ---------- */
-function hubMenu(kind){return `<div class="hubmenu hidden" id="hubs-${kind}"><div class="hm-t">SELECT DELIVERY / FLEET HUB:</div>${HUBS.map((h,i)=>`<button data-hubpick="${kind}:${i}">${h.name}<span>${h.lat.toFixed(2)}, ${h.lng.toFixed(2)}</span></button>`).join("")}</div>`;}
-function gpsCard(g){return `<div class="gps-card"><div class="gc-head"><span class="gc-place">${g.place}</span><span class="badge-lock">✓ GPS Locked (±${g.acc}m)</span></div><div class="gc-addr">${g.addr}</div><div class="gc-foot"><span>LAT: ${g.lat} | LNG: ${g.lng}</span><span>${g.time}</span></div></div>`;}
-function gpsPickerMini(kind){const g=state.gps[kind];const L={login:["Log In Location (GPS Duty Check-in)","Verified location where you start your duty today."],logout:["Log Out Location (Verified End Place)","Recorded location where you ended your shift."],fuel:["Gas Station Location","Recorded location where the vehicle refueled."]}[kind];
-  return `<div class="gpsbox" id="${kind}Gps" style="margin-top:${kind==="login"?"18px":"0"}"><div class="gps-head"><div class="gps-ic">📍</div><div class="gh-t"><b>${L[0]}</b><span>${L[1]}</span></div>
-    <div class="gps-actions"><button class="btn-gps" data-gpsdetect="${kind}">📡 GPS Detect</button><div style="position:relative"><button class="btn-hubs" data-hubstoggle="${kind}">Hubs ▾</button>${hubMenu(kind)}</div></div></div>
-    ${g?gpsCard(g):`<div class="fhint" style="margin-top:12px">Tap “GPS Detect” to lock your real location, or choose a Hub.</div>`}</div>`;}
-function footer(){return `<div class="foot"><span><b>SUMOU FLEET</b> • Duty, GPS Check-in & Fuel Operations</span><span>Real-time live multi-device fleet platform</span></div>`;}
-function emptyBox(msg){return `<div class="empty"><div class="eic">📭</div><p>${msg}</p></div>`;}
-
-/* ============================================================ MODALS ============================================================ */
-function openModal(html){const o=document.createElement("div");o.className="overlay";o.id="overlay";o.innerHTML=`<div class="modal">${html}</div>`;document.body.appendChild(o);o.addEventListener("click",e=>{if(e.target===o)closeModal();});}
-function closeModal(){const o=$("#overlay");if(o)o.remove();}
-function modalAddDriver(){openModal(`<div class="m-head"><div class="m-ic">👤</div><div><h3>Register New Fleet Driver</h3><p>Add a driver & assigned vehicle</p></div><button class="x" data-close>×</button></div>
-  <div class="m-body"><label class="fld">Driver Full Name:</label><input id="ndName" placeholder="e.g. Youssef Al-Husseini" />
-    <div class="grid2"><div><label class="fld">Phone Number:</label><input id="ndPhone" value="+965 " /></div><div><label class="fld">Login PIN (4 digits):</label><input id="ndPin" maxlength="4" value="1234" /></div></div>
-    <div class="grid2"><div><label class="fld">Vehicle Plate:</label><input id="ndPlate" placeholder="e.g. 54321 KWT" /></div><div><label class="fld">Vehicle Model:</label><input id="ndModel" placeholder="e.g. Toyota Yaris 2024" /></div></div>
-    <label class="fld">Assigned Delivery / Ride Platforms:</label><div class="checks">${PLATFORMS.map(p=>`<label><input type="checkbox" class="ndPlat" value="${p}" checked> ${p}</label>`).join("")}</div></div>
-  <div class="m-foot"><button class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary" data-act="saveDriver">✓ Register Driver</button></div>`);}
-function modalPostKm(id){const d=driverById(id);const s=lastOdometer(id);openModal(`<div class="m-head"><div class="m-ic">📊</div><div><h3>Post Daily KM Record</h3><p>Driver: ${d.name} • Vehicle: ${d.plate}</p></div><button class="x" data-close>×</button></div>
-  <div class="m-body"><label class="fld">Shift Date:</label><input id="kmDate" type="date" value="${today()}" /><label class="fld">Online Platform:</label><select id="kmPlatform">${(d.platforms||PLATFORMS).map(p=>`<option>${p}</option>`).join("")}</select>
-    <div class="grid2"><div><label class="fld">Starting Odometer (KM):</label><input id="kmStart" type="number" value="${s}" /></div><div><label class="fld">Ending Odometer (KM):</label><input id="kmEnd" type="number" value="${s+145}" /></div></div>
-    <div class="calc"><div><div class="c-l">TOTAL DAILY DISTANCE:</div><div class="c-s">Calculated for this date</div></div><div class="c-v" id="kmDist">145 KM</div></div>
-    <label class="fld">Trips / Deliveries Completed:</label><input id="kmTrips" type="number" value="18" /><label class="fld">Shift Notes:</label><input id="kmNote" value="Daily delivery shift KM log" /></div>
-  <div class="m-foot"><button class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary" data-act="saveKm" data-driver="${id}">✓ Post KM Record</button></div>`);
-  const u=()=>{$("#kmDist").textContent=((+$("#kmEnd").value||0)-(+$("#kmStart").value||0))+" KM";};$("#kmStart").oninput=u;$("#kmEnd").oninput=u;}
-function modalFuel(id){const d=driverById(id);state.gps.fuel=null;openModal(`<div class="m-head"><div class="m-ic amber">⛽</div><div><h3>Post Daily Fuel Refilling Record</h3><p>Driver: ${d.name} • Plate: ${d.plate}</p></div><button class="x" data-close>×</button></div>
-  <div class="m-body"><label class="fld">Fuel Station / Brand:</label><select id="fStation">${STATIONS.map(s=>`<option>${s}</option>`).join("")}</select><label class="fld">Payment Method:</label><select id="fPay">${PAYMENTS.map(p=>`<option>${p}</option>`).join("")}</select>
-    <label class="fld">Fuel Type:</label><select id="fType">${FUEL_TYPES.map(t=>`<option value="${t.price}">${t.label} (${t.price} KWD)</option>`).join("")}</select>
-    <div class="grid2"><div><label class="fld">Liters (L):</label><input id="fLiters" type="number" value="35" /></div><div><label class="fld">Total Cost (KWD):</label><input id="fCost" value="2.975" readonly style="font-family:var(--mono);font-weight:700;background:var(--green-tint);border-color:#cdeede" /></div></div>
-    <label class="fld">Vehicle Odometer at Refuel (KM):</label><input id="fOdo" type="number" value="${lastOdometer(id)}" /><div class="fhint">Used to compute vehicle fuel efficiency (KM per Liter).</div>
-    <label class="fld">Receipt / Invoice Ref #:</label><input id="fReceipt" value="REC-${Math.floor(100000+Math.random()*900000)}" />
-    <label class="fld">Gas Station Location:</label>${gpsPickerMini("fuel")}<label class="fld">Notes (Optional):</label><input id="fNote" value="Full tank refilled" /></div>
-  <div class="m-foot"><button class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary" data-act="saveFuel" data-driver="${id}">✓ Save Fuel Record</button></div>`);
-  const u=()=>{$("#fCost").value=((+$("#fLiters").value||0)*(+$("#fType").value)).toFixed(3);};$("#fLiters").oninput=u;$("#fType").onchange=u;u();}
-function modalEndDuty(id){const d=driverById(id);const sh=activeShift(id);state.gps.logout=null;openModal(`<div class="m-head"><div class="m-ic red">➜</div><div><h3>Duty Log Out & Daily KM Confirmation</h3><p>Driver: ${d.name}</p></div><button class="x" data-close>×</button></div>
-  <div class="m-body"><label class="fld">Ending Odometer (KM):</label><input id="edOdo" type="number" value="${sh.startOdo+85}" /><div class="fhint">Start: ${km(sh.startOdo)} KM</div>
-    <div class="calc"><div><div class="c-l">TOTAL DISTANCE DRIVEN:</div><div class="c-s">Computed for this shift</div></div><div class="c-v" id="edDist">+85 KM</div></div>
-    <label class="fld">Orders / Trips Completed:</label><input id="edTrips" type="number" value="12" /><label class="fld">Log Out Location (Verified End Place):</label>${gpsPickerMini("logout")}<label class="fld">Shift Summary Notes:</label><input id="edNote" placeholder="e.g. Smooth shift, no incidents" /></div>
-  <div class="m-foot"><button class="btn btn-outline" data-close>Cancel</button><button class="btn btn-primary" style="background:var(--red);box-shadow:none" data-act="confirmEndDuty" data-driver="${id}">➜ Confirm & Log Out Duty</button></div>`);
-  const u=()=>{$("#edDist").textContent="+"+((+$("#edOdo").value||0)-sh.startOdo)+" KM";};$("#edOdo").oninput=u;}
-
-/* ============================================================ ACTIONS (async → Supabase) ============================================================ */
-async function doAddDriver(){const name=$("#ndName").value.trim();if(!name)return toast("Driver name is required.");
-  if(digitsOnly($("#ndPhone").value).length<6)return toast("A valid phone number is required (it's the driver's login ID).");
-  const plats=[...document.querySelectorAll(".ndPlat:checked")].map(c=>c.value);
-  const {data,error}=await sb.from("drivers").insert({name,phone:$("#ndPhone").value.trim(),pin:($("#ndPin").value||"1234").slice(0,4),plate:($("#ndPlate").value.trim()||"00000 KWT").toUpperCase(),model:$("#ndModel").value.trim()||"Vehicle",platforms:plats.length?plats:["Talabat"]}).select().single();
-  if(error){toast("Error: "+error.message);return;}
-  const i=state.drivers.findIndex(x=>x.id===data.id);const md=mapDriver(data);if(i>=0)state.drivers[i]=md;else state.drivers.push(md);
-  closeModal();toast("Driver registered ✓");render();}
-async function doStartDuty(){const d=driverById(state.driverId);if(!state.gps.login)return toast("Tap “GPS Detect” to lock your location first (or pick a Hub).");const g=state.gps.login;
-  const {data,error}=await sb.from("shifts").insert({driver_id:d.id,platform:$("#dPlatform").value,date:today(),status:"ACTIVE",start_odo:+$("#dStartOdo").value||lastOdometer(d.id),login_time:g.time,login_place:g.place,login_addr:g.addr,login_lat:g.lat,login_lng:g.lng,live_lat:g.lat,live_lng:g.lng,live_time:g.time,started_at:new Date().toISOString(),pre_note:$("#dNote").value.trim()}).select().single();
-  if(error){toast("Error: "+error.message);return;}
-  const ms=mapShift(data);const i=state.shifts.findIndex(x=>x.id===ms.id);if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);
-  state.gps.login=null;toast("Duty started — you are ON DUTY ✓ Live location sharing.");render();}
-async function doSaveKm(id){const s=+$("#kmStart").value||0,e=+$("#kmEnd").value||0,d=driverById(id);
-  const {data,error}=await sb.from("km_records").insert({driver_id:id,plate:d.plate,platform:$("#kmPlatform").value,date:$("#kmDate").value,start_odo:s,end_odo:e,distance:e-s,trips:+$("#kmTrips").value||0,note:$("#kmNote").value}).select().single();
-  if(error){toast("Error: "+error.message);return;}
-  const mk=mapKm(data);if(!state.kmRecords.find(x=>x.id===mk.id))state.kmRecords.push(mk);closeModal();toast("Daily KM posted ✓");render();}
-async function doSaveFuel(id){if(!state.gps.fuel)return toast("Set the gas station location (GPS Detect or Hub).");const g=state.gps.fuel,d=driverById(id);const price=+$("#fType").value,liters=+$("#fLiters").value||0;
-  const {data,error}=await sb.from("fuel_records").insert({driver_id:id,plate:d.plate,station:$("#fStation").value,payment:$("#fPay").value,fuel_type:$("#fType").selectedOptions[0].textContent.split(" (")[0],price,liters,cost:liters*price,odo:+$("#fOdo").value||0,receipt:$("#fReceipt").value,place:g.place,lat:g.lat,lng:g.lng,note:$("#fNote").value,date:today(),time:nowTime()}).select().single();
-  if(error){toast("Error: "+error.message);return;}
-  const mf=mapFuel(data);if(!state.fuelRecords.find(x=>x.id===mf.id))state.fuelRecords.push(mf);state.gps.fuel=null;closeModal();toast("Fuel record saved ✓");render();}
-async function doEndDuty(id){const sh=activeShift(id);if(!state.gps.logout)return toast("Set your logout location (GPS Detect or Hub).");const g=state.gps.logout;const end=+$("#edOdo").value||sh.startOdo;const mins=Math.max(1,Math.round((Date.now()-sh.startedAt)/60000));
-  const upd={status:"COMPLETED",end_odo:end,distance:end-sh.startOdo,trips:+$("#edTrips").value||0,logout_time:g.time,logout_place:g.place,logout_addr:g.addr,logout_lat:g.lat,logout_lng:g.lng,duration:`${Math.floor(mins/60)}h ${mins%60}m`,summary:$("#edNote").value};
-  const {error}=await sb.from("shifts").update(upd).eq("id",sh.id);
-  if(error){toast("Error: "+error.message);return;}
-  Object.assign(sh,mapShift({...upd,id:sh.id,driver_id:id,platform:sh.platform,date:sh.date,start_odo:sh.startOdo,login_time:sh.loginTime,login_place:sh.loginPlace,login_addr:sh.loginAddr,login_lat:sh.loginLat,login_lng:sh.loginLng,started_at:new Date(sh.startedAt).toISOString()}));
-  await sb.from("km_records").insert({driver_id:id,plate:driverById(id).plate,platform:sh.platform,date:sh.date,start_odo:sh.startOdo,end_odo:end,distance:end-sh.startOdo,trips:upd.trips,note:upd.summary});
-  stopLiveWatch();state.gps.logout=null;closeModal();toast("Duty completed — logged out ✓");await loadAll();render();}
-async function doDeleteDriver(id){if(!confirm("Remove this driver and ALL their records?"))return;const {error}=await sb.from("drivers").delete().eq("id",id);if(error){toast("Error: "+error.message);return;}await loadAll();toast("Driver removed");render();}
-async function doClearData(){if(!confirm("Clear ALL drivers, shifts, KM and fuel records? This cannot be undone."))return;
-  await sb.from("fuel_records").delete().not("id","is",null);await sb.from("km_records").delete().not("id","is",null);await sb.from("shifts").delete().not("id","is",null);await sb.from("drivers").delete().not("id","is",null);
-  await loadAll();toast("All data cleared");render();}
-function exportCsv(rows,fn){const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=fn;a.click();toast("Exported "+fn);}
-function doExportAll(){const rows=[["Type","Driver","Plate","Platform","Date","Detail1","Detail2","Detail3"]];state.shifts.forEach(s=>{const d=driverById(s.driverId);rows.push(["Shift",d?.name,d?.plate,s.platform,s.date,`In:${s.loginPlace}`,`Out:${s.logoutPlace||"pending"}`,`Dist:${s.distance??"-"}`]);});state.fuelRecords.forEach(f=>{const d=driverById(f.driverId);rows.push(["Fuel",d?.name,f.plate,"-",f.date,`${f.liters}L ${f.fuelType}`,`${money(f.cost)} KWD`,f.station]);});exportCsv(rows,"sumou-fleet-export.csv");}
-function doExportKm(){const rows=[["Date","Driver","Plate","Platform","Start KM","End KM","Distance","Trips"]];state.kmRecords.forEach(r=>{const d=driverById(r.driverId);rows.push([r.date,d?.name,r.plate,r.platform,r.startOdo,r.endOdo??"-",r.distance??"-",r.trips??"-"]);});exportCsv(rows,"sumou-km-report.csv");}
-
-/* ============================================================ THEME ============================================================ */
-const THEME_KEY="sumou_theme";
-function currentTheme(){try{return localStorage.getItem(THEME_KEY)||"dark";}catch(e){return "dark";}}
-function applyTheme(t){document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t);}catch(e){}}
-function toggleTheme(){applyTheme(currentTheme()==="dark"?"light":"dark");}
-applyTheme(currentTheme());
-
-/* ============================================================ EVENTS ============================================================ */
-document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-act],[data-tab],[data-addkm],[data-addfuel],[data-deldriver],[data-drtab],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-close]");
-  if(!t)return;
-  if(t.hasAttribute("data-close")){closeModal();return;}
-  if(t.dataset.tab){state.adminTab=t.dataset.tab;document.querySelectorAll(".tabgroup button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t.dataset.tab));paintAdmin();return;}
-  if(t.dataset.drtab){const sh=t.dataset.drtab;$("#drShifts").classList.toggle("hidden",sh!=="shifts");$("#drFuel").classList.toggle("hidden",sh!=="fuel");t.parentElement.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b===t));return;}
-  if(t.dataset.addkm){modalPostKm(t.dataset.addkm);return;}
-  if(t.dataset.addfuel){modalFuel(t.dataset.addfuel);return;}
-  if(t.dataset.deldriver){doDeleteDriver(t.dataset.deldriver);return;}
-  if(t.dataset.map){const[la,ln]=t.dataset.map.split(",");if(la&&la!=="null")window.open(`https://www.openstreetmap.org/?mlat=${la}&mlon=${ln}#map=15/${la}/${ln}`,"_blank");return;}
-  if(t.dataset.gpsdetect){detectGps(t.dataset.gpsdetect);return;}
-  if(t.dataset.hubstoggle){const m=$("#hubs-"+t.dataset.hubstoggle);if(m)m.classList.toggle("hidden");return;}
-  if(t.dataset.hubpick){const[k,i]=t.dataset.hubpick.split(":");setHubGps(k,+i);return;}
-  const a=t.dataset.act;if(!a)return;
-  switch(a){
-    case "adminLogin":if($("#adminPass").value===ADMIN_PASSCODE){state.screen="admin";saveSession({role:"admin"});render();}else toast("Wrong passcode.");break;
-    case "driverLogin":{const e=digitsOnly($("#dlPhone").value),pin=$("#dlPin").value;
-      if(e.length<4){toast("Enter your phone number.");break;}
-      const d=state.drivers.find(x=>{const p=digitsOnly(x.phone);return p&&(p===e||p.slice(-8)===e.slice(-8)||p.endsWith(e)||e.endsWith(p));});
-      if(!d){toast("No account found for this phone number.");break;}
-      if(d.pin!==pin){toast("Incorrect PIN.");break;}
-      state.driverId=d.id;state.screen="driver";saveSession({role:"driver",driverId:d.id});render();break;}
-    case "logout":stopLiveWatch();clearSession();state.screen="landing";state.driverId=null;state.gps={};render();break;
-    case "toggleTheme":toggleTheme();break;
-    case "openAddDriver":modalAddDriver();break;
-    case "saveDriver":doAddDriver();break;
-    case "startDuty":doStartDuty();break;
-    case "openKm":modalPostKm(state.driverId);break;
-    case "openFuel":modalFuel(state.driverId);break;
-    case "openEndDuty":modalEndDuty(state.driverId);break;
-    case "saveKm":doSaveKm(t.dataset.driver);break;
-    case "saveFuel":doSaveFuel(t.dataset.driver);break;
-    case "confirmEndDuty":doEndDuty(t.dataset.driver);break;
-    case "exportCsv":doExportAll();break;
-    case "exportKm":doExportKm();break;
-    case "clearData":doClearData();break;
+  function showToast(msg) {
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
   }
-});
-document.addEventListener("input",e=>{if(e.target.id==="fSearch"){state.filters.search=e.target.value;paintAdmin();}});
-document.addEventListener("change",e=>{
-  if(e.target.id==="fDriver"){state.filters.driver=e.target.value;paintAdmin();}
-  if(e.target.id==="fPlatform"){state.filters.platform=e.target.value;paintAdmin();}
-  if(e.target.id==="fStatus"){state.filters.status=e.target.value;paintAdmin();}});
 
-/* ============================================================ BOOT ============================================================ */
-(async function boot(){
-  try{
-    await loadAll();
-    state.ready=true;
-    subscribeRealtime();
-    const sess=loadSession();
-    if(sess&&sess.role==="admin"){state.screen="admin";}
-    else if(sess&&sess.role==="driver"&&driverById(sess.driverId)){state.screen="driver";state.driverId=sess.driverId;}
-    render();
-  }catch(err){
-    console.error(err);
-    app.innerHTML=`<div class="wrap"><div class="land"><div class="land-hero"><div class="logo">🚚</div><h1>SUMOU FLEET</h1></div>
-      <div class="card pad"><div class="note admin">⚠️ Could not connect to the database. Make sure you ran the SQL setup in Supabase, and that the URL/key are correct.<br><br><b>Error:</b> ${(err&&err.message)||err}</div>
-      <button class="btn btn-dark btn-lg" onclick="location.reload()">Retry</button></div></div></div>`;
+  function setPlatform(name) {
+    selectedPlatform = name;
+    document.querySelectorAll('.platform-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.innerText === name);
+    });
+    showToast(`Dispatch: ${name}`);
   }
-})();
+
+  function toggleDuty() {
+    isDutyActive = !isDutyActive;
+    if (isDutyActive) {
+      dutyBtn.classList.add('on-shift');
+      dutyBtnText.innerText = 'END DUTY & SAVE SHIFT';
+      dutyDot.classList.add('active');
+      timerStrip.style.display = 'flex';
+      shiftSeconds = 0;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        shiftSeconds++;
+        const h = String(Math.floor(shiftSeconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((shiftSeconds % 3600) / 60)).padStart(2, '0');
+        const s = String(shiftSeconds % 60).padStart(2, '0');
+        shiftTimer.innerText = `${h}:${m}:${s}`;
+      }, 1000);
+      showToast(`Duty Started on ${selectedPlatform}!`);
+    } else {
+      dutyBtn.classList.remove('on-shift');
+      dutyBtnText.innerText = 'START DUTY SHIFT';
+      dutyDot.classList.remove('active');
+      timerStrip.style.display = 'none';
+      clearInterval(timerInterval);
+      shifts += 1;
+      distanceKm += 12;
+      document.getElementById('shiftCount').innerText = shifts;
+      document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
+      showToast('Shift Ended! Telemetry Saved.');
+    }
+  }
+
+  function promptOdometer() {
+    const input = prompt('Enter new Odometer reading (KM):', odo);
+    if (input !== null && !isNaN(input) && Number(input) > 0) {
+      const newOdo = parseInt(input);
+      const delta = Math.max(0, newOdo - odo);
+      odo = newOdo;
+      distanceKm += delta;
+      document.getElementById('odoVal').innerText = odo.toLocaleString();
+      document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
+      showToast(`Odometer updated: ${odo.toLocaleString()} KM (+${delta} km)`);
+    }
+  }
+
+  function promptFuel() {
+    const input = prompt('Enter fuel expense in Kuwait Dinar (KWD):', '2.500');
+    if (input !== null && !isNaN(input) && Number(input) >= 0) {
+      fuelKwd = +(fuelKwd + parseFloat(input)).toFixed(3);
+      document.getElementById('fuelKwd').innerHTML = `${fuelKwd} <span>kwd</span>`;
+      showToast(`Logged ${input} KWD Fuel Expense!`);
+    }
+  }
+
+  function detectGps() {
+    const icon = document.getElementById('gpsRefreshIcon');
+    icon.style.display = 'inline-block';
+    icon.style.transform = 'rotate(180deg)';
+    icon.style.transition = 'transform 0.4s ease';
+    setTimeout(() => {
+      document.getElementById('gpsSub').innerText = '±8m RTK Lock · Gate 4 Verified';
+      showToast('GPS RTK Lock Confirmed (±8m)');
+      icon.style.transform = 'rotate(0deg)';
+    }, 400);
+  }
+
+  function toggleShiftDrawer() {
+    const isOpen = shiftDrawer.classList.toggle('open');
+    drawerArrow.innerText = isOpen ? '▴' : '▾';
+  }
 </script>
+
 </body>
 </html>
