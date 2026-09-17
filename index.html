@@ -3,55 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sumou Driver - Unified Dual-Theme App</title>
+  <title>Sumou Driver - Cockpit App</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   
   <style>
-    /* ------------------------------------------------------------
-       1. DUAL THEME COLOR SYSTEM (CSS Variables)
-       ------------------------------------------------------------ */
+    /* ============================================================
+       1. DUAL THEMES (SWISS LIGHT + CYBER DARK)
+       ============================================================ */
     :root {
       --sans: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
       --display: 'Outfit', -apple-system, sans-serif;
       --mono: 'JetBrains Mono', monospace;
-      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* THEME 1: CYBER-LUXURY DARK */
+    /* THEME 1: CYBER-LUXURY DARK (Executive OLED Black + Laser Emerald) */
     html[data-theme="dark"] {
       --bg: #090a0f;
       --card-bg: #10131d;
-      --tile-bg: rgba(18, 22, 33, 0.85);
+      --tile-bg: #141824;
       --border: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(0, 245, 155, 0.4);
+      --border-focus: rgba(0, 245, 155, 0.45);
       --txt-main: #f4f4f5;
       --txt-muted: #8e95a5;
       --txt-sub: #5b6275;
       --accent: #00f59b;
-      --accent-glow: rgba(0, 245, 155, 0.25);
+      --accent-glow: rgba(0, 245, 155, 0.3);
       --accent-bg: rgba(0, 245, 155, 0.12);
       --btn-duty-start: linear-gradient(135deg, #00f59b 0%, #05c270 100%);
       --btn-duty-txt: #05140d;
-      --btn-duty-end: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      --btn-duty-end: #ef4444;
       --badge-bg: rgba(255, 255, 255, 0.06);
       --badge-txt: #e2e8f0;
       --theme-toggle-bg: #181c28;
       --theme-toggle-txt: #f59e0b;
-      --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      --logout-bg: rgba(239, 68, 68, 0.12);
+      --logout-border: rgba(239, 68, 68, 0.3);
+      --logout-txt: #fca5a5;
     }
 
-    /* THEME 2: SWISS EDITORIAL LIGHT */
+    /* THEME 2: SWISS EDITORIAL LIGHT (Crisp White + Deep Forest Pine) */
     html[data-theme="light"] {
       --bg: #f8fafc;
       --card-bg: #ffffff;
-      --tile-bg: #f8fafc;
-      --border: rgba(15, 23, 42, 0.1);
-      --border-focus: rgba(6, 95, 70, 0.4);
+      --tile-bg: #f1f5f9;
+      --border: rgba(15, 23, 42, 0.12);
+      --border-focus: rgba(6, 95, 70, 0.45);
       --txt-main: #0f172a;
-      --txt-muted: #64748b;
-      --txt-sub: #94a3b8;
+      --txt-muted: #475569;
+      --txt-sub: #64748b;
       --accent: #065f46;
       --accent-glow: rgba(6, 95, 70, 0.15);
       --accent-bg: #e6f4ea;
@@ -62,12 +65,15 @@
       --badge-txt: #1e293b;
       --theme-toggle-bg: #e2e8f0;
       --theme-toggle-txt: #475569;
-      --shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.08);
+      --shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+      --logout-bg: #fee2e2;
+      --logout-border: #fca5a5;
+      --logout-txt: #991b1b;
     }
 
-    /* ------------------------------------------------------------
-       2. ZERO-SCROLL 1-SCREEN VIEWPORT LAYOUT
-       ------------------------------------------------------------ */
+    /* ============================================================
+       2. TIGHT ZERO-SCROLL 1-SCREEN VIEWPORT (NO GAPS)
+       ============================================================ */
     * {
       margin: 0;
       padding: 0;
@@ -82,7 +88,7 @@
       background: var(--bg);
       color: var(--txt-main);
       font-family: var(--sans);
-      transition: background-color 0.25s ease, color 0.25s ease;
+      transition: background-color 0.2s ease, color 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -95,15 +101,16 @@
       max-height: 100dvh;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 12px 14px;
+      justify-content: flex-start; /* Gaps hata diye */
+      gap: 8px;                    /* Consistent tight spacing */
+      padding: 10px 12px;
       background: var(--bg);
       position: relative;
     }
 
     .icon {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       stroke-width: 2.2;
       stroke: currentColor;
       fill: none;
@@ -112,12 +119,12 @@
       flex-shrink: 0;
     }
 
-    /* TOP HEADER */
+    /* TOP HEADER BAR */
     .top-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 8px;
+      padding-bottom: 7px;
       border-bottom: 1px solid var(--border);
     }
     .brand-group {
@@ -126,22 +133,22 @@
       gap: 7px;
     }
     .brand-logo {
-      width: 30px;
-      height: 30px;
-      border-radius: 9px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       background: var(--btn-duty-start);
       color: var(--btn-duty-txt);
       display: grid;
       place-items: center;
       font-family: var(--display);
       font-weight: 800;
-      font-size: 15px;
-      box-shadow: 0 2px 10px var(--accent-glow);
+      font-size: 14px;
+      box-shadow: 0 2px 8px var(--accent-glow);
     }
     .brand-title {
       font-family: var(--display);
       font-weight: 800;
-      font-size: 14px;
+      font-size: 13.5px;
       line-height: 1.1;
     }
     .brand-badge {
@@ -157,11 +164,11 @@
     .veh-pill {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 7px;
+      gap: 4px;
+      padding: 3px 6px;
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 7px;
       font-size: 10.5px;
       color: var(--txt-muted);
     }
@@ -174,14 +181,14 @@
     .controls-group {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
 
     /* THEME SWITCHER BUTTON */
     .theme-toggle-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
       background: var(--theme-toggle-bg);
       color: var(--theme-toggle-txt);
       border: 1px solid var(--border);
@@ -190,50 +197,70 @@
       place-items: center;
       transition: var(--transition);
     }
-    .theme-toggle-btn:hover {
-      transform: scale(1.05);
-    }
 
     .user-pill {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 3px 7px 3px 4px;
+      gap: 4px;
+      padding: 3px 6px 3px 3px;
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      font-size: 11px;
+      border-radius: 16px;
+      font-size: 10.5px;
       font-weight: 700;
     }
     .user-avatar {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: var(--btn-duty-start);
       color: var(--btn-duty-txt);
       display: grid;
       place-items: center;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
     }
     .status-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #64748b;
       transition: var(--transition);
     }
     .status-dot.active {
       background: #00f59b;
-      box-shadow: 0 0 8px #00f59b;
+      box-shadow: 0 0 6px #00f59b;
     }
 
-    /* PLATFORM SELECTOR */
+    /* EXPLICIT LOGOUT BUTTON */
+    .btn-logout-head {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 7px;
+      border-radius: 7px;
+      background: var(--logout-bg);
+      border: 1px solid var(--logout-border);
+      color: var(--logout-txt);
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-logout-head:active {
+      transform: scale(0.95);
+    }
+
+    /* DISPATCH PLATFORM STRIP (TIGHT) */
     .dispatch-strip {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin: 7px 0 6px;
+      margin: 0;
+      padding: 3px 6px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
     }
     .dispatch-label {
       font-family: var(--mono);
@@ -245,10 +272,10 @@
     }
     .platform-pills {
       display: flex;
-      gap: 4px;
+      gap: 3px;
     }
     .platform-btn {
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 6px;
       font-size: 10.5px;
       font-weight: 700;
@@ -262,28 +289,28 @@
       background: var(--btn-duty-start);
       color: var(--btn-duty-txt);
       border-color: transparent;
-      box-shadow: 0 2px 8px var(--accent-glow);
+      box-shadow: 0 2px 6px var(--accent-glow);
     }
 
     /* MAIN COCKPIT BOX */
     .cockpit-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 10px;
+      border-radius: 15px;
+      padding: 9px;
       box-shadow: var(--shadow);
       position: relative;
     }
     .cockpit-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 7px;
     }
     .cockpit-tile {
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 9px;
+      border-radius: 10px;
+      padding: 8px;
       cursor: pointer;
       transition: var(--transition);
     }
@@ -295,28 +322,29 @@
       align-items: center;
       justify-content: space-between;
       font-family: var(--mono);
-      font-size: 9.5px;
+      font-size: 9px;
       color: var(--txt-muted);
       text-transform: uppercase;
       letter-spacing: 0.3px;
+      font-weight: 700;
     }
     .tile-val {
       font-family: var(--mono);
-      font-size: 19px;
+      font-size: 18px;
       font-weight: 800;
       color: var(--txt-main);
-      margin-top: 3px;
+      margin-top: 2px;
       display: flex;
       align-items: baseline;
       gap: 3px;
     }
     .tile-val small {
-      font-size: 10px;
+      font-size: 9.5px;
       color: var(--accent);
       font-weight: 700;
     }
     .tile-sub {
-      font-size: 9.5px;
+      font-size: 9px;
       color: var(--txt-sub);
       margin-top: 2px;
       white-space: nowrap;
@@ -325,31 +353,31 @@
     }
 
     .timer-strip {
-      margin-top: 8px;
-      padding: 5px 10px;
+      margin-top: 7px;
+      padding: 4px 8px;
       background: var(--accent-bg);
       border: 1px solid var(--border-focus);
-      border-radius: 8px;
+      border-radius: 7px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       color: var(--accent);
     }
 
-    /* TACTILE DUTY CTA */
+    /* 44PX PRIMARY THUMB-REACH ACTION BUTTON */
     .btn-duty {
       width: 100%;
       height: 42px;
-      margin-top: 8px;
-      border-radius: 12px;
+      margin-top: 7px;
+      border-radius: 11px;
       border: none;
       font-family: var(--display);
       font-weight: 800;
-      font-size: 13.5px;
-      letter-spacing: 0.4px;
+      font-size: 13px;
+      letter-spacing: 0.6px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -358,7 +386,7 @@
       transition: var(--transition);
       background: var(--btn-duty-start);
       color: var(--btn-duty-txt);
-      box-shadow: 0 4px 14px var(--accent-glow);
+      box-shadow: 0 3px 12px var(--accent-glow);
     }
     .btn-duty:active {
       transform: scale(0.98);
@@ -366,49 +394,49 @@
     .btn-duty.on-shift {
       background: var(--btn-duty-end) !important;
       color: #ffffff !important;
-      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
     }
 
-    /* TELEMETRY ROW */
+    /* TELEMETRY SECTION (TIGHT & CLEAN) */
     .section-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: var(--mono);
-      font-size: 9.5px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--txt-sub);
-      margin: 8px 2px 4px;
+      margin: 1px 2px 3px;
       font-weight: 700;
     }
     .stats-row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px;
+      gap: 5px;
     }
     .stat-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 11px;
-      padding: 7px 5px;
+      border-radius: 10px;
+      padding: 6px 4px;
       text-align: center;
       box-shadow: var(--shadow);
     }
     .stat-label {
-      font-size: 9.5px;
+      font-size: 9px;
       color: var(--txt-muted);
       font-weight: 600;
     }
     .stat-num {
       font-family: var(--mono);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--txt-main);
       margin-top: 1px;
     }
     .stat-num span {
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 600;
       color: var(--txt-muted);
     }
@@ -416,22 +444,22 @@
     .actions-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 6px;
+      gap: 5px;
+      margin-top: 5px;
     }
     .btn-action {
-      height: 32px;
-      border-radius: 9px;
+      height: 30px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       background: var(--card-bg);
       color: var(--txt-main);
       font-family: var(--sans);
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 5px;
+      gap: 4px;
       cursor: pointer;
       transition: var(--transition);
     }
@@ -444,18 +472,18 @@
       border-color: var(--border-focus);
     }
 
-    /* RECENT SHIFT DRAWER */
+    /* RECENT SHIFT ACCORDION DRAWER */
     .recent-strip {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
       box-shadow: var(--shadow);
-      margin-top: 7px;
+      margin-top: 1px;
     }
     .recent-header {
       width: 100%;
-      padding: 8px 10px;
+      padding: 7px 9px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -468,44 +496,44 @@
     .recent-title {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
+      gap: 5px;
+      font-size: 11px;
       font-weight: 700;
     }
     .recent-dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       background: var(--accent);
     }
     .recent-metrics {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
     .recent-km {
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 800;
       color: var(--accent);
     }
     .recent-badge {
       font-family: var(--mono);
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 700;
       background: var(--badge-bg);
       color: var(--badge-txt);
-      padding: 1px 5px;
+      padding: 1px 4px;
       border-radius: 4px;
     }
     .recent-body {
       display: none;
-      padding: 6px 10px 8px;
+      padding: 5px 9px 7px;
       border-top: 1px solid var(--border);
       font-family: var(--mono);
-      font-size: 9.5px;
+      font-size: 9px;
       color: var(--txt-muted);
-      line-height: 1.6;
+      line-height: 1.5;
     }
     .recent-body.open {
       display: block;
@@ -528,13 +556,13 @@
       background: var(--card-bg);
       border: 1px solid var(--accent);
       color: var(--txt-main);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 18px;
+      font-size: 10.5px;
       font-weight: 700;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
       pointer-events: none;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 100;
       white-space: nowrap;
     }
@@ -549,7 +577,7 @@
 <div class="app-viewport">
   <div id="toast" class="toast">Duty Status Updated</div>
 
-  <!-- 1. Header with Moon/Sun Theme Toggle -->
+  <!-- 1. Header with Vehicle + User + Theme Toggle + Explicit Log Out -->
   <header class="top-bar">
     <div class="brand-group">
       <div class="brand-logo">S</div>
@@ -566,20 +594,27 @@
     </div>
 
     <div class="controls-group">
-      <!-- Theme Switcher Button -->
-      <button id="themeToggle" class="theme-toggle-btn" title="Switch Theme">
+      <!-- Dark/Light Switcher -->
+      <button id="themeToggle" class="theme-toggle-btn" title="Toggle Theme">
         <svg id="themeIcon" class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
       </button>
 
+      <!-- User Profile Dot -->
       <div class="user-pill">
         <div class="user-avatar">H</div>
         <span id="userName">hardik</span>
         <div id="dutyDot" class="status-dot"></div>
       </div>
+
+      <!-- Log Out Button -->
+      <button class="btn-logout-head" onclick="handleLogout()" title="Sign Out">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        <span>Log Out</span>
+      </button>
     </div>
   </header>
 
-  <!-- 2. Platform Dispatch Strip -->
+  <!-- 2. Platform Dispatch Strip (Tight, No Gaps) -->
   <div class="dispatch-strip">
     <span class="dispatch-label">Active Platform</span>
     <div class="platform-pills">
@@ -590,14 +625,14 @@
     </div>
   </div>
 
-  <!-- 3. Side-by-Side Cockpit Box (Odometer + GPS) -->
+  <!-- 3. Side-by-Side Cockpit Box (Odometer + GPS Geofence + CLOCK IN / CLOCK OUT) -->
   <div class="cockpit-card">
     <div class="cockpit-grid">
       <!-- Odometer Tile -->
       <div class="cockpit-tile" onclick="promptOdometer()">
         <div class="tile-head">
           <span>Odometer</span>
-          <span>Edit ✎</span>
+          <span style="color:var(--accent)">Edit ✎</span>
         </div>
         <div class="tile-val">
           <span id="odoVal">30,085</span>
@@ -612,27 +647,27 @@
           <span>GPS Geofence</span>
           <span id="gpsRefreshIcon">↻</span>
         </div>
-        <div class="tile-val" style="font-size: 13px; font-weight: 700; margin-top: 4px;">
+        <div class="tile-val" style="font-size: 12.5px; font-weight: 700; margin-top: 3px;">
           <span id="gpsLabel">Shuwaikh Ind. 3</span>
         </div>
-        <div class="tile-sub" id="gpsSub">±12m Precision · Gate 4</div>
+        <div class="tile-sub" id="gpsSub">±8m RTK Lock · Gate 4</div>
       </div>
     </div>
 
-    <!-- Live Shift Timer -->
+    <!-- Live Shift Running Timer -->
     <div id="timerStrip" class="timer-strip" style="display: none;">
       <span>● SHIFT RUNNING</span>
-      <span id="shiftTimer">00:00:00</span>
+      <span id="shiftTimer" style="letter-spacing: 1px;">00:00:00</span>
     </div>
 
-    <!-- Primary Duty Action Button -->
+    <!-- 44px Primary Action Button: CLOCK IN / CLOCK OUT -->
     <button id="dutyBtn" class="btn-duty" onclick="toggleDuty()">
       <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      <span id="dutyBtnText">START DUTY SHIFT</span>
+      <span id="dutyBtnText">CLOCK IN</span>
     </button>
   </div>
 
-  <!-- 4. Today's Telemetry Metrics -->
+  <!-- 4. Today's Telemetry Metrics & Quick Micro-Actions -->
   <div>
     <div class="section-head">
       <span>Shift Telemetry (Today)</span>
@@ -666,7 +701,7 @@
     </div>
   </div>
 
-  <!-- 5. Collapsible Recent Shift Strip -->
+  <!-- 5. Collapsible Recent Shift Drawer -->
   <div class="recent-strip">
     <button class="recent-header" onclick="toggleShiftDrawer()">
       <div class="recent-title">
@@ -690,7 +725,7 @@
       </div>
       <div class="recent-row" style="margin-top: 2px;">
         <span>Platform: Talabat · 6h 43m</span>
-        <b style="color: var(--accent)">COMPLETED</b>
+        <b style="color: var(--accent)">VERIFIED & SAVED</b>
       </div>
     </div>
   </div>
@@ -743,7 +778,7 @@
   function showToast(msg) {
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
+    setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
   function setPlatform(name) {
@@ -754,11 +789,12 @@
     showToast(`Dispatch: ${name}`);
   }
 
+  /* TOGGLE DUTY: CLOCK IN / CLOCK OUT */
   function toggleDuty() {
     isDutyActive = !isDutyActive;
     if (isDutyActive) {
       dutyBtn.classList.add('on-shift');
-      dutyBtnText.innerText = 'END DUTY & SAVE SHIFT';
+      dutyBtnText.innerText = 'CLOCK OUT';
       dutyDot.classList.add('active');
       timerStrip.style.display = 'flex';
       shiftSeconds = 0;
@@ -770,23 +806,32 @@
         const s = String(shiftSeconds % 60).padStart(2, '0');
         shiftTimer.innerText = `${h}:${m}:${s}`;
       }, 1000);
-      showToast(`Duty Started on ${selectedPlatform}!`);
+      showToast(`Clocked In on ${selectedPlatform}!`);
     } else {
       dutyBtn.classList.remove('on-shift');
-      dutyBtnText.innerText = 'START DUTY SHIFT';
+      dutyBtnText.innerText = 'CLOCK IN';
       dutyDot.classList.remove('active');
       timerStrip.style.display = 'none';
       clearInterval(timerInterval);
       shifts += 1;
-      distanceKm += 12;
+      distanceKm += 15;
       document.getElementById('shiftCount').innerText = shifts;
       document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
-      showToast('Shift Ended! Telemetry Saved.');
+      showToast('Clocked Out! Shift Telemetry Stored.');
     }
   }
 
+  function handleLogout() {
+    if (isDutyActive) {
+      const ok = confirm('You are currently clocked in. Do you want to clock out and log out?');
+      if (!ok) return;
+      toggleDuty();
+    }
+    showToast('Driver signed out successfully.');
+  }
+
   function promptOdometer() {
-    const input = prompt('Enter new Odometer reading (KM):', odo);
+    const input = prompt('Enter vehicle dashboard Odometer (KM):', odo);
     if (input !== null && !isNaN(input) && Number(input) > 0) {
       const newOdo = parseInt(input);
       const delta = Math.max(0, newOdo - odo);
@@ -799,11 +844,11 @@
   }
 
   function promptFuel() {
-    const input = prompt('Enter fuel expense in Kuwait Dinar (KWD):', '2.500');
+    const input = prompt('Enter fuel refill cost in Kuwait Dinar (KWD):', '2.500');
     if (input !== null && !isNaN(input) && Number(input) >= 0) {
       fuelKwd = +(fuelKwd + parseFloat(input)).toFixed(3);
       document.getElementById('fuelKwd').innerHTML = `${fuelKwd} <span>kwd</span>`;
-      showToast(`Logged ${input} KWD Fuel Expense!`);
+      showToast(`Logged ${input} KWD Fuel Refill!`);
     }
   }
 
@@ -811,12 +856,12 @@
     const icon = document.getElementById('gpsRefreshIcon');
     icon.style.display = 'inline-block';
     icon.style.transform = 'rotate(180deg)';
-    icon.style.transition = 'transform 0.4s ease';
+    icon.style.transition = 'transform 0.35s ease';
     setTimeout(() => {
-      document.getElementById('gpsSub').innerText = '±8m RTK Lock · Gate 4 Verified';
-      showToast('GPS RTK Lock Confirmed (±8m)');
+      document.getElementById('gpsSub').innerText = '±6m RTK Lock · Gate 4 Verified';
+      showToast('GPS RTK Lock Confirmed (±6m)');
       icon.style.transform = 'rotate(0deg)';
-    }, 400);
+    }, 350);
   }
 
   function toggleShiftDrawer() {
