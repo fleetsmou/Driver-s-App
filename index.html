@@ -890,7 +890,14 @@
       if (!c) return;
       toggleDuty();
     }
-    showToast('Driver signed out successfully.');
+    try {
+      localStorage.removeItem('sumou_session_v1');
+      localStorage.removeItem('sumou_driver_session');
+    } catch(e) {}
+    showToast('Driver signed out successfully. Redirecting to Login...');
+    setTimeout(() => {
+      window.location.href = '../index.html';
+    }, 350);
   }
 
   function promptOdo() {
