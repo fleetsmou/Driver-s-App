@@ -25,6 +25,37 @@
     --shadow:0 1px 2px rgba(16,30,54,.05),0 1px 3px rgba(16,30,54,.04);
     --shadow2:0 6px 24px rgba(16,30,54,.10);
   }
+  /* ===== DARK — Executive Obsidian (night theme) ===== */
+  :root[data-theme="dark"]{
+    --bg:#07090e; --panel:#10141c;
+    --ink:#eef2f8; --ink2:#aeb7c6; --muted:#828d9f; --muted2:#5b6474;
+    --line:#1e232e; --line2:#2b3340; --soft:#12161f; --soft2:#181d27;
+    --green:#13e29a; --green-d:#0cc487; --green-tint:rgba(19,226,154,.13); --green-ink:#41f0b6;
+    --red:#ff5c5c; --red-tint:rgba(255,92,92,.13); --red-ink:#ff8888;
+    --amber:#f6b44e; --amber-tint:rgba(246,180,78,.14); --amber-ink:#f7c579;
+    --blue:#57a9ff; --blue-tint:rgba(87,169,255,.14);
+    --violet:#a98bff; --violet-tint:rgba(169,139,255,.14); --violet-ink:#c3aaff;
+    --header:#0a0d14; --header2:#121722;
+    --shadow:0 1px 2px rgba(0,0,0,.5); --shadow2:0 22px 48px -20px rgba(0,0,0,.85);
+  }
+  :root[data-theme="dark"] body{background:radial-gradient(720px 360px at 85% -10%,rgba(19,226,154,.06),transparent 60%),radial-gradient(520px 320px at 5% 8%,rgba(87,169,255,.05),transparent 55%),var(--bg);}
+  [data-theme="dark"] .btn-outline,[data-theme="dark"] .btn-red-o,[data-theme="dark"] .btn-green-o,[data-theme="dark"] .btn-gps,[data-theme="dark"] .btn-hubs{background:var(--soft);}
+  [data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:var(--soft);}
+  [data-theme="dark"] .chip-plat{background:var(--soft);}
+  [data-theme="dark"] .kpi,[data-theme="dark"] .rec,[data-theme="dark"] .dstat,[data-theme="dark"] .ddir,[data-theme="dark"] .fuel-card,[data-theme="dark"] .gps-card,[data-theme="dark"] .hubmenu,[data-theme="dark"] .map-legend,[data-theme="dark"] .ab-loc,[data-theme="dark"] .lr-loc,[data-theme="dark"] .modal{background:var(--panel);}
+  [data-theme="dark"] .btn-green-o,[data-theme="dark"] .btn-gps{border-color:rgba(19,226,154,.3);}
+  [data-theme="dark"] .btn-red-o{border-color:rgba(255,92,92,.3);}
+  [data-theme="dark"] .note,[data-theme="dark"] .calc,[data-theme="dark"] .badge-lock,[data-theme="dark"] .pin-badge{border-color:rgba(19,226,154,.25);}
+  [data-theme="dark"] .note.admin{border-color:rgba(246,180,78,.3);}
+  [data-theme="dark"] .active-box{background:linear-gradient(180deg,rgba(19,226,154,.07),var(--panel));border-color:rgba(19,226,154,.28);}
+  [data-theme="dark"] .ddir .chip-plat{background:var(--soft)!important;border-color:var(--line2)!important;color:var(--ink2)!important;}
+  [data-theme="dark"] .btn-primary{box-shadow:0 10px 26px -8px rgba(19,226,154,.5);}
+  [data-theme="dark"] .brand .logo,[data-theme="dark"] .land-hero .logo{box-shadow:0 8px 24px rgba(19,226,154,.4);}
+  [data-theme="dark"] input:focus,[data-theme="dark"] select:focus,[data-theme="dark"] textarea:focus{box-shadow:0 0 0 3px rgba(19,226,154,.18);}
+  /* theme toggle button */
+  .theme-toggle{padding:9px 12px;font-size:15px;line-height:1;}
+  .theme-toggle .ic-sun{display:none;} .theme-toggle .ic-moon{display:inline;}
+  [data-theme="dark"] .theme-toggle .ic-sun{display:inline;} [data-theme="dark"] .theme-toggle .ic-moon{display:none;}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;}
   .hidden{display:none !important;}
@@ -454,11 +485,13 @@ function appbarDriver(d){return `<div class="appbar"><div class="appbar-in">
     <div class="brand"><div class="logo">🚚</div><div><div class="b-title"><h1>SUMOU</h1><span class="app-badge driver">Driver App</span></div><div class="b-sub">Driver: ${d.name}</div></div></div>
     <div class="appbar-spacer"></div>
     <div class="who"><span class="gdot"></span>${d.name} <span class="plate">(${d.plate})</span></div>
+    <button class="btn-logout theme-toggle" data-act="toggleTheme" title="Switch theme"><span class="ic-moon">🌙</span><span class="ic-sun">☀️</span></button>
     <button class="btn-logout" data-act="logout">⎋ <span class="lotext">Log Out</span></button></div></div>`;}
 function appbarAdmin(){return `<div class="appbar"><div class="appbar-in">
     <div class="brand"><div class="logo">🚚</div><div><div class="b-title"><h1>SUMOU</h1><span class="app-badge admin">Admin Portal</span></div><div class="b-sub">Fleet Operations & Driver Locations</div></div></div>
     <div class="appbar-spacer"></div>
     <div class="hstats"><span><span class="gdot"></span>Active On-Duty: <b>${activeCount()} drivers</b></span><span class="sep"></span><span>⏱ Today's Fleet KMs: <b>${km(totalFleetKm())} KM</b></span></div>
+    <button class="btn-logout theme-toggle" data-act="toggleTheme" title="Switch theme"><span class="ic-moon">🌙</span><span class="ic-sun">☀️</span></button>
     <button class="btn-logout" data-act="logout">⎋ <span class="lotext">Log Out</span></button></div></div>`;}
 
 /* ---------- LANDING (separate gates) ---------- */
@@ -702,6 +735,13 @@ function exportCsv(rows,fn){const csv=rows.map(r=>r.map(c=>`"${String(c??"").rep
 function doExportAll(){const rows=[["Type","Driver","Plate","Platform","Date","Detail1","Detail2","Detail3"]];state.shifts.forEach(s=>{const d=driverById(s.driverId);rows.push(["Shift",d?.name,d?.plate,s.platform,s.date,`In:${s.loginPlace}`,`Out:${s.logoutPlace||"pending"}`,`Dist:${s.distance??"-"}`]);});state.fuelRecords.forEach(f=>{const d=driverById(f.driverId);rows.push(["Fuel",d?.name,f.plate,"-",f.date,`${f.liters}L ${f.fuelType}`,`${money(f.cost)} KWD`,f.station]);});exportCsv(rows,"sumou-fleet-export.csv");}
 function doExportKm(){const rows=[["Date","Driver","Plate","Platform","Start KM","End KM","Distance","Trips"]];state.kmRecords.forEach(r=>{const d=driverById(r.driverId);rows.push([r.date,d?.name,r.plate,r.platform,r.startOdo,r.endOdo??"-",r.distance??"-",r.trips??"-"]);});exportCsv(rows,"sumou-km-report.csv");}
 
+/* ============================================================ THEME ============================================================ */
+const THEME_KEY="sumou_theme";
+function currentTheme(){try{return localStorage.getItem(THEME_KEY)||"dark";}catch(e){return "dark";}}
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem(THEME_KEY,t);}catch(e){}}
+function toggleTheme(){applyTheme(currentTheme()==="dark"?"light":"dark");}
+applyTheme(currentTheme());
+
 /* ============================================================ EVENTS ============================================================ */
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-act],[data-tab],[data-addkm],[data-addfuel],[data-deldriver],[data-drtab],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-close]");
@@ -726,6 +766,7 @@ document.addEventListener("click",e=>{
       if(d.pin!==pin){toast("Incorrect PIN.");break;}
       state.driverId=d.id;state.screen="driver";saveSession({role:"driver",driverId:d.id});render();break;}
     case "logout":stopLiveWatch();clearSession();state.screen="landing";state.driverId=null;state.gps={};render();break;
+    case "toggleTheme":toggleTheme();break;
     case "openAddDriver":modalAddDriver();break;
     case "saveDriver":doAddDriver();break;
     case "startDuty":doStartDuty();break;
