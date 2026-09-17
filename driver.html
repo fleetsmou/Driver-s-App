@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sumou Driver - Unified Dual-Theme App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ------------------------------------------------------------
+       1. DUAL THEME COLOR SYSTEM (CSS Variables)
+       ------------------------------------------------------------ */
+    :root {
+      --sans: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+      --display: 'Outfit', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* THEME 1: CYBER-LUXURY DARK */
+    html[data-theme="dark"] {
+      --bg: #090a0f;
+      --card-bg: #10131d;
+      --tile-bg: rgba(18, 22, 33, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(0, 245, 155, 0.4);
+      --txt-main: #f4f4f5;
+      --txt-muted: #8e95a5;
+      --txt-sub: #5b6275;
+      --accent: #00f59b;
+      --accent-glow: rgba(0, 245, 155, 0.25);
+      --accent-bg: rgba(0, 245, 155, 0.12);
+      --btn-duty-start: linear-gradient(135deg, #00f59b 0%, #05c270 100%);
+      --btn-duty-txt: #05140d;
+      --btn-duty-end: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      --badge-bg: rgba(255, 255, 255, 0.06);
+      --badge-txt: #e2e8f0;
+      --theme-toggle-bg: #181c28;
+      --theme-toggle-txt: #f59e0b;
+      --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+    }
+
+    /* THEME 2: SWISS EDITORIAL LIGHT */
+    html[data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --tile-bg: #f8fafc;
+      --border: rgba(15, 23, 42, 0.1);
+      --border-focus: rgba(6, 95, 70, 0.4);
+      --txt-main: #0f172a;
+      --txt-muted: #64748b;
+      --txt-sub: #94a3b8;
+      --accent: #065f46;
+      --accent-glow: rgba(6, 95, 70, 0.15);
+      --accent-bg: #e6f4ea;
+      --btn-duty-start: #0f172a;
+      --btn-duty-txt: #ffffff;
+      --btn-duty-end: #dc2626;
+      --badge-bg: #e2e8f0;
+      --badge-txt: #1e293b;
+      --theme-toggle-bg: #e2e8f0;
+      --theme-toggle-txt: #475569;
+      --shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.08);
+    }
+
+    /* ------------------------------------------------------------
+       2. ZERO-SCROLL 1-SCREEN VIEWPORT LAYOUT
+       ------------------------------------------------------------ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* 100% Zero-scroll fit */
+      background: var(--bg);
+      color: var(--txt-main);
+      font-family: var(--sans);
+      transition: background-color 0.25s ease, color 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-viewport {
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2.2;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    /* TOP HEADER */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .brand-logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      display: grid;
+      place-items: center;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+    .brand-title {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 14px;
+      line-height: 1.1;
+    }
+    .brand-badge {
+      font-family: var(--mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-bg);
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    .veh-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 10.5px;
+      color: var(--txt-muted);
+    }
+    .plate-val {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: var(--txt-main);
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* THEME SWITCHER BUTTON */
+    .theme-toggle-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--theme-toggle-bg);
+      color: var(--theme-toggle-txt);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: var(--transition);
+    }
+    .theme-toggle-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px 3px 4px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .user-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: var(--transition);
+    }
+    .status-dot.active {
+      background: #00f59b;
+      box-shadow: 0 0 8px #00f59b;
+    }
+
+    /* PLATFORM SELECTOR */
+    .dispatch-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 7px 0 6px;
+    }
+    .dispatch-label {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--txt-sub);
+    }
+    .platform-pills {
+      display: flex;
+      gap: 4px;
+    }
+    .platform-btn {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--tile-bg);
+      color: var(--txt-muted);
+      transition: var(--transition);
+    }
+    .platform-btn.active {
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      border-color: transparent;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* MAIN COCKPIT BOX */
+    .cockpit-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .cockpit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cockpit-tile {
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .cockpit-tile:hover {
+      border-color: var(--border-focus);
+    }
+    .tile-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tile-val {
+      font-family: var(--mono);
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--txt-main);
+      margin-top: 3px;
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+    .tile-val small {
+      font-size: 10px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .tile-sub {
+      font-size: 9.5px;
+      color: var(--txt-sub);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .timer-strip {
+      margin-top: 8px;
+      padding: 5px 10px;
+      background: var(--accent-bg);
+      border: 1px solid var(--border-focus);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* TACTILE DUTY CTA */
+    .btn-duty {
+      width: 100%;
+      height: 42px;
+      margin-top: 8px;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 13.5px;
+      letter-spacing: 0.4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--btn-duty-start);
+      color: var(--btn-duty-txt);
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    .btn-duty:active {
+      transform: scale(0.98);
+    }
+    .btn-duty.on-shift {
+      background: var(--btn-duty-end) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    }
+
+    /* TELEMETRY ROW */
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--txt-sub);
+      margin: 8px 2px 4px;
+      font-weight: 700;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 7px 5px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-label {
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      font-weight: 600;
+    }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--txt-main);
+      margin-top: 1px;
+    }
+    .stat-num span {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--txt-muted);
+    }
+
+    .actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .btn-action {
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--txt-main);
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-action:hover {
+      border-color: var(--border-focus);
+    }
+    .btn-action.fuel {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border-color: var(--border-focus);
+    }
+
+    /* RECENT SHIFT DRAWER */
+    .recent-strip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-top: 7px;
+    }
+    .recent-header {
+      width: 100%;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-family: var(--sans);
+    }
+    .recent-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    .recent-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .recent-metrics {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .recent-km {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .recent-badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--badge-bg);
+      color: var(--badge-txt);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .recent-body {
+      display: none;
+      padding: 6px 10px 8px;
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      line-height: 1.6;
+    }
+    .recent-body.open {
+      display: block;
+    }
+    .recent-row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .recent-row b {
+      color: var(--txt-main);
+    }
+
+    /* TOAST */
+    .toast {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      opacity: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--accent);
+      color: var(--txt-main);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-viewport">
+  <div id="toast" class="toast">Duty Status Updated</div>
+
+  <!-- 1. Header with Moon/Sun Theme Toggle -->
+  <header class="top-bar">
+    <div class="brand-group">
+      <div class="brand-logo">S</div>
+      <div>
+        <div class="brand-title">SUMOU</div>
+        <div class="brand-badge">DRIVER v2.5</div>
+      </div>
+    </div>
+
+    <div class="veh-pill">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-4H7l-2 4v5zM5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+      <span>Toyota</span>
+      <span class="plate-val">546413</span>
+    </div>
+
+    <div class="controls-group">
+      <!-- Theme Switcher Button -->
+      <button id="themeToggle" class="theme-toggle-btn" title="Switch Theme">
+        <svg id="themeIcon" class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+      </button>
+
+      <div class="user-pill">
+        <div class="user-avatar">H</div>
+        <span id="userName">hardik</span>
+        <div id="dutyDot" class="status-dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Platform Dispatch Strip -->
+  <div class="dispatch-strip">
+    <span class="dispatch-label">Active Platform</span>
+    <div class="platform-pills">
+      <button class="platform-btn active" onclick="setPlatform('Talabat')">Talabat</button>
+      <button class="platform-btn" onclick="setPlatform('Keeta')">Keeta</button>
+      <button class="platform-btn" onclick="setPlatform('Deliveroo')">Deliveroo</button>
+      <button class="platform-btn" onclick="setPlatform('Jahez')">Jahez</button>
+    </div>
+  </div>
+
+  <!-- 3. Side-by-Side Cockpit Box (Odometer + GPS) -->
+  <div class="cockpit-card">
+    <div class="cockpit-grid">
+      <!-- Odometer Tile -->
+      <div class="cockpit-tile" onclick="promptOdometer()">
+        <div class="tile-head">
+          <span>Odometer</span>
+          <span>Edit ✎</span>
+        </div>
+        <div class="tile-val">
+          <span id="odoVal">30,085</span>
+          <small>KM</small>
+        </div>
+        <div class="tile-sub">Shift Origin 30,000 KM</div>
+      </div>
+
+      <!-- GPS Geofence Tile -->
+      <div class="cockpit-tile" onclick="detectGps()">
+        <div class="tile-head">
+          <span>GPS Geofence</span>
+          <span id="gpsRefreshIcon">↻</span>
+        </div>
+        <div class="tile-val" style="font-size: 13px; font-weight: 700; margin-top: 4px;">
+          <span id="gpsLabel">Shuwaikh Ind. 3</span>
+        </div>
+        <div class="tile-sub" id="gpsSub">±12m Precision · Gate 4</div>
+      </div>
+    </div>
+
+    <!-- Live Shift Timer -->
+    <div id="timerStrip" class="timer-strip" style="display: none;">
+      <span>● SHIFT RUNNING</span>
+      <span id="shiftTimer">00:00:00</span>
+    </div>
+
+    <!-- Primary Duty Action Button -->
+    <button id="dutyBtn" class="btn-duty" onclick="toggleDuty()">
+      <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span id="dutyBtnText">START DUTY SHIFT</span>
+    </button>
+  </div>
+
+  <!-- 4. Today's Telemetry Metrics -->
+  <div>
+    <div class="section-head">
+      <span>Shift Telemetry (Today)</span>
+      <span id="dateStr">16 Sep</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Distance</div>
+        <div class="stat-num" id="distKm">85 <span>km</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Shifts</div>
+        <div class="stat-num" id="shiftCount">1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Fuel</div>
+        <div class="stat-num" id="fuelKwd">0 <span>kwd</span></div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn-action" onclick="promptOdometer()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        + Post KM
+      </button>
+      <button class="btn-action fuel" onclick="promptFuel()">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 22h12M4 9h10M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></svg>
+        + Log Fuel
+      </button>
+    </div>
+  </div>
+
+  <!-- 5. Collapsible Recent Shift Strip -->
+  <div class="recent-strip">
+    <button class="recent-header" onclick="toggleShiftDrawer()">
+      <div class="recent-title">
+        <div class="recent-dot"></div>
+        <span>Last Shift: Talabat</span>
+      </div>
+      <div class="recent-metrics">
+        <span class="recent-km">+85 KM</span>
+        <span class="recent-badge">12 drops</span>
+        <span id="drawerArrow">▾</span>
+      </div>
+    </button>
+    <div id="shiftDrawer" class="recent-body">
+      <div class="recent-row">
+        <span>Start: Shuwaikh 3 (16:39)</span>
+        <b>30,000 KM</b>
+      </div>
+      <div class="recent-row">
+        <span>End: Mirqab Block 2 (23:22)</span>
+        <b>30,085 KM</b>
+      </div>
+      <div class="recent-row" style="margin-top: 2px;">
+        <span>Platform: Talabat · 6h 43m</span>
+        <b style="color: var(--accent)">COMPLETED</b>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentTheme = localStorage.getItem('sumou_theme') || 'dark';
+  let isDutyActive = false;
+  let odo = 30085;
+  let distanceKm = 85;
+  let shifts = 1;
+  let fuelKwd = 0;
+  let selectedPlatform = 'Talabat';
+  let shiftSeconds = 0;
+  let timerInterval = null;
+
+  const htmlEl = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const dutyBtn = document.getElementById('dutyBtn');
+  const dutyBtnText = document.getElementById('dutyBtnText');
+  const dutyDot = document.getElementById('dutyDot');
+  const timerStrip = document.getElementById('timerStrip');
+  const shiftTimer = document.getElementById('shiftTimer');
+  const toast = document.getElementById('toast');
+  const shiftDrawer = document.getElementById('shiftDrawer');
+  const drawerArrow = document.getElementById('drawerArrow');
+
+  function applyTheme(theme) {
+    htmlEl.setAttribute('data-theme', theme);
+    currentTheme = theme;
+    localStorage.setItem('sumou_theme', theme);
+    if (theme === 'dark') {
+      themeIcon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>';
+      themeToggle.setAttribute('title', 'Switch to Swiss Editorial Light');
+    } else {
+      themeIcon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+      themeToggle.setAttribute('title', 'Switch to Cyber-Luxury Dark');
+    }
+  }
+
+  themeToggle.addEventListener('click', () => {
+    const next = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    showToast(next === 'dark' ? 'Switched to Cyber-Luxury Dark' : 'Switched to Swiss Editorial Light');
+  });
+
+  applyTheme(currentTheme);
+
+  function showToast(msg) {
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function setPlatform(name) {
+    selectedPlatform = name;
+    document.querySelectorAll('.platform-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.innerText === name);
+    });
+    showToast(`Dispatch: ${name}`);
+  }
+
+  function toggleDuty() {
+    isDutyActive = !isDutyActive;
+    if (isDutyActive) {
+      dutyBtn.classList.add('on-shift');
+      dutyBtnText.innerText = 'END DUTY & SAVE SHIFT';
+      dutyDot.classList.add('active');
+      timerStrip.style.display = 'flex';
+      shiftSeconds = 0;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        shiftSeconds++;
+        const h = String(Math.floor(shiftSeconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((shiftSeconds % 3600) / 60)).padStart(2, '0');
+        const s = String(shiftSeconds % 60).padStart(2, '0');
+        shiftTimer.innerText = `${h}:${m}:${s}`;
+      }, 1000);
+      showToast(`Duty Started on ${selectedPlatform}!`);
+    } else {
+      dutyBtn.classList.remove('on-shift');
+      dutyBtnText.innerText = 'START DUTY SHIFT';
+      dutyDot.classList.remove('active');
+      timerStrip.style.display = 'none';
+      clearInterval(timerInterval);
+      shifts += 1;
+      distanceKm += 12;
+      document.getElementById('shiftCount').innerText = shifts;
+      document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
+      showToast('Shift Ended! Telemetry Saved.');
+    }
+  }
+
+  function promptOdometer() {
+    const input = prompt('Enter new Odometer reading (KM):', odo);
+    if (input !== null && !isNaN(input) && Number(input) > 0) {
+      const newOdo = parseInt(input);
+      const delta = Math.max(0, newOdo - odo);
+      odo = newOdo;
+      distanceKm += delta;
+      document.getElementById('odoVal').innerText = odo.toLocaleString();
+      document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
+      showToast(`Odometer updated: ${odo.toLocaleString()} KM (+${delta} km)`);
+    }
+  }
+
+  function promptFuel() {
+    const input = prompt('Enter fuel expense in Kuwait Dinar (KWD):', '2.500');
+    if (input !== null && !isNaN(input) && Number(input) >= 0) {
+      fuelKwd = +(fuelKwd + parseFloat(input)).toFixed(3);
+      document.getElementById('fuelKwd').innerHTML = `${fuelKwd} <span>kwd</span>`;
+      showToast(`Logged ${input} KWD Fuel Expense!`);
+    }
+  }
+
+  function detectGps() {
+    const icon = document.getElementById('gpsRefreshIcon');
+    icon.style.display = 'inline-block';
+    icon.style.transform = 'rotate(180deg)';
+    icon.style.transition = 'transform 0.4s ease';
+    setTimeout(() => {
+      document.getElementById('gpsSub').innerText = '±8m RTK Lock · Gate 4 Verified';
+      showToast('GPS RTK Lock Confirmed (±8m)');
+      icon.style.transform = 'rotate(0deg)';
+    }, 400);
+  }
+
+  function toggleShiftDrawer() {
+    const isOpen = shiftDrawer.classList.toggle('open');
+    drawerArrow.innerText = isOpen ? '▴' : '▾';
+  }
+</script>
+
+</body>
+</html>
