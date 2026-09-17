@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   
   <style>
     :root {
@@ -766,9 +768,320 @@
       margin-bottom: 12px;
       display: none;
     }
+
+    /* ADMIN PORTAL STYLING (Exclusive to #admin) */
+    .admin-container {
+      width: 100%;
+      max-width: 1140px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--bg-page);
+      padding: max(14px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)) 16px;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      margin: 0 auto;
+    }
+    .admin-appbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-badge {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #60a5fa;
+      background: rgba(37,99,235,0.15);
+      border: 1px solid rgba(59,130,246,0.35);
+      padding: 2px 7px;
+      border-radius: 6px;
+      margin-left: 4px;
+    }
+    .admin-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+    }
+    .admin-kpi-card {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .admin-kpi-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--txt-dim);
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-kpi-val {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--txt-white);
+      margin-top: 6px;
+    }
+    .admin-kpi-val small {
+      font-size: 11px;
+      color: var(--txt-muted);
+      font-weight: 600;
+    }
+    .admin-kpi-sub {
+      font-size: 11px;
+      color: var(--txt-muted);
+      margin-top: 3px;
+    }
+    .admin-tabs-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .admin-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      background: var(--card-bg);
+      padding: 5px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .admin-tab-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--txt-muted);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s;
+    }
+    .admin-tab-btn.active {
+      background: #1e293b;
+      border-color: rgba(59,130,246,0.5);
+      color: #60a5fa;
+      font-weight: 800;
+    }
+    .admin-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .admin-btn {
+      padding: 7px 13px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--card-inner);
+      color: var(--txt-white);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .admin-btn:hover {
+      border-color: rgba(59,130,246,0.6);
+      background: #1e293b;
+    }
+    .admin-btn.blue {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .admin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .admin-table-wrap {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+    .admin-table th, .admin-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .admin-table th {
+      color: var(--txt-dim);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .admin-table td {
+      color: var(--txt-white);
+    }
+    #adminMapContainer {
+      height: 380px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin-top: 12px;
+      position: relative;
+      z-index: 1;
+    }
+    .live-driver-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(37,99,235,0.12);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+    .live-chip-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #10b981;
+      color: #064e3b;
+      font-weight: 800;
+      font-size: 9.5px;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
+
+<!-- ADMIN LOGIN GATE (Visible ONLY when URL has #admin and not authenticated) -->
+<div id="adminGate" class="authgate">
+  <div class="authcard">
+    <div class="authbrand">
+      <div class="logo-box" style="background:#172554; border-color:rgba(59,130,246,0.5); color:#60a5fa">🛡️</div>
+      <div class="ab-text">
+        <b>SUMOU FLEET</b>
+        <small style="color:#60a5fa">Admin Operations Portal</small>
+      </div>
+    </div>
+    <h2>Fleet Admin Sign In</h2>
+    <div class="authsub">Enter your fleet administrator passcode to access operations & live tracking.</div>
+    <div id="adminLoginErr" class="autherr"></div>
+    <div class="authfield">
+      <label>Admin Passcode</label>
+      <input id="adminPassInput" type="password" placeholder="Enter admin passcode (Default: 9999)" value="" />
+    </div>
+    <button class="authbtn" style="background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:#fff; box-shadow:0 4px 16px rgba(37,99,235,0.4)" onclick="doAdminSignIn()">
+      🛡️ Sign In to Admin Portal →
+    </button>
+    <div class="authnote">
+      Authorized Fleet Dispatch & Management Only
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PORTAL CONTAINER (Visible ONLY when URL has #admin and authenticated) -->
+<div id="adminPortal" class="admin-container">
+  <!-- Appbar -->
+  <header class="admin-appbar">
+    <div class="admin-brand">
+      <div style="font-size:24px">🛡️</div>
+      <div>
+        <div style="display:flex;align-items:center">
+          <b style="font-family:var(--display);font-size:16px;letter-spacing:0.5px">SUMOU FLEET</b>
+          <span class="admin-badge">Admin Portal</span>
+        </div>
+        <div style="font-size:11px;color:var(--txt-muted);margin-top:2px">Fleet Operations & Live Driver Telemetry</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-logout" onclick="handleAdminLogout()" title="Log out of Admin Portal">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        <span>Log Out</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <div class="admin-kpis">
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-title">
+        <span>Active On Duty</span>
+        <span style="color:#10b981">●</span>
+      </div>
+      <div class="admin-kpi-val" id="kpiActiveCount">1 <small>/ 1 driver</small></div>
+      <div class="admin-kpi-sub" style="color:#34d399">Currently streaming GPS live</div>
+    </div>
+
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-title">
+        <span>Total Fleet KMs</span>
+        <span style="color:#60a5fa">🚗</span>
+      </div>
+      <div class="admin-kpi-val" id="kpiTotalKm">30,085 <small>KM</small></div>
+      <div class="admin-kpi-sub">Across Talabat & Keeta shifts</div>
+    </div>
+
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-title">
+        <span>Fuel Spend</span>
+        <span style="color:var(--amber)">⛽</span>
+      </div>
+      <div class="admin-kpi-val" id="kpiFuelSpend">0.000 <small>KWD</small></div>
+      <div class="admin-kpi-sub">Verified station refill logs</div>
+    </div>
+
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-title">
+        <span>Shift Logs</span>
+        <span style="color:#a78bfa">📍</span>
+      </div>
+      <div class="admin-kpi-val" id="kpiShiftsCount">1 <small>Record</small></div>
+      <div class="admin-kpi-sub">RTK GPS timestamps recorded</div>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation & Actions -->
+  <div class="admin-tabs-bar">
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" id="tabBtn-map" onclick="switchAdminTab('map')">📍 Live Map & Radar</button>
+      <button class="admin-tab-btn" id="tabBtn-logs" onclick="switchAdminTab('logs')">🧭 Duty & Shift Logs</button>
+      <button class="admin-tab-btn" id="tabBtn-km" onclick="switchAdminTab('km')">📊 Daily KM Records</button>
+      <button class="admin-tab-btn" id="tabBtn-fuel" onclick="switchAdminTab('fuel')">⛽ Fuel Refill Audits</button>
+      <button class="admin-tab-btn" id="tabBtn-drivers" onclick="switchAdminTab('drivers')">👥 Drivers & Fleet</button>
+    </div>
+    <div class="admin-actions">
+      <button class="admin-btn blue" onclick="openAddDriverModal()">＋ Add Driver</button>
+      <button class="admin-btn" onclick="exportAdminCsv()">⬇️ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- Tab Content Sections -->
+  <div id="adminTabContent"></div>
+</div>
 
 <!-- IN-APP LOGIN GATE (Zero 404, Seamless Mobile Login Gate) -->
 <div id="loginGate" class="authgate">
@@ -1050,9 +1363,85 @@
     }
   }
 
+  /* ============================================================
+     ROUTING & MULTI-PORTAL GATEWAY
+     ============================================================ */
   const loginGate = document.getElementById('loginGate');
+  const adminGate = document.getElementById('adminGate');
+  const adminPortal = document.getElementById('adminPortal');
   const cockpitContainer = document.querySelector('.cockpit-container');
 
+  function isAdminRoute() {
+    return /admin/i.test((location.hash || '') + (location.search || ''));
+  }
+
+  function checkRoute() {
+    const onAdmin = isAdminRoute();
+    if (onAdmin) {
+      // Driver Views are completely hidden in Admin route!
+      if (cockpitContainer) cockpitContainer.style.display = 'none';
+      if (loginGate) loginGate.classList.remove('show');
+
+      const isAuthed = sessionStorage.getItem('sumou_admin_authed') === 'true';
+      if (isAuthed) {
+        if (adminGate) adminGate.classList.remove('show');
+        if (adminPortal) {
+          adminPortal.style.display = 'flex';
+          renderAdminDashboard();
+        }
+      } else {
+        if (adminPortal) adminPortal.style.display = 'none';
+        if (adminGate) adminGate.classList.add('show');
+        setTimeout(() => document.getElementById('adminPassInput')?.focus(), 80);
+      }
+    } else {
+      // Admin Views are completely hidden in Driver route!
+      if (adminGate) adminGate.classList.remove('show');
+      if (adminPortal) adminPortal.style.display = 'none';
+
+      const isLoggedOut = localStorage.getItem('sumou_driver_logged_out') === 'true';
+      if (isLoggedOut) {
+        if (cockpitContainer) cockpitContainer.style.display = 'none';
+        if (loginGate) loginGate.classList.add('show');
+      } else {
+        if (loginGate) loginGate.classList.remove('show');
+        if (cockpitContainer) cockpitContainer.style.display = 'flex';
+      }
+    }
+  }
+
+  window.addEventListener('hashchange', checkRoute);
+
+  /* ADMIN SIGN IN & LOGOUT */
+  function doAdminSignIn() {
+    const pass = (document.getElementById('adminPassInput')?.value || '').trim();
+    const err = document.getElementById('adminLoginErr');
+    if (pass === '9999' || pass === 'admin') {
+      sessionStorage.setItem('sumou_admin_authed', 'true');
+      if (err) err.style.display = 'none';
+      showToast('🛡️ Admin Access Granted');
+      checkRoute();
+    } else {
+      if (err) {
+        err.innerText = 'Incorrect Admin Passcode. (Default: 9999)';
+        err.style.display = 'block';
+      }
+    }
+  }
+
+  setTimeout(() => {
+    document.getElementById('adminPassInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doAdminSignIn();
+    });
+  }, 100);
+
+  function handleAdminLogout() {
+    sessionStorage.removeItem('sumou_admin_authed');
+    showToast('Logged out of Admin Portal');
+    checkRoute();
+  }
+
+  /* DRIVER SIGN IN & LOGOUT */
   function showLoginGate() {
     if (loginGate) loginGate.classList.add('show');
     if (cockpitContainer) cockpitContainer.style.display = 'none';
@@ -1080,11 +1469,11 @@
     }
 
     err.style.display = 'none';
+    localStorage.removeItem('sumou_driver_logged_out');
     hideLoginGate();
     showToast('Signed in! Welcome Hardik.');
   }
 
-  // Allow pressing Enter key in PIN to submit
   setTimeout(() => {
     document.getElementById('loginPin')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') doDriverSignIn();
@@ -1097,12 +1486,235 @@
       if (!c) return;
       toggleDuty();
     }
-    try {
-      localStorage.removeItem('sumou_session_v1');
-      localStorage.removeItem('sumou_driver_session');
-    } catch(e) {}
+    localStorage.setItem('sumou_driver_logged_out', 'true');
     showToast('Driver signed out successfully.');
     showLoginGate();
+  }
+
+  /* ============================================================
+     ADMIN PORTAL TABS & CONTENT RENDERING
+     ============================================================ */
+  let currentAdminTab = 'map';
+  let adminDrivers = [
+    { id: '1', name: 'Hardik', phone: '5123 4567', pin: '1234', plate: '546413', model: 'Delivery Van', platforms: ['Talabat', 'Keeta'], onDuty: true }
+  ];
+  let adminShifts = [
+    { id: 's1', driver: 'Hardik', plate: '546413', platform: 'Talabat', date: '16 Sep 2026', loginTime: '16:39', origin: 'Depot Hub', current: 'Thnayan Al-Ghanim Street, Mirqab', duration: '6h 43m', km: 85, status: 'ACTIVE' }
+  ];
+  let adminKmLogs = [
+    { date: '16 Sep 2026', driver: 'Hardik', plate: '546413', platform: 'Talabat', startKm: 30000, endKm: 30085, dist: 85, trips: 14 }
+  ];
+  let adminFuelLogs = [
+    { date: '15 Sep 2026', driver: 'Hardik', plate: '546413', station: 'KNPC Petrol Station (Kuwait National)', place: 'Shuwaikh Industrial', liters: 25.0, cost: '2.625', fuelType: '95 Petrol / Ultra' }
+  ];
+
+  let adminLeafletMap = null;
+
+  function switchAdminTab(tab) {
+    currentAdminTab = tab;
+    document.querySelectorAll('.admin-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.id === `tabBtn-${tab}`);
+    });
+    renderAdminDashboard();
+  }
+
+  function renderAdminDashboard() {
+    const container = document.getElementById('adminTabContent');
+    if (!container) return;
+
+    if (currentAdminTab === 'map') {
+      container.innerHTML = `
+        <div class="admin-card">
+          <div class="live-driver-bar">
+            <div>
+              <span class="live-chip-badge">● LIVE ON DUTY</span>
+              <span style="font-weight:800; color:#f8fafc; margin-left:8px">Hardik</span>
+              <span style="color:var(--txt-muted)">• Plate: <b>546413</b> • Platform: <b style="color:var(--amber)">Talabat</b></span>
+            </div>
+            <div>Speed: <b style="color:#10b981">38 km/h</b> · SatLock Active</div>
+          </div>
+          <div style="font-size:12px; font-weight:700; color:var(--txt-white); display:flex; align-items:center; gap:6px">
+            <span>📍 Real-Time Fleet & Kuwait Delivery Hubs Radar</span>
+          </div>
+          <div id="adminMapContainer"></div>
+        </div>
+      `;
+      setTimeout(mountAdminMap, 100);
+    } else if (currentAdminTab === 'logs') {
+      container.innerHTML = `
+        <div class="admin-card">
+          <div style="font-size:14px; font-weight:800; margin-bottom:12px; display:flex; justify-content:space-between">
+            <span>🧭 Driver Shift Duty & Location Telemetry Logs</span>
+            <span style="font-family:var(--mono); color:var(--amber); font-size:12px">${adminShifts.length} Shifts Recorded</span>
+          </div>
+          ${adminShifts.map(s => `
+            <div style="background:var(--card-inner); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                <b style="font-size:13px; color:var(--txt-white)">${s.platform} Shift — ${s.driver} (${s.plate})</b>
+                <span class="hud-badge" style="background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.4)">${s.status}</span>
+              </div>
+              <div style="font-family:var(--mono); font-size:11px; color:var(--txt-muted); display:flex; flex-direction:column; gap:3px">
+                <div>📅 Date: ${s.date} • Shift Duration: <b style="color:#fff">${s.duration}</b></div>
+                <div>↗ Origin: <b>${s.origin}</b> (${s.loginTime})</div>
+                <div>📍 Live Route: <b>${s.current}</b></div>
+                <div style="color:var(--amber)">⚡ Distance Logged: <b>+${s.km} KM</b></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else if (currentAdminTab === 'km') {
+      container.innerHTML = `
+        <div class="admin-card">
+          <div style="font-size:14px; font-weight:800; margin-bottom:10px">📊 Daily Vehicle KM & Odometer Postings</div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Driver</th>
+                  <th>Plate</th>
+                  <th>Platform</th>
+                  <th>Start ODO</th>
+                  <th>End ODO</th>
+                  <th>Distance</th>
+                  <th>Trips</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${adminKmLogs.map(r => `
+                  <tr>
+                    <td>${r.date}</td>
+                    <td style="font-weight:700; color:#f8fafc">${r.driver}</td>
+                    <td><span class="veh-chip" style="padding:1px 5px; font-size:10px">${r.plate}</span></td>
+                    <td><b style="color:var(--amber)">${r.platform}</b></td>
+                    <td>${r.startKm.toLocaleString()} KM</td>
+                    <td>${r.endKm.toLocaleString()} KM</td>
+                    <td style="color:#34d399; font-weight:800">+${r.dist} KM</td>
+                    <td><b>${r.trips}</b></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else if (currentAdminTab === 'fuel') {
+      container.innerHTML = `
+        <div class="admin-card">
+          <div style="font-size:14px; font-weight:800; margin-bottom:12px">⛽ Daily Fuel Refill Audits & Station Records</div>
+          ${adminFuelLogs.map(f => `
+            <div style="background:var(--card-inner); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px">
+              <div style="display:flex; justify-content:space-between; align-items:center">
+                <div>
+                  <b style="font-size:13px; color:var(--txt-white)">${f.station}</b>
+                  <div style="font-size:11px; color:var(--txt-muted)">📍 ${f.place} • ${f.date}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-family:var(--mono); font-size:15px; font-weight:900; color:var(--amber)">${f.cost} KWD</div>
+                  <small style="font-family:var(--mono); font-size:10px; color:var(--txt-muted)">${f.liters} L (${f.fuelType})</small>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else if (currentAdminTab === 'drivers') {
+      container.innerHTML = `
+        <div class="admin-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+            <span style="font-size:14px; font-weight:800">👥 Drivers & Fleet Vehicle Assignments</span>
+            <button class="admin-btn blue" onclick="openAddDriverModal()">＋ Add Driver</button>
+          </div>
+          ${adminDrivers.map(d => `
+            <div style="background:var(--card-inner); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center">
+              <div>
+                <b style="font-size:13.5px; color:var(--txt-white)">${d.name}</b>
+                <span class="hud-badge" style="background:${d.onDuty?'rgba(16,185,129,0.15)':'rgba(148,163,184,0.15)'}; color:${d.onDuty?'#34d399':'#94a3b8'}; border-color:${d.onDuty?'rgba(16,185,129,0.4)':'rgba(148,163,184,0.3)'}">
+                  ${d.onDuty?'ON DUTY':'OFF DUTY'}
+                </span>
+                <div style="font-family:var(--mono); font-size:11px; color:var(--txt-muted); margin-top:4px">
+                  📞 ${d.phone} • 🚗 ${d.model} <span class="veh-chip" style="padding:1px 5px">${d.plate}</span>
+                </div>
+                <div style="font-family:var(--mono); font-size:10.5px; color:var(--amber); margin-top:3px">
+                  Security PIN: <b>${d.pin}</b> • Platforms: <b>${d.platforms.join(', ')}</b>
+                </div>
+              </div>
+              <button class="btn-logout" onclick="alert('Driver profile verified.')" style="color:var(--txt-muted); border-color:var(--border); background:transparent">Manage</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+
+  function mountAdminMap() {
+    const el = document.getElementById('adminMapContainer');
+    if (!el || typeof L === 'undefined') return;
+    if (adminLeafletMap) {
+      try { adminLeafletMap.remove(); } catch(e) {}
+      adminLeafletMap = null;
+    }
+    adminLeafletMap = L.map('adminMapContainer').setView([29.35, 47.98], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(adminLeafletMap);
+
+    // Delivery Hubs in Kuwait
+    const hubs = [
+      { name: 'Kuwait City Delivery Hub – Sharq', lat: 29.3798, lng: 47.9860 },
+      { name: 'Shuwaikh Logistics Center', lat: 29.3416, lng: 47.9364 },
+      { name: 'Salmiya Commercial Depot', lat: 29.3332, lng: 48.0766 }
+    ];
+
+    hubs.forEach(h => {
+      L.circleMarker([h.lat, h.lng], { radius: 7, color: '#3b82f6', fillColor: '#60a5fa', fillOpacity: 0.9 })
+        .addTo(adminLeafletMap)
+        .bindPopup(`<b>Hub:</b> ${h.name}`);
+    });
+
+    // Active Driver Marker
+    L.marker([29.3694, 47.9823])
+      .addTo(adminLeafletMap)
+      .bindPopup('<b>Hardik (546413)</b><br>On Duty • Talabat<br>Speed: 38 km/h')
+      .openPopup();
+  }
+
+  function openAddDriverModal() {
+    const name = prompt('Enter Driver Name:');
+    if (!name) return;
+    const phone = prompt('Enter Phone Number (Login ID):', '5');
+    if (!phone) return;
+    const pin = prompt('Enter 4-Digit Security PIN:', '1234');
+    const plate = prompt('Enter Vehicle Plate Number:', '123456');
+    adminDrivers.push({
+      id: String(Date.now()),
+      name,
+      phone,
+      pin: pin || '1234',
+      plate: plate || '00000',
+      model: 'Delivery Bike/Van',
+      platforms: ['Talabat', 'Keeta'],
+      onDuty: false
+    });
+    document.getElementById('kpiActiveCount').innerText = `${adminDrivers.filter(d=>d.onDuty).length} / ${adminDrivers.length} drivers`;
+    showToast(`Driver ${name} added successfully!`);
+    renderAdminDashboard();
+  }
+
+  function exportAdminCsv() {
+    let csv = 'Date,Driver,Plate,Platform,StartKM,EndKM,Distance,Trips\n';
+    adminKmLogs.forEach(r => {
+      csv += `"${r.date}","${r.driver}","${r.plate}","${r.platform}",${r.startKm},${r.endKm},${r.dist},${r.trips}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sumou_fleet_km_report.csv';
+    a.click();
+    showToast('Exported sumou_fleet_km_report.csv');
   }
 
   function promptOdo() {
@@ -1225,10 +1837,12 @@
     );
   }
 
-  // Auto-detect real GPS location when app loads
+  // Auto-detect route & real GPS location when app loads
   window.addEventListener('DOMContentLoaded', () => {
+    checkRoute();
     refreshGps();
   });
+  checkRoute();
 </script>
 
 </body>
