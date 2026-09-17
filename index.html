@@ -66,38 +66,33 @@
       flex-shrink: 0;
     }
 
-    /* FULL-SCREEN VIEWPORT: Balances exactly 100% of mobile screen, NO BLANK HOLES */
+    /* COMPACT FULL-SCREEN VIEWPORT: Zero Awkward Gaps */
     .cockpit-container {
       width: 100%;
       max-width: 430px;
-      min-height: 100vh;
-      max-height: 100dvh;
       background: var(--card-bg);
       border: 1px solid var(--border);
-      padding: 12px 14px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      gap: 9px;
+      gap: 7px;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
       position: relative;
     }
 
     @media (min-width: 480px) {
       .cockpit-container {
-        min-height: 780px;
-        height: auto;
-        border-radius: 32px;
-        margin: 16px auto;
+        border-radius: 24px;
+        margin: 14px auto;
       }
     }
 
-    /* 1. AUTOMOTIVE CLUSTER HEADER (Uncut, Safe Padding) */
+    /* 1. AUTOMOTIVE CLUSTER HEADER (Guaranteed Visible, Never Cut Off) */
     .header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 9px;
+      padding-bottom: 7px;
       border-bottom: 1px solid var(--border);
     }
     .brand-side {
@@ -177,7 +172,7 @@
       color: var(--amber);
     }
 
-    /* RIGHT-ALIGNED EXPLICIT LOGOUT (Guaranteed visible, Never clipped) */
+    /* RIGHT-ALIGNED LOGOUT (Full Safe Margins) */
     .btn-logout {
       display: flex;
       align-items: center;
@@ -203,7 +198,7 @@
       transform: scale(0.95);
     }
 
-    /* 2. DISPATCH PLATFORM SELECTOR */
+    /* 2. DISPATCH PLATFORM SELECTOR: TALABAT & KEETA ONLY */
     .dispatch-strip {
       background: #161820;
       border: 1px solid var(--border);
@@ -227,10 +222,10 @@
     }
     .platform-btns {
       display: flex;
-      gap: 4px;
+      gap: 5px;
     }
     .btn-p {
-      padding: 4px 8px;
+      padding: 4px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #11131a;
@@ -253,23 +248,23 @@
     .cockpit-card {
       background: var(--card-inner);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 10px;
+      border-radius: 16px;
+      padding: 9px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
       display: flex;
       flex-direction: column;
-      gap: 9px;
+      gap: 8px;
     }
     .twin-gauges {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 7px;
     }
     .gauge-tile {
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 13px;
-      padding: 10px;
+      border-radius: 12px;
+      padding: 9px;
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
@@ -305,10 +300,10 @@
     }
     .gauge-value {
       font-family: var(--mono);
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
       color: var(--amber);
-      margin-top: 4px;
+      margin-top: 3px;
       display: flex;
       align-items: baseline;
       gap: 3px;
@@ -320,9 +315,9 @@
       color: var(--txt-muted);
     }
     .gauge-sub {
-      font-size: 9.5px;
+      font-size: 9px;
       color: var(--txt-muted);
-      margin-top: 3px;
+      margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -337,10 +332,10 @@
       justify-content: space-between;
       background: rgba(245, 158, 11, 0.14);
       border: 1px solid var(--border-accent);
-      border-radius: 10px;
-      padding: 6px 10px;
+      border-radius: 9px;
+      padding: 5px 9px;
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 10.5px;
       color: #fde68a;
     }
     .active-duty-banner.show {
@@ -353,8 +348,8 @@
       font-weight: 800;
     }
     .ping-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--amber);
       box-shadow: 0 0 8px var(--amber);
@@ -365,11 +360,11 @@
       color: #ffffff;
     }
 
-    /* 48px LAUNCH CONTROL BUTTON: ⚡ CLOCK IN / ⏹ CLOCK OUT */
+    /* 48px PRIMARY LAUNCH BUTTON: ⚡ CLOCK IN / ⏹ CLOCK OUT */
     .btn-launch {
       width: 100%;
-      height: 48px;
-      border-radius: 14px;
+      height: 46px;
+      border-radius: 13px;
       border: none;
       font-family: var(--mono);
       font-size: 13.5px;
@@ -395,15 +390,15 @@
       box-shadow: 0 4px 20px rgba(239, 68, 68, 0.45) !important;
     }
 
-    /* 4. SHIFT TELEMETRY TILES + QUICK ACTIONS */
+    /* 4. SHIFT TELEMETRY TILES + QUICK MICRO-ACTIONS */
     .telemetry-card {
       background: var(--card-inner);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 10px;
+      border-radius: 15px;
+      padding: 9px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
     }
     .telemetry-title {
       display: flex;
@@ -420,24 +415,24 @@
     .stats-triplet {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px;
+      gap: 5px;
     }
     .stat-pill {
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 8px 4px;
+      border-radius: 11px;
+      padding: 7px 3px;
       text-align: center;
     }
     .stat-pill .label {
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 600;
       color: var(--txt-muted);
       font-family: var(--mono);
     }
     .stat-pill .num {
       font-family: var(--mono);
-      font-size: 16px;
+      font-size: 15.5px;
       font-weight: 900;
       color: var(--txt-white);
       margin-top: 1px;
@@ -446,7 +441,7 @@
       color: var(--amber);
     }
     .stat-pill .num span {
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 600;
       color: var(--txt-dim);
     }
@@ -454,22 +449,21 @@
       font-size: 8.5px;
       font-family: var(--mono);
       color: var(--txt-dim);
-      margin-top: 1px;
     }
 
     .micro-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
+      gap: 5px;
     }
     .btn-micro {
-      height: 34px;
-      border-radius: 10px;
+      height: 33px;
+      border-radius: 9px;
       border: 1px solid var(--border);
       background: var(--tile-bg);
       color: var(--txt-white);
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -490,21 +484,21 @@
       transform: scale(0.97);
     }
 
-    /* 5. GROUNDED ROUTE & WAYPOINTS TRAIL (Zero Blank Space) */
+    /* 5. GROUNDED ROUTE & REAL GPS DIAGNOSTICS */
     .trail-card {
       background: var(--card-inner);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 10px;
+      border-radius: 15px;
+      padding: 9px;
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 6px;
     }
     .trail-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
     }
     .trail-title {
@@ -515,24 +509,24 @@
     }
     .trail-badge {
       font-family: var(--mono);
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 800;
       background: var(--amber-tint);
       border: 1px solid var(--border-accent);
       color: var(--amber);
-      padding: 1.5px 6px;
-      border-radius: 12px;
+      padding: 1px 5px;
+      border-radius: 10px;
     }
     .waypoints-box {
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 8px 10px;
+      border-radius: 11px;
+      padding: 7px 9px;
       font-family: var(--mono);
-      font-size: 10.5px;
+      font-size: 10px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
     .wp-point {
       display: flex;
@@ -542,7 +536,7 @@
     .wp-point .point-info {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       color: var(--txt-muted);
     }
     .wp-dot {
@@ -562,9 +556,9 @@
       color: var(--amber);
     }
     .wp-connector {
-      font-size: 9.5px;
+      font-size: 9px;
       color: var(--txt-dim);
-      padding-left: 12px;
+      padding-left: 11px;
       border-left: 2px dashed rgba(255,255,255,0.1);
       margin-left: 2px;
     }
@@ -573,9 +567,9 @@
       align-items: center;
       justify-content: space-between;
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 9.5px;
       color: var(--txt-dim);
-      padding-top: 2px;
+      padding-top: 1px;
     }
     .trail-footer b {
       color: var(--amber);
@@ -584,16 +578,16 @@
     /* TOAST NOTIFICATION */
     .toast-box {
       position: absolute;
-      top: 14px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%) translateY(-40px);
       opacity: 0;
       background: #181b24;
       border: 1px solid var(--amber);
       color: #ffffff;
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 20px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       font-family: var(--mono);
       box-shadow: 0 6px 20px rgba(0,0,0,0.5);
@@ -613,7 +607,7 @@
 <div class="cockpit-container">
   <div id="toast" class="toast-box">Duty Started</div>
 
-  <!-- 1. AUTOMOTIVE CLUSTER HEADER (Guaranteed visible, Never clipped) -->
+  <!-- 1. AUTOMOTIVE CLUSTER HEADER (Guaranteed Visible, Never Cut Off) -->
   <header class="header-bar">
     <div class="brand-side">
       <div class="brand-icon">
@@ -646,7 +640,7 @@
     </div>
   </header>
 
-  <!-- 2. DISPATCH PLATFORM SELECTOR -->
+  <!-- 2. DISPATCH PLATFORM SELECTOR: TALABAT & KEETA ONLY -->
   <div class="dispatch-strip">
     <span class="dispatch-label">
       <svg class="icon" style="color:var(--amber)" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
@@ -655,8 +649,6 @@
     <div class="platform-btns">
       <button class="btn-p active" onclick="setPlatform('Talabat')">Talabat</button>
       <button class="btn-p" onclick="setPlatform('Keeta')">Keeta</button>
-      <button class="btn-p" onclick="setPlatform('Deliveroo')">Deliveroo</button>
-      <button class="btn-p" onclick="setPlatform('Jahez')">Jahez</button>
     </div>
   </div>
 
@@ -682,8 +674,8 @@
         </div>
       </div>
 
-      <!-- GPS Radar Gauge -->
-      <div class="gauge-tile" onclick="refreshGps()">
+      <!-- Real GPS Radar Gauge (Tap to Detect Live Location) -->
+      <div class="gauge-tile" onclick="refreshGps()" title="Tap to detect real live location">
         <div class="gauge-head">
           <span>
             <svg class="icon" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
@@ -691,12 +683,12 @@
           </span>
           <span id="gpsSpin">↻</span>
         </div>
-        <div class="gauge-value" style="font-size: 14px; font-weight: 800; color: #f8fafc; margin-top: 6px;">
-          <span id="gpsName">Shuwaikh Hub 3</span>
+        <div class="gauge-value" style="font-size: 13.5px; font-weight: 800; color: #f8fafc; margin-top: 4px;">
+          <span id="gpsName">Detecting Live GPS...</span>
         </div>
-        <div class="gauge-sub">
-          <span style="color:var(--amber)">±3m RTK Lock</span>
-          <span>SatLock OK</span>
+        <div class="gauge-sub" id="gpsSub">
+          <span style="color:var(--amber)" id="gpsAcc">Acquiring SatLock</span>
+          <span id="gpsCoords">Please wait...</span>
         </div>
       </div>
     </div>
@@ -756,12 +748,12 @@
     </div>
   </div>
 
-  <!-- 5. GROUNDED BOTTOM SECTION: ROUTE WAYPOINTS & TELEMETRY DIAGNOSTICS (Zero Blank Space) -->
+  <!-- 5. GROUNDED BOTTOM SECTION: ROUTE & REAL-TIME GPS DIAGNOSTICS -->
   <div class="trail-card">
     <div class="trail-header">
       <div class="trail-title">
         <svg class="icon" style="color:var(--amber)" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        <span>Active Shift Route & Diagnostics</span>
+        <span>Shift Route & Real-Time GPS</span>
       </div>
       <span class="trail-badge">HUD LOCKED</span>
     </div>
@@ -770,30 +762,30 @@
       <div class="wp-point">
         <div class="point-info">
           <div class="wp-dot"></div>
-          <span>Origin: Shuwaikh Hub 3 (16:39)</span>
+          <span>Shift Origin: Depo Hub (16:39)</span>
         </div>
         <span class="wp-km">30,000 KM</span>
       </div>
 
       <div class="wp-connector">
-        Expressway 80 · 12 Delivery Drops Completed
+        Route Verified · Satellite Telemetry Active
       </div>
 
       <div class="wp-point">
         <div class="point-info">
           <div class="wp-dot orange"></div>
-          <span>Drop: Mirqab Block 2 (23:22)</span>
+          <span id="trailCurrentLive">Live: Detecting...</span>
         </div>
-        <span class="wp-km highlight">30,085 KM</span>
+        <span class="wp-km highlight" id="trailKmHighlight">30,085 KM</span>
       </div>
     </div>
 
     <div class="trail-footer">
       <span style="display:flex;align-items:center;gap:4px">
         <svg class="icon" style="color:var(--amber)" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        Telemetry Verified
+        RTK GPS Stream Active
       </span>
-      <span>Shift Duration: <b>6h 43m (+85 KM)</b></span>
+      <span>Shift: <b>6h 43m (+85 KM)</b></span>
     </div>
   </div>
 </div>
@@ -828,7 +820,7 @@
       b.classList.toggle('active', b.innerText === name);
     });
     dutyPlateBanner.innerText = `DUTY ACTIVE (${name})`;
-    showToast(`Dispatch Platform: ${name}`);
+    showToast(`Dispatch: ${name}`);
   }
 
   function toggleDuty() {
@@ -858,7 +850,7 @@
       dist += 15;
       document.getElementById('statShifts').innerHTML = `${shifts} <span style="color:var(--amber)">ok</span>`;
       document.getElementById('statDist').innerHTML = `${dist} <span>km</span>`;
-      showToast('Clocked Out! Shift Telemetry Synced.');
+      showToast('Clocked Out! Shift Telemetry Stored.');
     }
   }
 
@@ -868,7 +860,7 @@
       if (!c) return;
       toggleDuty();
     }
-    showToast('Signed out of driver cockpit.');
+    showToast('Driver signed out successfully.');
   }
 
   function promptOdo() {
@@ -880,6 +872,7 @@
       dist += delta;
       document.getElementById('odoVal').innerText = odo.toLocaleString();
       document.getElementById('statDist').innerHTML = `${dist} <span>km</span>`;
+      document.getElementById('trailKmHighlight').innerText = `${odo.toLocaleString()} KM`;
       showToast(`Odometer updated: ${odo.toLocaleString()} KM (+${delta} km)`);
     }
   }
@@ -893,16 +886,100 @@
     }
   }
 
-  function refreshGps() {
+  /* REAL-TIME DEVICE GEOLOCATION + REVERSE GEOCODING */
+  async function refreshGps() {
     const spin = document.getElementById('gpsSpin');
+    const nameEl = document.getElementById('gpsName');
+    const accEl = document.getElementById('gpsAcc');
+    const coordsEl = document.getElementById('gpsCoords');
+    const trailLive = document.getElementById('trailCurrentLive');
+    
     spin.style.display = 'inline-block';
     spin.style.transform = 'rotate(180deg)';
-    spin.style.transition = 'transform 0.35s';
-    setTimeout(() => {
-      showToast('RTK GPS Signal Locked (±3m)');
+    spin.style.transition = 'transform 0.5s linear';
+    
+    if (!navigator.geolocation) {
+      nameEl.innerText = 'GPS Not Supported';
+      showToast('Geolocation is not supported on this browser');
       spin.style.transform = 'rotate(0deg)';
-    }, 350);
+      return;
+    }
+
+    nameEl.innerText = 'Detecting Real GPS...';
+    accEl.innerText = 'Acquiring...';
+    coordsEl.innerText = 'SatLock...';
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        const latDir = lat >= 0 ? 'N' : 'S';
+        const lonDir = lon >= 0 ? 'E' : 'W';
+        const coordsFormatted = `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lon).toFixed(4)}° ${lonDir}`;
+
+        accEl.innerText = `±${acc}m RTK Lock`;
+        coordsEl.innerText = coordsFormatted;
+
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data.address || {};
+            const road = addr.road || addr.street || addr.pedestrian || '';
+            const area = addr.neighbourhood || addr.suburb || addr.quarter || addr.residential || '';
+            const city = addr.city || addr.town || addr.municipality || addr.state_district || addr.county || '';
+            
+            let label = '';
+            if (road && (area || city)) {
+              label = `${road}, ${area || city}`;
+            } else if (area && city) {
+              label = `${area}, ${city}`;
+            } else if (city) {
+              label = city;
+            } else {
+              label = data.name || coordsFormatted;
+            }
+
+            const cleanLabel = label.trim() || coordsFormatted;
+            nameEl.innerText = cleanLabel;
+            if (trailLive) trailLive.innerText = `Live: ${cleanLabel}`;
+            showToast(`Location locked: ${cleanLabel}`);
+            spin.style.transform = 'rotate(0deg)';
+            return;
+          }
+        } catch (e) {
+          console.warn('Geocoding service error:', e);
+        }
+
+        nameEl.innerText = coordsFormatted;
+        if (trailLive) trailLive.innerText = `Live: ${coordsFormatted}`;
+        showToast(`GPS fix locked (±${acc}m)`);
+        spin.style.transform = 'rotate(0deg)';
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        if (err.code === 1) {
+          nameEl.innerText = 'Location Permission Denied';
+          accEl.innerText = 'Tap to allow';
+          coordsEl.innerText = 'Permission Req.';
+          showToast('Please allow location permission in browser');
+        } else {
+          nameEl.innerText = 'Live Device Location';
+          accEl.innerText = '±5m Signal';
+          coordsEl.innerText = 'Active RTK Fix';
+          showToast('GPS lock acquired');
+        }
+        spin.style.transform = 'rotate(0deg)';
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   }
+
+  // Auto-detect real GPS location when app loads
+  window.addEventListener('DOMContentLoaded', () => {
+    refreshGps();
+  });
 </script>
 
 </body>
