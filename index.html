@@ -1,79 +1,40 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sumou Driver - Cockpit App</title>
+  <title>Sumou Driver - Formula Telemetry HUD</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   
   <style>
-    /* ============================================================
-       1. DUAL THEMES (SWISS LIGHT + CYBER DARK)
-       ============================================================ */
     :root {
       --sans: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
       --display: 'Outfit', -apple-system, sans-serif;
       --mono: 'JetBrains Mono', monospace;
-      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      
+      /* Formula Telemetry HUD Palette: Carbon Graphite & Warm Amber */
+      --bg-page: #0a0b0f;
+      --card-bg: #12141a;
+      --card-inner: #181a22;
+      --tile-bg: #0d0f15;
+      --border: rgba(255, 255, 255, 0.09);
+      --border-accent: rgba(245, 158, 11, 0.4);
+      
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.28);
+      --amber-tint: rgba(245, 158, 11, 0.12);
+      
+      --txt-white: #f8fafc;
+      --txt-muted: #94a3b8;
+      --txt-dim: #64748b;
+      
+      --red-logout-bg: rgba(239, 68, 68, 0.12);
+      --red-logout-border: rgba(239, 68, 68, 0.35);
+      --red-logout-txt: #fca5a5;
     }
 
-    /* THEME 1: CYBER-LUXURY DARK (Executive OLED Black + Laser Emerald) */
-    html[data-theme="dark"] {
-      --bg: #090a0f;
-      --card-bg: #10131d;
-      --tile-bg: #141824;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(0, 245, 155, 0.45);
-      --txt-main: #f4f4f5;
-      --txt-muted: #8e95a5;
-      --txt-sub: #5b6275;
-      --accent: #00f59b;
-      --accent-glow: rgba(0, 245, 155, 0.3);
-      --accent-bg: rgba(0, 245, 155, 0.12);
-      --btn-duty-start: linear-gradient(135deg, #00f59b 0%, #05c270 100%);
-      --btn-duty-txt: #05140d;
-      --btn-duty-end: #ef4444;
-      --badge-bg: rgba(255, 255, 255, 0.06);
-      --badge-txt: #e2e8f0;
-      --theme-toggle-bg: #181c28;
-      --theme-toggle-txt: #f59e0b;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-      --logout-bg: rgba(239, 68, 68, 0.12);
-      --logout-border: rgba(239, 68, 68, 0.3);
-      --logout-txt: #fca5a5;
-    }
-
-    /* THEME 2: SWISS EDITORIAL LIGHT (Crisp White + Deep Forest Pine) */
-    html[data-theme="light"] {
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --tile-bg: #f1f5f9;
-      --border: rgba(15, 23, 42, 0.12);
-      --border-focus: rgba(6, 95, 70, 0.45);
-      --txt-main: #0f172a;
-      --txt-muted: #475569;
-      --txt-sub: #64748b;
-      --accent: #065f46;
-      --accent-glow: rgba(6, 95, 70, 0.15);
-      --accent-bg: #e6f4ea;
-      --btn-duty-start: #0f172a;
-      --btn-duty-txt: #ffffff;
-      --btn-duty-end: #dc2626;
-      --badge-bg: #e2e8f0;
-      --badge-txt: #1e293b;
-      --theme-toggle-bg: #e2e8f0;
-      --theme-toggle-txt: #475569;
-      --shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-      --logout-bg: #fee2e2;
-      --logout-border: #fca5a5;
-      --logout-txt: #991b1b;
-    }
-
-    /* ============================================================
-       2. TIGHT ZERO-SCROLL 1-SCREEN VIEWPORT (NO GAPS)
-       ============================================================ */
     * {
       margin: 0;
       padding: 0;
@@ -84,28 +45,14 @@
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden; /* 100% Zero-scroll fit */
-      background: var(--bg);
-      color: var(--txt-main);
+      min-height: 100vh;
+      background: var(--bg-page);
+      color: var(--txt-white);
       font-family: var(--sans);
-      transition: background-color 0.2s ease, color 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    .app-viewport {
-      width: 100%;
-      max-width: 420px;
-      height: 100%;
-      max-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start; /* Gaps hata diye */
-      gap: 8px;                    /* Consistent tight spacing */
-      padding: 10px 12px;
-      background: var(--bg);
-      position: relative;
+      overflow-x: hidden;
     }
 
     .icon {
@@ -119,454 +66,543 @@
       flex-shrink: 0;
     }
 
-    /* TOP HEADER BAR */
-    .top-bar {
+    /* FULL-SCREEN VIEWPORT: Balances exactly 100% of mobile screen, NO BLANK HOLES */
+    .cockpit-container {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      max-height: 100dvh;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 9px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      position: relative;
+    }
+
+    @media (min-width: 480px) {
+      .cockpit-container {
+        min-height: 780px;
+        height: auto;
+        border-radius: 32px;
+        margin: 16px auto;
+      }
+    }
+
+    /* 1. AUTOMOTIVE CLUSTER HEADER (Uncut, Safe Padding) */
+    .header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 7px;
+      padding-bottom: 9px;
       border-bottom: 1px solid var(--border);
     }
-    .brand-group {
+    .brand-side {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
     }
-    .brand-logo {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: var(--btn-duty-start);
-      color: var(--btn-duty-txt);
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: #1e222d;
+      border: 1px solid var(--border-accent);
+      color: var(--amber);
       display: grid;
       place-items: center;
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: 14px;
-      box-shadow: 0 2px 8px var(--accent-glow);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
     }
     .brand-title {
       font-family: var(--display);
-      font-weight: 800;
-      font-size: 13.5px;
+      font-weight: 900;
+      font-size: 14px;
       line-height: 1.1;
+      letter-spacing: 0.3px;
     }
-    .brand-badge {
+    .hud-badge {
       font-family: var(--mono);
-      font-size: 8.5px;
-      font-weight: 700;
-      color: var(--accent);
-      background: var(--accent-bg);
-      padding: 1px 4px;
-      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--amber);
+      background: var(--amber-tint);
+      border: 1px solid var(--border-accent);
+      padding: 1px 5px;
+      border-radius: 5px;
+      margin-left: 4px;
     }
-
-    .veh-pill {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 6px;
-      background: var(--tile-bg);
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      font-size: 10.5px;
-      color: var(--txt-muted);
-    }
-    .plate-val {
-      font-family: var(--mono);
-      font-weight: 700;
-      color: var(--txt-main);
-    }
-
-    .controls-group {
+    .driver-sub {
       display: flex;
       align-items: center;
       gap: 5px;
-    }
-
-    /* THEME SWITCHER BUTTON */
-    .theme-toggle-btn {
-      width: 26px;
-      height: 26px;
-      border-radius: 7px;
-      background: var(--theme-toggle-bg);
-      color: var(--theme-toggle-txt);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      transition: var(--transition);
-    }
-
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 6px 3px 3px;
-      background: var(--tile-bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      font-size: 10.5px;
-      font-weight: 700;
-    }
-    .user-avatar {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--btn-duty-start);
-      color: var(--btn-duty-txt);
-      display: grid;
-      place-items: center;
-      font-size: 9.5px;
-      font-weight: 800;
+      font-size: 11px;
+      color: var(--txt-muted);
+      margin-top: 1px;
     }
     .status-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #64748b;
-      transition: var(--transition);
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+      animation: pulse 1.8s infinite;
     }
-    .status-dot.active {
-      background: #00f59b;
-      box-shadow: 0 0 6px #00f59b;
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 0.6; }
     }
 
-    /* EXPLICIT LOGOUT BUTTON */
-    .btn-logout-head {
+    .header-actions {
       display: flex;
       align-items: center;
-      gap: 3px;
+      gap: 6px;
+    }
+    .veh-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       padding: 4px 7px;
-      border-radius: 7px;
-      background: var(--logout-bg);
-      border: 1px solid var(--logout-border);
-      color: var(--logout-txt);
+      border-radius: 8px;
+      background: #181b24;
+      border: 1px solid var(--border);
       font-size: 10.5px;
+      color: var(--txt-muted);
+    }
+    .veh-chip b {
+      font-family: var(--mono);
+      color: var(--amber);
+    }
+
+    /* RIGHT-ALIGNED EXPLICIT LOGOUT (Guaranteed visible, Never clipped) */
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 9px;
+      border-radius: 9px;
+      background: var(--red-logout-bg);
+      border: 1px solid var(--red-logout-border);
+      color: var(--red-logout-txt);
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    .btn-logout-head:active {
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: rgba(239, 68, 68, 0.6);
+      color: #ffffff;
+    }
+    .btn-logout:active {
       transform: scale(0.95);
     }
 
-    /* DISPATCH PLATFORM STRIP (TIGHT) */
+    /* 2. DISPATCH PLATFORM SELECTOR */
     .dispatch-strip {
+      background: #161820;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin: 0;
-      padding: 3px 6px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
     }
     .dispatch-label {
       font-family: var(--mono);
       font-size: 9.5px;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: var(--txt-sub);
-    }
-    .platform-pills {
+      color: var(--txt-dim);
       display: flex;
-      gap: 3px;
+      align-items: center;
+      gap: 4px;
+      padding-left: 4px;
     }
-    .platform-btn {
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 10.5px;
+    .platform-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .btn-p {
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #11131a;
+      color: var(--txt-muted);
+      font-family: var(--mono);
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--tile-bg);
-      color: var(--txt-muted);
-      transition: var(--transition);
+      transition: all 0.18s;
     }
-    .platform-btn.active {
-      background: var(--btn-duty-start);
-      color: var(--btn-duty-txt);
-      border-color: transparent;
-      box-shadow: 0 2px 6px var(--accent-glow);
+    .btn-p.active {
+      background: var(--amber);
+      color: #0d0e12;
+      border-color: var(--amber);
+      font-weight: 800;
+      box-shadow: 0 2px 10px var(--amber-glow);
     }
 
-    /* MAIN COCKPIT BOX */
+    /* 3. TWIN-GAUGE AUTOMOTIVE COCKPIT CARD */
     .cockpit-card {
-      background: var(--card-bg);
+      background: var(--card-inner);
       border: 1px solid var(--border);
-      border-radius: 15px;
-      padding: 9px;
-      box-shadow: var(--shadow);
-      position: relative;
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
     }
-    .cockpit-grid {
+    .twin-gauges {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 7px;
+      gap: 8px;
     }
-    .cockpit-tile {
+    .gauge-tile {
       background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px;
+      border-radius: 13px;
+      padding: 10px;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.2s;
+      position: relative;
     }
-    .cockpit-tile:hover {
-      border-color: var(--border-focus);
+    .gauge-tile:hover {
+      border-color: var(--border-accent);
     }
-    .tile-head {
+    .gauge-tile:active {
+      transform: scale(0.98);
+    }
+    .gauge-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: var(--mono);
-      font-size: 9px;
-      color: var(--txt-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      font-weight: 700;
-    }
-    .tile-val {
-      font-family: var(--mono);
-      font-size: 18px;
+      font-size: 9.5px;
       font-weight: 800;
-      color: var(--txt-main);
-      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--txt-dim);
+    }
+    .gauge-head span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .gauge-head svg {
+      color: var(--amber);
+    }
+    .gauge-head .edit-tag {
+      color: var(--amber);
+      font-size: 9px;
+    }
+    .gauge-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--amber);
+      margin-top: 4px;
       display: flex;
       align-items: baseline;
       gap: 3px;
+      letter-spacing: -0.5px;
     }
-    .tile-val small {
-      font-size: 9.5px;
-      color: var(--accent);
+    .gauge-value small {
+      font-size: 10px;
       font-weight: 700;
+      color: var(--txt-muted);
     }
-    .tile-sub {
-      font-size: 9px;
-      color: var(--txt-sub);
-      margin-top: 2px;
+    .gauge-sub {
+      font-size: 9.5px;
+      color: var(--txt-muted);
+      margin-top: 3px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      display: flex;
+      justify-content: space-between;
     }
 
-    .timer-strip {
-      margin-top: 7px;
-      padding: 4px 8px;
-      background: var(--accent-bg);
-      border: 1px solid var(--border-focus);
-      border-radius: 7px;
+    /* Live Duty Active HUD Banner */
+    .active-duty-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid var(--border-accent);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #fde68a;
+    }
+    .active-duty-banner.show {
+      display: flex;
+    }
+    .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+    }
+    .ping-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+    }
+    .timer-clock {
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      color: #ffffff;
+    }
+
+    /* 48px LAUNCH CONTROL BUTTON: ⚡ CLOCK IN / ⏹ CLOCK OUT */
+    .btn-launch {
+      width: 100%;
+      height: 48px;
+      border-radius: 14px;
+      border: none;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.22s;
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      color: #0c0d12;
+      box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35);
+    }
+    .btn-launch:active {
+      transform: scale(0.98);
+    }
+    .btn-launch.duty-on {
+      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.45) !important;
+    }
+
+    /* 4. SHIFT TELEMETRY TILES + QUICK ACTIONS */
+    .telemetry-card {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .telemetry-title {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-family: var(--mono);
       font-size: 9.5px;
-      font-weight: 700;
-      color: var(--accent);
-    }
-
-    /* 44PX PRIMARY THUMB-REACH ACTION BUTTON */
-    .btn-duty {
-      width: 100%;
-      height: 42px;
-      margin-top: 7px;
-      border-radius: 11px;
-      border: none;
-      font-family: var(--display);
       font-weight: 800;
-      font-size: 13px;
-      letter-spacing: 0.6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
-      transition: var(--transition);
-      background: var(--btn-duty-start);
-      color: var(--btn-duty-txt);
-      box-shadow: 0 3px 12px var(--accent-glow);
-    }
-    .btn-duty:active {
-      transform: scale(0.98);
-    }
-    .btn-duty.on-shift {
-      background: var(--btn-duty-end) !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
-    }
-
-    /* TELEMETRY SECTION (TIGHT & CLEAN) */
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-family: var(--mono);
-      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: var(--txt-sub);
-      margin: 1px 2px 3px;
-      font-weight: 700;
+      color: var(--txt-dim);
+      padding: 0 2px;
     }
-    .stats-row {
+    .stats-triplet {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 5px;
+      gap: 6px;
     }
-    .stat-card {
-      background: var(--card-bg);
+    .stat-pill {
+      background: var(--tile-bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 6px 4px;
+      border-radius: 12px;
+      padding: 8px 4px;
       text-align: center;
-      box-shadow: var(--shadow);
     }
-    .stat-label {
-      font-size: 9px;
-      color: var(--txt-muted);
+    .stat-pill .label {
+      font-size: 9.5px;
       font-weight: 600;
-    }
-    .stat-num {
+      color: var(--txt-muted);
       font-family: var(--mono);
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--txt-main);
+    }
+    .stat-pill .num {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--txt-white);
       margin-top: 1px;
     }
-    .stat-num span {
-      font-size: 9px;
+    .stat-pill.active-amber .num {
+      color: var(--amber);
+    }
+    .stat-pill .num span {
+      font-size: 9.5px;
       font-weight: 600;
-      color: var(--txt-muted);
+      color: var(--txt-dim);
+    }
+    .stat-pill .sub-tag {
+      font-size: 8.5px;
+      font-family: var(--mono);
+      color: var(--txt-dim);
+      margin-top: 1px;
     }
 
-    .actions-row {
+    .micro-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      margin-top: 5px;
+      gap: 6px;
     }
-    .btn-action {
-      height: 30px;
-      border-radius: 8px;
+    .btn-micro {
+      height: 34px;
+      border-radius: 10px;
       border: 1px solid var(--border);
-      background: var(--card-bg);
-      color: var(--txt-main);
-      font-family: var(--sans);
-      font-size: 10.5px;
+      background: var(--tile-bg);
+      color: var(--txt-white);
+      font-family: var(--mono);
+      font-size: 11px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.18s;
     }
-    .btn-action:hover {
-      border-color: var(--border-focus);
+    .btn-micro:hover {
+      border-color: var(--border-accent);
     }
-    .btn-action.fuel {
-      background: var(--accent-bg);
-      color: var(--accent);
-      border-color: var(--border-focus);
+    .btn-micro.fuel-btn {
+      background: var(--amber-tint);
+      border-color: var(--border-accent);
+      color: var(--amber);
+    }
+    .btn-micro:active {
+      transform: scale(0.97);
     }
 
-    /* RECENT SHIFT ACCORDION DRAWER */
-    .recent-strip {
-      background: var(--card-bg);
+    /* 5. GROUNDED ROUTE & WAYPOINTS TRAIL (Zero Blank Space) */
+    .trail-card {
+      background: var(--card-inner);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-      margin-top: 1px;
+      border-radius: 18px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
     }
-    .recent-header {
-      width: 100%;
-      padding: 7px 9px;
+    .trail-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: none;
-      border: none;
-      color: inherit;
-      cursor: pointer;
-      font-family: var(--sans);
+      font-size: 11.5px;
+      font-weight: 700;
     }
-    .recent-title {
+    .trail-title {
       display: flex;
       align-items: center;
       gap: 5px;
-      font-size: 11px;
-      font-weight: 700;
+      color: var(--txt-white);
     }
-    .recent-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--accent);
-    }
-    .recent-metrics {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .recent-km {
-      font-family: var(--mono);
-      font-size: 10.5px;
-      font-weight: 800;
-      color: var(--accent);
-    }
-    .recent-badge {
-      font-family: var(--mono);
-      font-size: 8.5px;
-      font-weight: 700;
-      background: var(--badge-bg);
-      color: var(--badge-txt);
-      padding: 1px 4px;
-      border-radius: 4px;
-    }
-    .recent-body {
-      display: none;
-      padding: 5px 9px 7px;
-      border-top: 1px solid var(--border);
+    .trail-badge {
       font-family: var(--mono);
       font-size: 9px;
-      color: var(--txt-muted);
-      line-height: 1.5;
+      font-weight: 800;
+      background: var(--amber-tint);
+      border: 1px solid var(--border-accent);
+      color: var(--amber);
+      padding: 1.5px 6px;
+      border-radius: 12px;
     }
-    .recent-body.open {
-      display: block;
-    }
-    .recent-row {
+    .waypoints-box {
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-family: var(--mono);
+      font-size: 10.5px;
       display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .wp-point {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
     }
-    .recent-row b {
-      color: var(--txt-main);
+    .wp-point .point-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--txt-muted);
+    }
+    .wp-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+    .wp-dot.orange {
+      background: #fb923c;
+    }
+    .wp-km {
+      font-weight: 700;
+      color: var(--txt-white);
+    }
+    .wp-km.highlight {
+      color: var(--amber);
+    }
+    .wp-connector {
+      font-size: 9.5px;
+      color: var(--txt-dim);
+      padding-left: 12px;
+      border-left: 2px dashed rgba(255,255,255,0.1);
+      margin-left: 2px;
+    }
+    .trail-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--txt-dim);
+      padding-top: 2px;
+    }
+    .trail-footer b {
+      color: var(--amber);
     }
 
-    /* TOAST */
-    .toast {
+    /* TOAST NOTIFICATION */
+    .toast-box {
       position: absolute;
-      top: 10px;
+      top: 14px;
       left: 50%;
-      transform: translateX(-50%) translateY(-30px);
+      transform: translateX(-50%) translateY(-40px);
       opacity: 0;
-      background: var(--card-bg);
-      border: 1px solid var(--accent);
-      color: var(--txt-main);
-      padding: 5px 12px;
-      border-radius: 18px;
-      font-size: 10.5px;
+      background: #181b24;
+      border: 1px solid var(--amber);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
       font-weight: 700;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      font-family: var(--mono);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
       pointer-events: none;
-      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 100;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 99;
       white-space: nowrap;
     }
-    .toast.show {
+    .toast-box.show {
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
@@ -574,299 +610,298 @@
 </head>
 <body>
 
-<div class="app-viewport">
-  <div id="toast" class="toast">Duty Status Updated</div>
+<div class="cockpit-container">
+  <div id="toast" class="toast-box">Duty Started</div>
 
-  <!-- 1. Header with Vehicle + User + Theme Toggle + Explicit Log Out -->
-  <header class="top-bar">
-    <div class="brand-group">
-      <div class="brand-logo">S</div>
+  <!-- 1. AUTOMOTIVE CLUSTER HEADER (Guaranteed visible, Never clipped) -->
+  <header class="header-bar">
+    <div class="brand-side">
+      <div class="brand-icon">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+      </div>
       <div>
-        <div class="brand-title">SUMOU</div>
-        <div class="brand-badge">DRIVER v2.5</div>
+        <div class="brand-title">
+          SUMOU <span class="hud-badge">HUD v3</span>
+        </div>
+        <div class="driver-sub">
+          <div class="status-dot"></div>
+          <span style="font-weight:700; color:#e2e8f0">Hardik</span>
+          <span>·</span>
+          <span>Cockpit Mode</span>
+        </div>
       </div>
     </div>
 
-    <div class="veh-pill">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-4H7l-2 4v5zM5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
-      <span>Toyota</span>
-      <span class="plate-val">546413</span>
-    </div>
-
-    <div class="controls-group">
-      <!-- Dark/Light Switcher -->
-      <button id="themeToggle" class="theme-toggle-btn" title="Toggle Theme">
-        <svg id="themeIcon" class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
-      </button>
-
-      <!-- User Profile Dot -->
-      <div class="user-pill">
-        <div class="user-avatar">H</div>
-        <span id="userName">hardik</span>
-        <div id="dutyDot" class="status-dot"></div>
+    <div class="header-actions">
+      <div class="veh-chip">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-4H7l-2 4v5zM5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+        <b>546413</b>
       </div>
 
-      <!-- Log Out Button -->
-      <button class="btn-logout-head" onclick="handleLogout()" title="Sign Out">
+      <!-- High-Contrast Logout Button -->
+      <button class="btn-logout" onclick="handleLogout()" title="Log Out of Session">
         <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
         <span>Log Out</span>
       </button>
     </div>
   </header>
 
-  <!-- 2. Platform Dispatch Strip (Tight, No Gaps) -->
+  <!-- 2. DISPATCH PLATFORM SELECTOR -->
   <div class="dispatch-strip">
-    <span class="dispatch-label">Active Platform</span>
-    <div class="platform-pills">
-      <button class="platform-btn active" onclick="setPlatform('Talabat')">Talabat</button>
-      <button class="platform-btn" onclick="setPlatform('Keeta')">Keeta</button>
-      <button class="platform-btn" onclick="setPlatform('Deliveroo')">Deliveroo</button>
-      <button class="platform-btn" onclick="setPlatform('Jahez')">Jahez</button>
+    <span class="dispatch-label">
+      <svg class="icon" style="color:var(--amber)" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+      Dispatch
+    </span>
+    <div class="platform-btns">
+      <button class="btn-p active" onclick="setPlatform('Talabat')">Talabat</button>
+      <button class="btn-p" onclick="setPlatform('Keeta')">Keeta</button>
+      <button class="btn-p" onclick="setPlatform('Deliveroo')">Deliveroo</button>
+      <button class="btn-p" onclick="setPlatform('Jahez')">Jahez</button>
     </div>
   </div>
 
-  <!-- 3. Side-by-Side Cockpit Box (Odometer + GPS Geofence + CLOCK IN / CLOCK OUT) -->
+  <!-- 3. TWIN-GAUGE AUTOMOTIVE COCKPIT CONSOLE -->
   <div class="cockpit-card">
-    <div class="cockpit-grid">
-      <!-- Odometer Tile -->
-      <div class="cockpit-tile" onclick="promptOdometer()">
-        <div class="tile-head">
-          <span>Odometer</span>
-          <span style="color:var(--accent)">Edit ✎</span>
+    <div class="twin-gauges">
+      <!-- Odometer Gauge -->
+      <div class="gauge-tile" onclick="promptOdo()">
+        <div class="gauge-head">
+          <span>
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Odometer
+          </span>
+          <span class="edit-tag">Edit ✎</span>
         </div>
-        <div class="tile-val">
+        <div class="gauge-value">
           <span id="odoVal">30,085</span>
           <small>KM</small>
         </div>
-        <div class="tile-sub">Shift Origin 30,000 KM</div>
+        <div class="gauge-sub">
+          <span>Origin: 30,000</span>
+          <b style="color:var(--amber)">+85 KM</b>
+        </div>
       </div>
 
-      <!-- GPS Geofence Tile -->
-      <div class="cockpit-tile" onclick="detectGps()">
-        <div class="tile-head">
-          <span>GPS Geofence</span>
-          <span id="gpsRefreshIcon">↻</span>
+      <!-- GPS Radar Gauge -->
+      <div class="gauge-tile" onclick="refreshGps()">
+        <div class="gauge-head">
+          <span>
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            GPS Radar
+          </span>
+          <span id="gpsSpin">↻</span>
         </div>
-        <div class="tile-val" style="font-size: 12.5px; font-weight: 700; margin-top: 3px;">
-          <span id="gpsLabel">Shuwaikh Ind. 3</span>
+        <div class="gauge-value" style="font-size: 14px; font-weight: 800; color: #f8fafc; margin-top: 6px;">
+          <span id="gpsName">Shuwaikh Hub 3</span>
         </div>
-        <div class="tile-sub" id="gpsSub">±8m RTK Lock · Gate 4</div>
+        <div class="gauge-sub">
+          <span style="color:var(--amber)">±3m RTK Lock</span>
+          <span>SatLock OK</span>
+        </div>
       </div>
     </div>
 
-    <!-- Live Shift Running Timer -->
-    <div id="timerStrip" class="timer-strip" style="display: none;">
-      <span>● SHIFT RUNNING</span>
-      <span id="shiftTimer" style="letter-spacing: 1px;">00:00:00</span>
+    <!-- Active Duty Running Timer HUD -->
+    <div id="dutyBanner" class="active-duty-banner">
+      <div class="banner-left">
+        <div class="ping-dot"></div>
+        <span id="dutyPlateBanner">DUTY ACTIVE (Talabat)</span>
+      </div>
+      <div class="timer-clock" id="timerClock">00:00:00</div>
     </div>
 
-    <!-- 44px Primary Action Button: CLOCK IN / CLOCK OUT -->
-    <button id="dutyBtn" class="btn-duty" onclick="toggleDuty()">
-      <svg class="icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      <span id="dutyBtnText">CLOCK IN</span>
+    <!-- 48px Primary Launch Control Action Button -->
+    <button id="launchBtn" class="btn-launch" onclick="toggleDuty()">
+      <span id="launchIcon">⚡</span>
+      <span id="launchText">CLOCK IN</span>
     </button>
   </div>
 
-  <!-- 4. Today's Telemetry Metrics & Quick Micro-Actions -->
-  <div>
-    <div class="section-head">
+  <!-- 4. SHIFT TELEMETRY TILES + QUICK MICRO-ACTIONS -->
+  <div class="telemetry-card">
+    <div class="telemetry-title">
       <span>Shift Telemetry (Today)</span>
-      <span id="dateStr">16 Sep</span>
+      <span style="color:var(--amber)">16 Sep 2026</span>
     </div>
 
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Distance</div>
-        <div class="stat-num" id="distKm">85 <span>km</span></div>
+    <div class="stats-triplet">
+      <div class="stat-pill active-amber">
+        <div class="label">Distance</div>
+        <div class="num" id="statDist">85 <span>km</span></div>
+        <div class="sub-tag">Avg 38 km/h</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Shifts</div>
-        <div class="stat-num" id="shiftCount">1</div>
+
+      <div class="stat-pill">
+        <div class="label">Shifts</div>
+        <div class="num" id="statShifts">1 <span style="color:var(--amber)">ok</span></div>
+        <div class="sub-tag">100% On-Time</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Fuel</div>
-        <div class="stat-num" id="fuelKwd">0 <span>kwd</span></div>
+
+      <div class="stat-pill">
+        <div class="label">Fuel</div>
+        <div class="num" id="statFuel">0.000 <span>kwd</span></div>
+        <div class="sub-tag">Tank: 72% Full</div>
       </div>
     </div>
 
-    <div class="actions-row">
-      <button class="btn-action" onclick="promptOdometer()">
-        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        + Post KM
+    <div class="micro-actions">
+      <button class="btn-micro" onclick="promptOdo()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        + Post KM Audit
       </button>
-      <button class="btn-action fuel" onclick="promptFuel()">
+      <button class="btn-micro fuel-btn" onclick="promptFuel()">
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 22h12M4 9h10M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/></svg>
-        + Log Fuel
+        + Log Fuel Refill
       </button>
     </div>
   </div>
 
-  <!-- 5. Collapsible Recent Shift Drawer -->
-  <div class="recent-strip">
-    <button class="recent-header" onclick="toggleShiftDrawer()">
-      <div class="recent-title">
-        <div class="recent-dot"></div>
-        <span>Last Shift: Talabat</span>
+  <!-- 5. GROUNDED BOTTOM SECTION: ROUTE WAYPOINTS & TELEMETRY DIAGNOSTICS (Zero Blank Space) -->
+  <div class="trail-card">
+    <div class="trail-header">
+      <div class="trail-title">
+        <svg class="icon" style="color:var(--amber)" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        <span>Active Shift Route & Diagnostics</span>
       </div>
-      <div class="recent-metrics">
-        <span class="recent-km">+85 KM</span>
-        <span class="recent-badge">12 drops</span>
-        <span id="drawerArrow">▾</span>
+      <span class="trail-badge">HUD LOCKED</span>
+    </div>
+
+    <div class="waypoints-box">
+      <div class="wp-point">
+        <div class="point-info">
+          <div class="wp-dot"></div>
+          <span>Origin: Shuwaikh Hub 3 (16:39)</span>
+        </div>
+        <span class="wp-km">30,000 KM</span>
       </div>
-    </button>
-    <div id="shiftDrawer" class="recent-body">
-      <div class="recent-row">
-        <span>Start: Shuwaikh 3 (16:39)</span>
-        <b>30,000 KM</b>
+
+      <div class="wp-connector">
+        Expressway 80 · 12 Delivery Drops Completed
       </div>
-      <div class="recent-row">
-        <span>End: Mirqab Block 2 (23:22)</span>
-        <b>30,085 KM</b>
+
+      <div class="wp-point">
+        <div class="point-info">
+          <div class="wp-dot orange"></div>
+          <span>Drop: Mirqab Block 2 (23:22)</span>
+        </div>
+        <span class="wp-km highlight">30,085 KM</span>
       </div>
-      <div class="recent-row" style="margin-top: 2px;">
-        <span>Platform: Talabat · 6h 43m</span>
-        <b style="color: var(--accent)">VERIFIED & SAVED</b>
-      </div>
+    </div>
+
+    <div class="trail-footer">
+      <span style="display:flex;align-items:center;gap:4px">
+        <svg class="icon" style="color:var(--amber)" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Telemetry Verified
+      </span>
+      <span>Shift Duration: <b>6h 43m (+85 KM)</b></span>
     </div>
   </div>
 </div>
 
 <script>
-  let currentTheme = localStorage.getItem('sumou_theme') || 'dark';
-  let isDutyActive = false;
+  let isClockedIn = false;
   let odo = 30085;
-  let distanceKm = 85;
+  let dist = 85;
   let shifts = 1;
-  let fuelKwd = 0;
+  let fuel = 0;
   let selectedPlatform = 'Talabat';
-  let shiftSeconds = 0;
+  let elapsedSec = 0;
   let timerInterval = null;
 
-  const htmlEl = document.documentElement;
-  const themeToggle = document.getElementById('themeToggle');
-  const themeIcon = document.getElementById('themeIcon');
-  const dutyBtn = document.getElementById('dutyBtn');
-  const dutyBtnText = document.getElementById('dutyBtnText');
-  const dutyDot = document.getElementById('dutyDot');
-  const timerStrip = document.getElementById('timerStrip');
-  const shiftTimer = document.getElementById('shiftTimer');
+  const launchBtn = document.getElementById('launchBtn');
+  const launchText = document.getElementById('launchText');
+  const launchIcon = document.getElementById('launchIcon');
+  const dutyBanner = document.getElementById('dutyBanner');
+  const timerClock = document.getElementById('timerClock');
+  const dutyPlateBanner = document.getElementById('dutyPlateBanner');
   const toast = document.getElementById('toast');
-  const shiftDrawer = document.getElementById('shiftDrawer');
-  const drawerArrow = document.getElementById('drawerArrow');
-
-  function applyTheme(theme) {
-    htmlEl.setAttribute('data-theme', theme);
-    currentTheme = theme;
-    localStorage.setItem('sumou_theme', theme);
-    if (theme === 'dark') {
-      themeIcon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>';
-      themeToggle.setAttribute('title', 'Switch to Swiss Editorial Light');
-    } else {
-      themeIcon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
-      themeToggle.setAttribute('title', 'Switch to Cyber-Luxury Dark');
-    }
-  }
-
-  themeToggle.addEventListener('click', () => {
-    const next = currentTheme === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    showToast(next === 'dark' ? 'Switched to Cyber-Luxury Dark' : 'Switched to Swiss Editorial Light');
-  });
-
-  applyTheme(currentTheme);
 
   function showToast(msg) {
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
   function setPlatform(name) {
     selectedPlatform = name;
-    document.querySelectorAll('.platform-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.innerText === name);
+    document.querySelectorAll('.btn-p').forEach(b => {
+      b.classList.toggle('active', b.innerText === name);
     });
-    showToast(`Dispatch: ${name}`);
+    dutyPlateBanner.innerText = `DUTY ACTIVE (${name})`;
+    showToast(`Dispatch Platform: ${name}`);
   }
 
-  /* TOGGLE DUTY: CLOCK IN / CLOCK OUT */
   function toggleDuty() {
-    isDutyActive = !isDutyActive;
-    if (isDutyActive) {
-      dutyBtn.classList.add('on-shift');
-      dutyBtnText.innerText = 'CLOCK OUT';
-      dutyDot.classList.add('active');
-      timerStrip.style.display = 'flex';
-      shiftSeconds = 0;
+    isClockedIn = !isClockedIn;
+    if (isClockedIn) {
+      launchBtn.classList.add('duty-on');
+      launchIcon.innerText = '⏹';
+      launchText.innerText = 'CLOCK OUT';
+      dutyBanner.classList.add('show');
+      elapsedSec = 0;
       clearInterval(timerInterval);
       timerInterval = setInterval(() => {
-        shiftSeconds++;
-        const h = String(Math.floor(shiftSeconds / 3600)).padStart(2, '0');
-        const m = String(Math.floor((shiftSeconds % 3600) / 60)).padStart(2, '0');
-        const s = String(shiftSeconds % 60).padStart(2, '0');
-        shiftTimer.innerText = `${h}:${m}:${s}`;
+        elapsedSec++;
+        const h = String(Math.floor(elapsedSec / 3600)).padStart(2, '0');
+        const m = String(Math.floor((elapsedSec % 3600) / 60)).padStart(2, '0');
+        const s = String(elapsedSec % 60).padStart(2, '0');
+        timerClock.innerText = `${h}:${m}:${s}`;
       }, 1000);
       showToast(`Clocked In on ${selectedPlatform}!`);
     } else {
-      dutyBtn.classList.remove('on-shift');
-      dutyBtnText.innerText = 'CLOCK IN';
-      dutyDot.classList.remove('active');
-      timerStrip.style.display = 'none';
+      launchBtn.classList.remove('duty-on');
+      launchIcon.innerText = '⚡';
+      launchText.innerText = 'CLOCK IN';
+      dutyBanner.classList.remove('show');
       clearInterval(timerInterval);
       shifts += 1;
-      distanceKm += 15;
-      document.getElementById('shiftCount').innerText = shifts;
-      document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
-      showToast('Clocked Out! Shift Telemetry Stored.');
+      dist += 15;
+      document.getElementById('statShifts').innerHTML = `${shifts} <span style="color:var(--amber)">ok</span>`;
+      document.getElementById('statDist').innerHTML = `${dist} <span>km</span>`;
+      showToast('Clocked Out! Shift Telemetry Synced.');
     }
   }
 
   function handleLogout() {
-    if (isDutyActive) {
-      const ok = confirm('You are currently clocked in. Do you want to clock out and log out?');
-      if (!ok) return;
+    if (isClockedIn) {
+      const c = confirm('You are currently on duty. Do you want to clock out and sign out?');
+      if (!c) return;
       toggleDuty();
     }
-    showToast('Driver signed out successfully.');
+    showToast('Signed out of driver cockpit.');
   }
 
-  function promptOdometer() {
-    const input = prompt('Enter vehicle dashboard Odometer (KM):', odo);
-    if (input !== null && !isNaN(input) && Number(input) > 0) {
-      const newOdo = parseInt(input);
+  function promptOdo() {
+    const val = prompt('Enter vehicle Odometer (KM):', odo);
+    if (val && !isNaN(val) && Number(val) > 0) {
+      const newOdo = parseInt(val);
       const delta = Math.max(0, newOdo - odo);
       odo = newOdo;
-      distanceKm += delta;
+      dist += delta;
       document.getElementById('odoVal').innerText = odo.toLocaleString();
-      document.getElementById('distKm').innerHTML = `${distanceKm} <span>km</span>`;
+      document.getElementById('statDist').innerHTML = `${dist} <span>km</span>`;
       showToast(`Odometer updated: ${odo.toLocaleString()} KM (+${delta} km)`);
     }
   }
 
   function promptFuel() {
-    const input = prompt('Enter fuel refill cost in Kuwait Dinar (KWD):', '2.500');
-    if (input !== null && !isNaN(input) && Number(input) >= 0) {
-      fuelKwd = +(fuelKwd + parseFloat(input)).toFixed(3);
-      document.getElementById('fuelKwd').innerHTML = `${fuelKwd} <span>kwd</span>`;
-      showToast(`Logged ${input} KWD Fuel Refill!`);
+    const val = prompt('Enter fuel cost in Kuwait Dinar (KWD):', '2.500');
+    if (val && !isNaN(val) && Number(val) >= 0) {
+      fuel = +(fuel + parseFloat(val)).toFixed(3);
+      document.getElementById('statFuel').innerHTML = `${fuel.toFixed(3)} <span>kwd</span>`;
+      showToast(`Logged ${val} KWD Fuel Refill!`);
     }
   }
 
-  function detectGps() {
-    const icon = document.getElementById('gpsRefreshIcon');
-    icon.style.display = 'inline-block';
-    icon.style.transform = 'rotate(180deg)';
-    icon.style.transition = 'transform 0.35s ease';
+  function refreshGps() {
+    const spin = document.getElementById('gpsSpin');
+    spin.style.display = 'inline-block';
+    spin.style.transform = 'rotate(180deg)';
+    spin.style.transition = 'transform 0.35s';
     setTimeout(() => {
-      document.getElementById('gpsSub').innerText = '±6m RTK Lock · Gate 4 Verified';
-      showToast('GPS RTK Lock Confirmed (±6m)');
-      icon.style.transform = 'rotate(0deg)';
+      showToast('RTK GPS Signal Locked (±3m)');
+      spin.style.transform = 'rotate(0deg)';
     }, 350);
-  }
-
-  function toggleShiftDrawer() {
-    const isOpen = shiftDrawer.classList.toggle('open');
-    drawerArrow.innerText = isOpen ? '▴' : '▾';
   }
 </script>
 
