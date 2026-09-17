@@ -630,9 +630,175 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+
+    /* IN-APP LOGIN GATE (Zero 404, Edge-to-Edge) */
+    .authgate {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: var(--bg-page);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px;
+    }
+    .authgate.show {
+      display: flex;
+    }
+    .authcard {
+      width: 100%;
+      max-width: 380px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 26px 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+    }
+    .authbrand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .authbrand .logo-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #1e222d;
+      border: 1px solid var(--border-accent);
+      color: var(--amber);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 4px 14px var(--amber-glow);
+    }
+    .authbrand .ab-text b {
+      font-family: var(--display);
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--txt-white);
+      letter-spacing: 0.5px;
+      display: block;
+      line-height: 1.2;
+    }
+    .authbrand .ab-text small {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--amber);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .authcard h2 {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--txt-white);
+      margin-bottom: 4px;
+    }
+    .authcard .authsub {
+      font-size: 11.5px;
+      color: var(--txt-muted);
+      margin-bottom: 18px;
+    }
+    .authfield {
+      margin-bottom: 14px;
+    }
+    .authfield label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--txt-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 0.4px;
+    }
+    .authfield input {
+      width: 100%;
+      height: 42px;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0 12px;
+      color: var(--txt-white);
+      font-family: var(--mono);
+      font-size: 13.5px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .authfield input:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 2px var(--amber-glow);
+    }
+    .authbtn {
+      width: 100%;
+      height: 44px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      color: #0c0d12;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+      margin-top: 6px;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+      transition: all 0.2s;
+    }
+    .authbtn:active {
+      transform: scale(0.98);
+    }
+    .authnote {
+      text-align: center;
+      font-size: 10.5px;
+      color: var(--txt-dim);
+      margin-top: 14px;
+      font-family: var(--mono);
+    }
+    .autherr {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      margin-bottom: 12px;
+      display: none;
+    }
   </style>
 </head>
 <body>
+
+<!-- IN-APP LOGIN GATE (Zero 404, Seamless Mobile Login Gate) -->
+<div id="loginGate" class="authgate">
+  <div class="authcard">
+    <div class="authbrand">
+      <div class="logo-box">🚚</div>
+      <div class="ab-text">
+        <b>SUMOU FLEET</b>
+        <small>Driver Cockpit HUD · v3</small>
+      </div>
+    </div>
+    <h2>Driver Sign In</h2>
+    <div class="authsub">Enter your phone number and 4-digit security PIN to access the cockpit.</div>
+    <div id="loginErr" class="autherr"></div>
+    <div class="authfield">
+      <label>Phone / Driver ID</label>
+      <input id="loginPhone" type="tel" inputmode="tel" placeholder="e.g. 5123 4567" value="5123 4567" />
+    </div>
+    <div class="authfield">
+      <label>Security PIN</label>
+      <input id="loginPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" value="1234" />
+    </div>
+    <button class="authbtn" onclick="doDriverSignIn()">
+      ⚡ Sign In as Driver →
+    </button>
+    <div class="authnote">
+      Sumou Fleet Telemetry • Hardik (546413)
+    </div>
+  </div>
+</div>
 
 <div class="cockpit-container">
   <div id="toast" class="toast-box">Duty Started</div>
@@ -884,6 +1050,47 @@
     }
   }
 
+  const loginGate = document.getElementById('loginGate');
+  const cockpitContainer = document.querySelector('.cockpit-container');
+
+  function showLoginGate() {
+    if (loginGate) loginGate.classList.add('show');
+    if (cockpitContainer) cockpitContainer.style.display = 'none';
+  }
+
+  function hideLoginGate() {
+    if (loginGate) loginGate.classList.remove('show');
+    if (cockpitContainer) cockpitContainer.style.display = 'flex';
+  }
+
+  function doDriverSignIn() {
+    const phone = (document.getElementById('loginPhone').value || '').trim();
+    const pin = (document.getElementById('loginPin').value || '').trim();
+    const err = document.getElementById('loginErr');
+
+    if (!phone) {
+      err.innerText = 'Please enter your phone number or Driver ID.';
+      err.style.display = 'block';
+      return;
+    }
+    if (pin.length < 4) {
+      err.innerText = 'Please enter your 4-digit security PIN.';
+      err.style.display = 'block';
+      return;
+    }
+
+    err.style.display = 'none';
+    hideLoginGate();
+    showToast('Signed in! Welcome Hardik.');
+  }
+
+  // Allow pressing Enter key in PIN to submit
+  setTimeout(() => {
+    document.getElementById('loginPin')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doDriverSignIn();
+    });
+  }, 100);
+
   function handleLogout() {
     if (isClockedIn) {
       const c = confirm('You are currently on duty. Do you want to clock out and sign out?');
@@ -894,10 +1101,8 @@
       localStorage.removeItem('sumou_session_v1');
       localStorage.removeItem('sumou_driver_session');
     } catch(e) {}
-    showToast('Driver signed out successfully. Redirecting to Login...');
-    setTimeout(() => {
-      window.location.href = '../index.html';
-    }, 350);
+    showToast('Driver signed out successfully.');
+    showLoginGate();
   }
 
   function promptOdo() {
