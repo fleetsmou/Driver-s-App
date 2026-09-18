@@ -307,7 +307,64 @@
   .zoom .zc{background:var(--card-bg);border:1px solid var(--border);color:#fff;border-radius:22px;padding:9px 18px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;}
   .foot{width:100%;max-width:1160px;display:flex;justify-content:space-between;align-items:center;color:var(--txt-dim);font-family:var(--mono);font-size:10.5px;margin-top:8px;flex-wrap:wrap;gap:8px;padding:0 4px;}
   .foot b{color:var(--txt-muted);}
-  @media(max-width:760px){.admin-filters{grid-template-columns:1fr 1fr;}.grid2{grid-template-columns:1fr;}#leafmap{height:360px;}}
+  /* ---------- DUTY DIAL (driver home) ---------- */
+  .dialwrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:2px 0;}
+  .dial{width:284px;height:284px;position:relative;display:grid;place-items:center;}
+  .dial svg{position:absolute;inset:0;transform:rotate(135deg);}
+  .dial-center{width:178px;height:178px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#1b1e27,#0c0e13);border:1px solid var(--border-accent);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(245,158,11,.16),inset 0 2px 10px rgba(0,0,0,.6);cursor:pointer;}
+  .dial-center:active{transform:scale(.98);}
+  .dial-center .lab{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:1px;color:var(--amber);text-transform:uppercase;}
+  .dial-center .spd{font-family:var(--mono);font-size:50px;font-weight:900;line-height:1;letter-spacing:-2px;margin-top:2px;background:linear-gradient(180deg,#fff,#f59e0b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .dial-center .unit{font-family:var(--mono);font-size:11px;color:var(--txt-muted);letter-spacing:2px;margin-top:2px;}
+  .dial-center .stbtn{margin-top:11px;font-family:var(--mono);font-size:11px;font-weight:900;letter-spacing:1px;padding:8px 18px;border-radius:22px;display:flex;align-items:center;gap:6px;color:#fff;background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 4px 16px rgba(239,68,68,.4);}
+  .dial-center .stbtn.in{background:linear-gradient(135deg,var(--amber-2),#d97706);color:#0c0d12;box-shadow:0 4px 16px var(--amber-glow);}
+  .arclab{position:absolute;font-family:var(--mono);font-size:10px;color:var(--txt-muted);}
+  .arclab.km{left:2px;bottom:34px;}.arclab.tm{right:2px;bottom:34px;text-align:right;}
+  .arclab .v{font-size:15px;font-weight:900;color:var(--amber);display:block;}
+  .arclab.tm .v{color:var(--green-ink);}
+  .dbanner{display:flex;align-items:center;gap:7px;background:var(--amber-tint);border:1px solid var(--border-accent);border-radius:20px;padding:5px 13px;font-family:var(--mono);font-size:10.5px;color:#fde68a;font-weight:700;}
+  .dbanner .p{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1.3s infinite;}
+  .chips{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+  .chip{background:var(--card-inner);border:1px solid var(--border);border-radius:13px;padding:10px 6px;text-align:center;}
+  .chip .cl{font-family:var(--mono);font-size:9px;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;justify-content:center;gap:4px;}
+  .chip .cl svg{color:var(--amber);}
+  .chip .cv{font-family:var(--mono);font-size:19px;font-weight:900;margin-top:4px;}
+  .chip .cv small{font-size:9px;color:var(--txt-dim);}
+  .chip.a .cv{color:var(--amber);}
+  .routebar{background:var(--card-inner);border:1px solid var(--border);border-radius:13px;padding:11px 12px;display:flex;align-items:center;gap:10px;}
+  .routebar .ic{width:30px;height:30px;border-radius:9px;background:var(--tile-bg);border:1px solid var(--border);display:grid;place-items:center;color:var(--amber);flex-shrink:0;}
+  .routebar .rm{flex:1;min-width:0;}.routebar .rt{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .routebar .rs{font-family:var(--mono);font-size:10px;color:var(--txt-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .routebar .rb{font-family:var(--mono);font-size:9px;font-weight:800;color:var(--green-ink);background:var(--green-tint);border:1px solid rgba(16,185,129,.4);padding:3px 8px;border-radius:10px;flex-shrink:0;}
+  /* ---------- ADMIN COMMAND CENTER ---------- */
+  .cc-clock{font-family:var(--mono);font-size:12.5px;color:var(--txt-white);background:var(--tile-bg);border:1px solid var(--border);border-radius:10px;padding:8px 13px;display:flex;align-items:center;gap:8px;}
+  .cc-clock .lv{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.4s infinite;}
+  .kri{display:flex;gap:14px;align-items:center;}
+  .kri .ring{width:56px;height:56px;position:relative;flex-shrink:0;}
+  .kri .ring svg{transform:rotate(-90deg);}
+  .kri .ring .rc{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:13px;font-weight:900;}
+  .spark{display:flex;align-items:flex-end;gap:3px;height:32px;margin-top:5px;}
+  .spark span{width:5px;background:var(--amber);border-radius:2px;opacity:.85;}
+  .donut-l{display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:10px;color:var(--txt-muted);margin-top:5px;}
+  .cc-main{display:grid;grid-template-columns:1.7fr 1fr;gap:13px;}
+  .cc-feed .fitem{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+  .cc-feed .fitem:last-child{border-bottom:0;}
+  .fic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;}
+  .fic.in{background:var(--green-tint);color:var(--green-ink);}.fic.out{background:var(--red-bg);color:var(--red-txt);}.fic.fuel{background:var(--amber-tint);color:var(--amber);}
+  .fitem .ft{font-size:12px;}.fitem .ft b{font-weight:800;}
+  .fitem .fm{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);margin-top:2px;}
+  .fitem .ft-time{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);white-space:nowrap;}
+  .lrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .lrow:last-child{border-bottom:0;}
+  .rank{width:22px;height:22px;border-radius:7px;background:var(--tile-bg);border:1px solid var(--border);display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--txt-muted);flex-shrink:0;}
+  .rank.t1{background:var(--amber-tint);color:var(--amber);border-color:var(--border-accent);}
+  .lrow .ln{font-size:12px;font-weight:700;flex:1;}
+  .lrow .lk{font-family:var(--mono);font-size:11px;color:var(--amber);font-weight:800;text-align:right;}
+  .lrow .le{font-family:var(--mono);font-size:9.5px;color:var(--txt-dim);text-align:right;}
+  .alert{background:var(--red-bg);border:1px solid rgba(239,68,68,.3);border-radius:11px;padding:10px 11px;margin-bottom:8px;}
+  .alert .at{font-size:12px;font-weight:800;color:var(--red-txt);display:flex;align-items:center;gap:6px;}
+  .alert .am{font-family:var(--mono);font-size:10px;color:var(--txt-muted);margin-top:4px;}
+  @media(max-width:760px){.admin-filters{grid-template-columns:1fr 1fr;}.grid2{grid-template-columns:1fr;}#leafmap{height:360px;}.cc-main{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -508,13 +565,10 @@ function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPicke
 
 function updateDriverGps(){
   if(state.screen!=="driver"||state.driverTab!=="home")return;
-  const n=$("#gpsName");if(!n)return;const a=$("#gpsAcc"),c=$("#gpsCoords"),tl=$("#trailLive");
+  const sp=$("#dialSpeed");if(!sp)return;const tl=$("#trailLive");
   const sh=activeShift(state.driverId);
-  if(sh){const lat=sh.liveLat??sh.loginLat,lng=sh.liveLng??sh.loginLng;
-    n.textContent=sh.loginPlace||"On Duty";if(a)a.textContent=sh.speed?sh.speed+" km/h":"LIVE";
-    if(c)c.textContent=lat!=null?`${Math.abs(lat).toFixed(4)}°${lat>=0?'N':'S'}, ${Math.abs(lng).toFixed(4)}°${lng>=0?'E':'W'}`:"streaming…";
-    if(tl)tl.textContent="Live: "+(sh.loginPlace||"On road");
-  }else{n.textContent="GPS ready";if(a)a.textContent="Standby";if(c)c.textContent="—";if(tl)tl.textContent="Standby";}
+  if(sh){sp.textContent=sh.speed||0;if(tl)tl.textContent="Live: "+(sh.loginPlace||"On road");}
+  else{sp.textContent="0";if(tl)tl.textContent="GPS ready";}
 }
 
 let watchId=null,liveHb=null,lastGeo=null,lastPos=null,bgWatcherId=null;
@@ -573,7 +627,7 @@ function postRender(){
   if(timerInt){clearInterval(timerInt);timerInt=null;}
   if(state.screen==="driver"){
     const sh=activeShift(state.driverId);
-    if(sh){timerInt=setInterval(()=>{const el=$("#liveTimer");if(!el)return;const m=Math.floor((Date.now()-sh.startedAt)/60000);el.textContent=`${Math.floor(m/60)}h ${m%60}m`;},1000);startLiveWatch(sh.id);}else stopLiveWatch();
+    if(sh){timerInt=setInterval(()=>{const el=$("#dialTime");if(!el)return;const m=Math.floor((Date.now()-sh.startedAt)/60000);el.textContent=`${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`;const arc=$("#arcTime");if(arc){const f=Math.min(m/SHIFT_TARGET_MIN,1);arc.setAttribute("stroke-dasharray",`${(f*518.3).toFixed(1)} 691.1`);}},1000);startLiveWatch(sh.id);}else stopLiveWatch();
     updateDriverGps();
   }else stopLiveWatch();
   if(state.screen==="admin"){if(state.adminTab==="map")mountMap();startAdminPoll();}else stopAdminPoll();
@@ -612,54 +666,63 @@ function driverTabbar(){return `<div class="tabbar"><div class="tabbar-in">
   <button class="${state.driverTab==="home"?"active":""}" data-dtab="home">${ic('home')}<span>Home</span></button>
   <button class="${state.driverTab==="history"?"active":""}" data-dtab="history">${ic('history')}<span>Shift History</span></button>
 </div></div>`;}
+const KM_TARGET=150, SHIFT_TARGET_MIN=720; /* dial arc goals */
 function driverHome(d,sh){
   const plats=(d.platforms&&d.platforms.length?d.platforms:PLATFORMS);
   const selPlat=sh?sh.platform:(state.selectedPlatform||plats[0]);
-  const odoShown=sh?sh.startOdo:lastOdometer(d.id);
   const tShifts=driverShifts(d.id).filter(s=>s.date===today());
   const tKm=tShifts.filter(s=>s.status==="COMPLETED").reduce((a,s)=>a+(s.distance||0),0);
   const tOrders=tShifts.reduce((a,s)=>a+(s.ordersDone||0),0);
   const tFuel=state.fuelRecords.filter(f=>f.driverId===d.id&&f.date===today()).reduce((a,f)=>a+(f.cost||0),0);
+  const C1=816.8,V1=612.6,C2=691.1,V2=518.3;
+  const kmFrac=Math.min(tKm/KM_TARGET,1);
+  const mins=sh?Math.floor((Date.now()-sh.startedAt)/60000):0;
+  const timeFrac=Math.min(mins/SHIFT_TARGET_MIN,1);
+  const spd=sh?(sh.speed||0):0;
+  const hh=Math.floor(mins/60),mm=mins%60;
   return `<div class="cockpit">
     <header class="header-bar">
       <div class="brand-side"><div class="brand-icon">${ic('truck')}</div>
         <div><div class="brand-title">SUMOU <span class="hud-badge">FLEET</span></div>
-        <div class="driver-sub"><span class="status-dot"></span><span class="dn">${d.name}</span><span>·</span><span>${sh?"On Duty":"Cockpit"}</span></div></div></div>
+        <div class="driver-sub"><span class="status-dot"></span><span class="dn">${d.name}</span><span>·</span><span>${sh?"On Duty":"Off Duty"}</span></div></div></div>
       <div class="header-actions"><div class="veh-chip">${ic('car','i-xs')}<b>${d.plate}</b></div>
         <button class="btn-logout" data-act="logout">${ic('power','i-xs')}<span>Log Out</span></button></div>
     </header>
     <div class="dispatch-strip"><span class="dispatch-label">${ic('compass','i-xs')} Dispatch</span>
       <div class="platform-btns">${plats.map(p=>`<button class="btn-p ${selPlat===p?"active":""} ${sh?"locked":""}" ${sh?"":`data-plat="${p}"`}>${p}</button>`).join("")}</div></div>
-    <div class="cockpit-card">
-      <div class="twin-gauges">
-        <div class="gauge-tile"><div class="gauge-head"><span class="lbl">${ic('gauge','i-xs')} Odometer</span></div>
-          <div class="gauge-value"><span>${odoShown?km(odoShown):"—"}</span><small>KM</small></div>
-          <div class="gauge-sub"><span>${sh?"Shift start":"Last reading"}</span></div></div>
-        <div class="gauge-tile tap" data-act="gpsGauge"><div class="gauge-head"><span class="lbl">${ic('nav','i-xs')} GPS Radar</span><span id="gpsSpin">${ic('radar','i-xs')}</span></div>
-          <div class="gauge-value" style="font-size:13px;font-weight:800;color:var(--txt-white);margin-top:4px"><span id="gpsName">GPS ready</span></div>
-          <div class="gauge-sub"><span style="color:var(--amber)" id="gpsAcc">Standby</span><span id="gpsCoords">—</span></div></div>
+
+    <div class="dialwrap">
+      <div class="dial">
+        <svg viewBox="0 0 284 284">
+          <circle cx="142" cy="142" r="130" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${V1} ${C1}"/>
+          <circle id="arcKm" cx="142" cy="142" r="130" fill="none" stroke="var(--amber)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${(kmFrac*V1).toFixed(1)} ${C1}" style="filter:drop-shadow(0 0 6px rgba(245,158,11,.6))"/>
+          <circle cx="142" cy="142" r="110" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${V2} ${C2}"/>
+          <circle id="arcTime" cx="142" cy="142" r="110" fill="none" stroke="var(--green)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(timeFrac*V2).toFixed(1)} ${C2}"/>
+        </svg>
+        <div class="dial-center" data-act="${sh?"openEndDuty":"openStartDuty"}">
+          <div class="lab">${sh?"Live Speed":"Tap to Start"}</div>
+          <div class="spd" id="dialSpeed">${sh?spd:"0"}</div>
+          <div class="unit">KM / H</div>
+          <div class="stbtn ${sh?"":"in"}">${sh?ic('stop','i-xs')+" CLOCK OUT":ic('zap','i-xs')+" CLOCK IN"}</div>
+        </div>
+        <div class="arclab km"><span class="v">${km(tKm)}</span>KM today</div>
+        <div class="arclab tm"><span class="v" id="dialTime">${hh}:${String(mm).padStart(2,"0")}</span>shift time</div>
       </div>
-      <div id="dutyBanner" class="active-duty-banner ${sh?"show":""}"><div class="banner-left"><div class="ping-dot"></div><span>DUTY ACTIVE (${sh?sh.platform:""})</span></div><div class="timer-clock" id="liveTimer">0h 0m</div></div>
-      ${sh?`<button class="btn-fuel-lg" data-act="openFuel">${ic('fuel','i-xs')} Log Fuel Refill (with receipt)</button>`:""}
-      <button class="btn-launch ${sh?"duty-on":""}" data-act="${sh?"openEndDuty":"openStartDuty"}">${sh?ic('stop','i-xs'):ic('zap','i-xs')}<span>${sh?"CLOCK OUT":"CLOCK IN"}</span></button>
+      <div class="dbanner" style="${sh?"":"opacity:.5"}"><span class="p"></span>${sh?("DUTY ACTIVE · "+sh.platform+" · streaming GPS"):"OFF DUTY · tap dial to clock in"}</div>
     </div>
-    <div class="telemetry-card">
-      <div class="telemetry-title"><span>Today's Telemetry</span><span class="dt">${fmtDate(today())}</span></div>
-      <div class="stats-triplet">
-        <div class="stat-pill amber"><div class="label">KM Today</div><div class="num">${km(tKm)} <span>km</span></div><div class="sub-tag">${tShifts.filter(s=>s.status==="COMPLETED").length} shift(s)</div></div>
-        <div class="stat-pill"><div class="label">Orders</div><div class="num">${tOrders} <span style="color:var(--amber)">done</span></div><div class="sub-tag">completed today</div></div>
-        <div class="stat-pill"><div class="label">Fuel</div><div class="num">${money(tFuel)} <span>kwd</span></div><div class="sub-tag">today</div></div>
-      </div>
+
+    <div class="chips">
+      <div class="chip a"><div class="cl">${ic('gauge','i-xs')} KM</div><div class="cv">${km(tKm)} <small>km</small></div></div>
+      <div class="chip"><div class="cl">${ic('box','i-xs')} Orders</div><div class="cv">${tOrders} <small>done</small></div></div>
+      <div class="chip"><div class="cl">${ic('fuel','i-xs')} Fuel</div><div class="cv">${tFuel.toFixed(1)} <small>kwd</small></div></div>
     </div>
-    <div class="trail-card">
-      <div class="trail-header"><div class="trail-title">${ic('nav','i-xs')}<span>Shift Route & Real-Time GPS</span></div><span class="trail-badge ${sh?"live":""}">${sh?"LIVE STREAM":"STANDBY"}</span></div>
-      <div class="waypoints-box">
-        <div class="wp-point"><div class="point-info"><div class="wp-dot green"></div><span>${sh?("Origin: "+(sh.loginPlace||"Depot")+" ("+(sh.loginTime||"")+")"):"No active shift"}</span></div><span class="wp-km">${sh?km(sh.startOdo)+" KM":""}</span></div>
-        <div class="wp-connector">${sh?"Route verified · Satellite telemetry active":"Clock in to start streaming your live route"}</div>
-        <div class="wp-point"><div class="point-info"><div class="wp-dot orange"></div><span id="trailLive">${sh?"Live: On road":"Standby"}</span></div><span class="wp-km hl">${sh?"live":"—"}</span></div>
-      </div>
-      <div class="trail-footer"><span class="lf">${ic('sat','i-xs')} ${sh?"RTK GPS stream active":"GPS idle"}</span><span>Status: <b>${sh?"ON DUTY":"OFF DUTY"}</b></span></div>
-    </div>
+
+    ${sh?`<button class="btn-fuel-lg" data-act="openFuel">${ic('fuel','i-xs')} Log Fuel Refill (with receipt)</button>`:""}
+
+    <div class="routebar"><div class="ic">${ic('nav','i-xs')}</div>
+      <div class="rm"><div class="rt" id="trailLive">${sh?("Live: "+(sh.loginPlace||"On road")):"GPS ready"}</div>
+        <div class="rs">${sh?("Origin: "+(sh.loginPlace||"Depot")+" ("+(sh.loginTime||"")+") · "+km(sh.startOdo)+" KM"):"Clock in to start streaming your route"}</div></div>
+      <span class="rb" style="${sh?"":"opacity:.4"}">${sh?"LIVE":"IDLE"}</span></div>
   </div>`;
 }
 function driverHistoryPage(d){
@@ -699,12 +762,12 @@ function viewAdmin(){
   return `<div class="admin">
     <header class="admin-appbar"><div class="admin-brand"><div class="logo-box">${ic('shield','i-lg')}</div>
       <div class="t"><span><b>SUMOU FLEET</b><span class="admin-badge">Admin Portal</span></span><small>Fleet Operations & Live Driver Telemetry</small></div></div>
-      <div class="admin-appbar-r"><button class="btn btn-ghost" data-act="reload">${ic('refresh','i-xs')} Refresh</button><button class="btn-logout" data-act="logout">${ic('power','i-xs')}<span>Log Out</span></button></div></header>
+      <div class="admin-appbar-r"><div class="cc-clock"><span class="lv"></span>${new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:true})} · ${new Date().toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}</div><button class="btn btn-ghost" data-act="reload">${ic('refresh','i-xs')} Refresh</button><button class="btn-logout" data-act="logout">${ic('power','i-xs')}<span>Log Out</span></button></div></header>
     <div class="admin-kpis">
-      <div class="admin-kpi"><div class="admin-kpi-t"><span>Active On Duty</span><span class="kic green">${ic('nav','i-xs')}</span></div><div class="admin-kpi-v">${activeCount()} <small>/ ${state.drivers.length}</small></div><div class="admin-kpi-s green">Streaming GPS live now</div></div>
-      <div class="admin-kpi"><div class="admin-kpi-t"><span>Today's KM</span><span class="kic blue">${ic('car','i-xs')}</span></div><div class="admin-kpi-v">${km(todayKm())} <small>KM</small></div><div class="admin-kpi-s">Completed shifts today</div></div>
-      <div class="admin-kpi"><div class="admin-kpi-t"><span>Today's Fuel</span><span class="kic amber">${ic('fuel','i-xs')}</span></div><div class="admin-kpi-v">${money(todayFuel())} <small>KWD</small></div><div class="admin-kpi-s amber">Refills logged today</div></div>
-      <div class="admin-kpi"><div class="admin-kpi-t"><span>Today's Orders</span><span class="kic violet">${ic('box','i-xs')}</span></div><div class="admin-kpi-v">${o.done} <small>done</small></div><div class="admin-kpi-s violet">${o.canc} cancelled today</div></div>
+      <div class="admin-kpi kri">${ringSvg(activeCount()/Math.max(state.drivers.length,1),'#34d399',activeCount())}<div><div class="admin-kpi-t"><span>Active On Duty</span></div><div class="admin-kpi-v">${activeCount()} <small>/ ${state.drivers.length}</small></div><div class="admin-kpi-s green">streaming GPS live</div></div></div>
+      <div class="admin-kpi"><div class="admin-kpi-t"><span>Today's Distance</span><span class="kic blue">${ic('car','i-xs')}</span></div><div class="admin-kpi-v" style="color:var(--amber)">${km(todayKm())} <small>KM</small></div>${spark()}</div>
+      <div class="admin-kpi kri">${ringSvg(Math.min(todayFuel()/60,1),'#f59e0b',Math.round(Math.min(todayFuel()/60,1)*100)+'%')}<div><div class="admin-kpi-t"><span>Today's Fuel</span></div><div class="admin-kpi-v">${money(todayFuel())} <small>KWD</small></div><div class="admin-kpi-s mut">refills today</div></div></div>
+      <div class="admin-kpi kri">${donutSvg(o.done,o.canc)}<div><div class="admin-kpi-t"><span>Today's Orders</span></div><div class="admin-kpi-v">${o.done} <small>done</small></div><div class="donut-l"><span><span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--green)"></span>${o.done} done</span><span><span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--red)"></span>${o.canc} cancel</span></div></div></div>
     </div>
     <div class="admin-tabs-bar"><div class="admin-tabs">
         ${atab("map","Live Map & Radar","pin")}${atab("logs","Duty & Shift Logs","compass",completedShifts().length+onDutyShifts().length)}
@@ -720,6 +783,37 @@ function viewAdmin(){
     <div id="adminSection">${adminSection()}</div>${footer()}</div>`;
 }
 function atab(id,label,icon,c){return `<button class="admin-tab ${state.adminTab===id?"active":""}" data-tab="${id}">${ic(icon,'i-xs')} ${label}${c!=null?` <span class="ct">(${c})</span>`:""}</button>`;}
+/* command-center helpers */
+function ringSvg(pct,color,text){const off=(150.8*(1-Math.max(0,Math.min(pct,1)))).toFixed(1);
+  return `<div class="ring"><svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,.08)" stroke-width="6" fill="none"/><circle cx="28" cy="28" r="24" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="${off}"/></svg><div class="rc" style="color:${color}">${text}</div></div>`;}
+function donutSvg(done,canc){const tot=(done+canc)||1;const off=(150.8*(1-done/tot)).toFixed(1);
+  return `<div class="ring"><svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="var(--red)" stroke-width="6" fill="none" stroke-dasharray="150.8"/><circle cx="28" cy="28" r="24" stroke="#34d399" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="${off}"/></svg><div class="rc" style="font-size:11px">${done}</div></div>`;}
+function last7(){const a=[];for(let i=6;i>=0;i--){const day=new Date(Date.now()-i*86400000).toISOString().slice(0,10);a.push(completedShifts().filter(s=>s.date===day).reduce((x,s)=>x+(s.distance||0),0));}return a;}
+function spark(){const a=last7(),mx=Math.max(...a,1);return `<div class="spark">${a.map(v=>`<span style="height:${Math.max(6,Math.round(v/mx*32))}px"></span>`).join("")}</div>`;}
+function timeAgo(ms){if(!ms)return "";const d=Date.now()-ms,m=Math.floor(d/60000);if(m<1)return "just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
+function ccFeed(){const ev=[];
+  state.shifts.forEach(s=>{const d=driverById(s.driverId);
+    if(s.status==="ACTIVE")ev.push({t:s.startedAt,cls:"in",ft:`<b>${d?.name||"Driver"}</b> clocked in · ${s.loginPlace||"—"}`,fm:`ODO ${km(s.startOdo)} · photo verified`});
+    else ev.push({t:s.startedAt,cls:"out",ft:`<b>${d?.name||"Driver"}</b> clocked out · +${s.distance||0} KM`,fm:`${s.ordersDone||0} orders · ${s.ordersCancelled||0} cancel · ${s.duration||""}`});});
+  state.fuelRecords.forEach(f=>{const d=driverById(f.driverId);ev.push({t:(Date.parse(f.date)||0),cls:"fuel",ft:`<b>${d?.name||"Driver"}</b> logged fuel · ${money(f.cost)} KWD`,fm:`${f.station} · receipt attached`});});
+  ev.sort((a,b)=>b.t-a.t);const top=ev.slice(0,7);
+  if(!top.length)return `<div class="live-empty">No activity yet.</div>`;
+  return top.map(e=>`<div class="fitem"><div class="fic ${e.cls}">${ic(e.cls==="fuel"?"fuel":e.cls==="in"?"check":"logout","i-xs")}</div><div><div class="ft">${e.ft}</div><div class="fm">${e.fm}</div></div><div class="ft-time">${timeAgo(e.t)}</div></div>`).join("");}
+function ccLeaderboard(){const map={},fm={};
+  completedShifts().filter(s=>s.date===today()).forEach(s=>{const m=map[s.driverId]=map[s.driverId]||{km:0,ord:0};m.km+=s.distance||0;m.ord+=s.ordersDone||0;});
+  state.fuelRecords.filter(f=>f.date===today()).forEach(f=>{fm[f.driverId]=(fm[f.driverId]||0)+(f.cost||0);});
+  let arr=Object.keys(map).map(id=>({d:driverById(id),km:map[id].km,ord:map[id].ord,eff:fm[id]?(map[id].km/fm[id]).toFixed(1):"—"}));
+  arr.sort((a,b)=>b.km-a.km);arr=arr.slice(0,5);
+  if(!arr.length)return `<div class="live-empty">No completed shifts today yet.</div>`;
+  return arr.map((x,i)=>`<div class="lrow"><div class="rank ${i===0?"t1":""}">${i+1}</div><div class="ln">${x.d?x.d.name:"—"}</div><div><div class="lk">${km(x.km)} KM</div><div class="le">${x.ord} orders · ${x.eff} KM/KD</div></div></div>`).join("");}
+function flaggedShifts(){return completedShifts().filter(isFlagged);}
+function noFuelDrivers(){return state.drivers.filter(d=>{const ds=driverShifts(d.id).filter(s=>s.status==="COMPLETED");const fu=state.fuelRecords.filter(f=>f.driverId===d.id);return ds.length>=3&&fu.length===0;});}
+function ccAlerts(){const items=[];
+  flaggedShifts().sort((a,b)=>b.startedAt-a.startedAt).slice(0,4).forEach(s=>{const d=driverById(s.driverId);items.push(`<div class="alert"><div class="at">${ic('alert','i-xs')} Odometer check · ${d?d.name:"Driver"}</div><div class="am">${fmtDate(s.date)} · shift showed +${s.distance} KM (over ${KM_FLAG_MAX} limit). Verify the end-ODO photo.</div></div>`);});
+  noFuelDrivers().slice(0,3).forEach(d=>{items.push(`<div class="alert"><div class="at">${ic('alert','i-xs')} No fuel logged · ${d.name}</div><div class="am">${driverShifts(d.id).filter(s=>s.status==="COMPLETED").length} shifts, zero fuel entries.</div></div>`);});
+  if(!items.length)return `<div class="live-empty">All clear — no anomalies flagged.</div>`;
+  return items.join("")+`<div style="font-family:var(--mono);font-size:10px;color:var(--txt-dim);margin-top:6px;text-align:center">Odometer photos auto-flag suspicious readings</div>`;}
+function ccAlertsCount(){return flaggedShifts().length+noFuelDrivers().length;}
 function passFilter(sh){const f=state.filters,d=driverById(sh.driverId);
   if(f.driver!=="all"&&sh.driverId!==f.driver)return false;
   if(f.platform!=="all"&&sh.platform!==f.platform)return false;
@@ -730,17 +824,24 @@ function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adm
 
 function livePanelInner(){
   const live=onDutyShifts().filter(passFilter);
-  const rows=live.map(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;
+  if(!live.length)return `<div class="live-empty">No drivers on duty right now. When a driver clocks in, their live location streams here and on the map.</div>`;
+  return live.map(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;
     return `<div class="live-driver-bar"><div class="av">${initials(d?.name)}</div>
       <div class="m"><div class="nm">${d?.name||"Driver"} <span class="tag-plate">${d?.plate||""}</span> <span class="live-chip">LIVE</span></div>
-        <div class="sub">${lat!=null?Math.abs(lat).toFixed(4)+"°, "+Math.abs(lng).toFixed(4)+"°":"—"} · <b style="color:var(--amber)">${s.platform}</b> · <span class="spd">${s.speed?s.speed+" km/h":"awaiting GPS…"}</span> · ping ${s.lastPing||s.loginTime||"—"}</div></div>
+        <div class="sub"><b style="color:var(--amber)">${s.platform}</b> · ${s.loginPlace||"—"} · <span class="spd">${s.speed?s.speed+" km/h":"awaiting GPS…"}</span></div></div>
       <button class="locate-btn" data-map="${lat},${lng}">${ic('pin','i-xs')} Locate</button></div>`;}).join("");
-  return `<div class="sec-head"><div><h3>${ic('sat','i-xs')} Live Driver Tracking</h3><p>Real-time GPS of every driver on duty. Updates automatically.</p></div><span class="badge-count ${live.length?"green":""}">${live.length} on duty</span></div>
-    ${live.length?rows:`<div class="live-empty">No drivers on duty right now. When a driver clocks in, their live location streams here and moves on the map below.</div>`}`;
 }
-function secMap(){return `<div class="admin-card"><div id="livePanel">${livePanelInner()}</div></div>
-  <div class="admin-card" style="margin-top:13px"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Driver Login & Logout Location Map</h3><p>Green = duty start · Red = logout · Blue pulse = live position.</p></div><span class="badge-count">${state.shifts.filter(passFilter).length} shift locations</span></div>
-    <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--blue)"></span>Live</span></div><div id="leafmap"></div></div></div>`;}
+function secMap(){return `
+  <div class="cc-main">
+    <div class="admin-card"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Live Fleet Map</h3><p>Green = login · Red = logout · Blue pulse = live driver.</p></div><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} moving</span></div>
+      <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--blue)"></span>Live</span></div><div id="leafmap"></div></div></div>
+    <div class="admin-card"><div class="sec-head"><h3>${ic('nav','i-xs')} On Duty Now</h3><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} live</span></div><div id="livePanel">${livePanelInner()}</div></div>
+  </div>
+  <div class="cc-main" style="grid-template-columns:1.2fr 1fr 1fr;margin-top:13px">
+    <div class="admin-card"><div class="sec-head"><h3>${ic('clock','i-xs')} Live Activity Feed</h3><span class="badge-count green">live</span></div><div class="cc-feed">${ccFeed()}</div></div>
+    <div class="admin-card"><div class="sec-head"><h3>${ic('trend','i-xs')} Top Drivers Today</h3><span class="badge-count">by KM</span></div>${ccLeaderboard()}</div>
+    <div class="admin-card"><div class="sec-head"><h3>${ic('alert','i-xs')} Needs Review</h3><span class="badge-count" style="color:var(--red-txt);border-color:rgba(239,68,68,.3);background:var(--red-bg)">${ccAlertsCount()} flags</span></div>${ccAlerts()}</div>
+  </div>`;}
 let liveMarkers={},LMAP=null;
 function pinIcon(kind){const inner=kind==="live"?`<span class="ring"></span><span>●</span>`:`<span>${kind==="in"?"↓":"↑"}</span>`;return L.divIcon({className:"",html:`<div class="mpin ${kind}">${inner}</div>`,iconSize:[32,32],iconAnchor:[16,kind==="live"?16:30]});}
 function teardownMap(){if(LMAP){try{LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};}}
