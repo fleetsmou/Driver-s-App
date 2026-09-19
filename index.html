@@ -186,7 +186,9 @@
   .admin-brand .t small{display:block;font-size:11px;color:var(--txt-muted);margin-top:2px;}
   .admin-appbar-r{display:flex;align-items:center;gap:10px;}
   .admin-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;}
-  .admin-kpi{background:var(--card-inner);border:1px solid var(--border);border-radius:14px;padding:14px 16px;}
+  .admin-kpi{background:var(--card-inner);border:1px solid var(--border);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;}
+  .admin-kpi::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,var(--amber-tint),transparent 70%);pointer-events:none;}
+  .admin-kpi.kri,.admin-kpi>div{position:relative;z-index:1;}
   .admin-kpi-t{font-family:var(--mono);font-size:10px;color:var(--txt-dim);text-transform:uppercase;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between;}
   .admin-kpi-v{font-family:var(--mono);font-size:22px;font-weight:900;color:var(--txt-white);margin-top:6px;letter-spacing:-.5px;}
   .admin-kpi-v small{font-size:11px;color:var(--txt-muted);font-weight:600;}
@@ -366,6 +368,19 @@
   .alert .at{font-size:12px;font-weight:800;color:var(--red-txt);display:flex;align-items:center;gap:6px;}
   .alert .am{font-family:var(--mono);font-size:10px;color:var(--txt-muted);margin-top:4px;}
   @media(max-width:760px){.admin-filters{grid-template-columns:1fr 1fr;}.grid2{grid-template-columns:1fr;}#leafmap{height:360px;}.cc-main{grid-template-columns:1fr;}}
+  /* ---------- consistent amber accent (no blue/purple) ---------- */
+  .admin-badge{color:var(--amber);background:var(--amber-tint);border-color:var(--border-accent);}
+  .admin-brand .logo-box{background:#1e222d;border-color:var(--border-accent);color:var(--amber);}
+  .kic.blue{background:var(--amber-tint);color:var(--amber);}
+  .btn-blue{background:linear-gradient(135deg,var(--amber-2),#d97706);border:none;color:#0c0d12;}
+  .btn-blue:hover{filter:brightness(1.05);}
+  .admin-tab.active{background:var(--amber-tint);border-color:var(--border-accent);color:var(--amber);}
+  .live-driver-bar{background:var(--card-inner);border-color:var(--border);}
+  .live-driver-bar .av{background:linear-gradient(135deg,#f59e0b,#b45309);color:#0c0d12;}
+  .locate-btn{color:var(--amber);border-color:var(--border-accent);}
+  .mpin.live{background:var(--amber);}
+  .mpin.live .ring{border-color:var(--amber);}
+  .m-ic.blue{background:var(--amber);color:#0c0d12;}
 </style>
 </head>
 <body>
@@ -834,8 +849,8 @@ function livePanelInner(){
 }
 function secMap(){return `
   <div class="cc-main">
-    <div class="admin-card"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Live Fleet Map</h3><p>Green = login · Red = logout · Blue pulse = live driver.</p></div><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} moving</span></div>
-      <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--blue)"></span>Live</span></div><div id="leafmap"></div></div></div>
+    <div class="admin-card"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Live Fleet Map</h3><p>Green = login · Red = logout · Amber pulse = live driver.</p></div><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} moving</span></div>
+      <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--amber)"></span>Live</span></div><div id="leafmap"></div></div></div>
     <div class="admin-card"><div class="sec-head"><h3>${ic('nav','i-xs')} On Duty Now</h3><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} live</span></div><div id="livePanel">${livePanelInner()}</div></div>
   </div>
   <div class="cc-main" style="grid-template-columns:1.2fr 1fr 1fr;margin-top:13px">
@@ -851,12 +866,13 @@ function mountMap(){
   if(typeof L==="undefined"){el.innerHTML=`<div style="height:100%;display:grid;place-items:center;background:var(--tile-bg);color:var(--txt-muted);font-size:13px;text-align:center;padding:20px;font-family:var(--mono)">Map is loading… check internet.</div>`;return;}
   teardownMap();
   LMAP=L.map(el,{scrollWheelZoom:true}).setView([29.32,47.98],11);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:0.9}).addTo(LMAP);
   const bounds=[];
   state.shifts.filter(passFilter).forEach(s=>{
     if(s.loginLat!=null){L.marker([s.loginLat,s.loginLng],{icon:pinIcon("in")}).addTo(LMAP).bindPopup(`<b>Login</b><br>${s.loginPlace||""}`);bounds.push([s.loginLat,s.loginLng]);}
     if(s.logoutLat!=null){L.marker([s.logoutLat,s.logoutLng],{icon:pinIcon("out")}).addTo(LMAP).bindPopup(`<b>Logout</b><br>${s.logoutPlace||""}`);bounds.push([s.logoutLat,s.logoutLng]);
-      if(s.loginLat!=null)L.polyline([[s.loginLat,s.loginLng],[s.logoutLat,s.logoutLng]],{color:"#3b82f6",weight:2,dashArray:"6 7",opacity:.7}).addTo(LMAP);}
+      if(s.loginLat!=null)L.polyline([[s.loginLat,s.loginLng],[s.logoutLat,s.logoutLng]],{color:"#f59e0b",weight:2,dashArray:"6 7",opacity:.65}).addTo(LMAP);}
   });
   onDutyShifts().filter(passFilter).forEach(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;if(lat==null)return;
     const m=L.marker([lat,lng],{icon:pinIcon("live"),zIndexOffset:1000}).addTo(LMAP).bindPopup(`<b>${d?.name||"Driver"}</b><br>Live · ${s.speed||0} km/h`);liveMarkers[s.id]=m;bounds.push([lat,lng]);});
