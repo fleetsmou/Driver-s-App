@@ -866,8 +866,7 @@ function mountMap(){
   if(typeof L==="undefined"){el.innerHTML=`<div style="height:100%;display:grid;place-items:center;background:var(--tile-bg);color:var(--txt-muted);font-size:13px;text-align:center;padding:20px;font-family:var(--mono)">Map is loading… check internet.</div>`;return;}
   teardownMap();
   LMAP=L.map(el,{scrollWheelZoom:true}).setView([29.32,47.98],11);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:0.9}).addTo(LMAP);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
   const bounds=[];
   state.shifts.filter(passFilter).forEach(s=>{
     if(s.loginLat!=null){L.marker([s.loginLat,s.loginLng],{icon:pinIcon("in")}).addTo(LMAP).bindPopup(`<b>Login</b><br>${s.loginPlace||""}`);bounds.push([s.loginLat,s.loginLng]);}
