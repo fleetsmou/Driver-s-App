@@ -404,7 +404,11 @@ const KM_FLAG_MAX=400;
 
 const isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
 let BGGeo=null;
-try{if(isNativeApp&&window.Capacitor.registerPlugin){BGGeo=window.Capacitor.registerPlugin("BackgroundGeolocation");}}catch(e){}
+try{if(isNativeApp){const P=window.Capacitor.Plugins||{};
+  if(P.BackgroundGeolocation)BGGeo=P.BackgroundGeolocation;
+  else if(window.Capacitor.registerPlugin&&(!window.Capacitor.isPluginAvailable||window.Capacitor.isPluginAvailable("BackgroundGeolocation")))BGGeo=window.Capacitor.registerPlugin("BackgroundGeolocation");}}catch(e){}
+/* @capacitor/geolocation (if the APK has it) asks Android for permission properly */
+const CapGeo=(()=>{try{return isNativeApp&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation||null;}catch(e){return null;}})();
 
 const IC={
   truck:'<path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
@@ -461,7 +465,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.3";
+const APP_VERSION="3.4";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -615,7 +619,16 @@ function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
   let done=false;const T0=Date.now();const note=(m,e)=>gpsDiag.push(m+":"+(e?(e.code!=null?"code"+e.code:"")+(e.message?" "+String(e.message).slice(0,40):""):"ok")+" "+((Date.now()-T0)/1000).toFixed(0)+"s");const ok=(lat,lng,acc,how)=>{if(!done){done=true;res({lat,lng,acc:Math.max(1,Math.round(acc||25)),how});}};
   const fail=e=>{if(!done){done=true;rej(e||{code:2});}};
   const G=navigator.geolocation;
-  const nativeTry=prev=>{
+  const capTry=prev=>{
+    if(!CapGeo)return bgTry(prev);
+    (async()=>{try{
+      try{const p=await CapGeo.checkPermissions();if(p.location!=="granted"){const r=await CapGeo.requestPermissions();if(r.location==="denied"){note("capgeo",{code:1,message:"denied"});return fail({code:1});}}}catch(e){}
+      const pos=await CapGeo.getCurrentPosition({enableHighAccuracy:true,timeout:20000,maximumAge:30000});
+      ok(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy,"capgeo");
+    }catch(e){note("capgeo",{message:e&&e.message||String(e)});bgTry(prev);}})();
+  };
+  const nativeTry=prev=>capTry(prev);
+  const bgTry=prev=>{
     if(!BGGeo){note("native",{message:"plugin missing"});return fail(prev);}
     let wid=null;const stop=()=>{if(wid!=null){try{BGGeo.removeWatcher({id:wid});}catch(e){}}};
     const t=setTimeout(()=>{note("native",{code:3,message:"no fix in 20s"});stop();fail({code:3});},20000);
@@ -654,7 +667,7 @@ async function detectGps(kind){
          :c===2?"Phone Location is turned OFF. Swipe down, turn on Location, then tap GPS."
          :"No signal yet. Step near a window or outside and tap GPS again, or pick a Hub.";
     let perm="?";try{if(navigator.permissions){const q=await navigator.permissions.query({name:"geolocation"});perm=q.state;}}catch(e){perm="n/a";}
-    gpsMsg[kind]+=`<div style="margin-top:8px;font-family:var(--mono);font-size:10px;opacity:.85;word-break:break-word">Details for support: app=${isNativeApp?"native":"browser"} · capacitor=${window.Capacitor?"yes":"no"} · gps-plugin=${BGGeo?"yes":"no"} · permission=${perm} · https=${location.protocol} · ${gpsDiag.join(" | ")}</div>`;
+    gpsMsg[kind]+=`<div style="margin-top:8px;font-family:var(--mono);font-size:10px;opacity:.85;word-break:break-word">Details for support: app=${isNativeApp?"native":"browser"} · capacitor=${window.Capacitor?"yes":"no"} · gps-plugin=${BGGeo?"yes":"no"} · geo-plugin=${CapGeo?"yes":"no"} · plugins=${(()=>{try{return Object.keys(window.Capacitor&&window.Capacitor.Plugins||{}).join(",")||"none";}catch(e){return "?";}})()} · permission=${perm} · https=${location.protocol} · ${gpsDiag.join(" | ")}</div>`;
     toast("Location not found — see details in the box");
   }finally{clearInterval(tick);gpsBusy[kind]=false;refreshGps(kind);resolveWait();}
 }
