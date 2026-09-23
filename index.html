@@ -380,6 +380,13 @@
   .locate-btn{color:var(--amber);border-color:var(--border-accent);}
   .mpin.live{background:var(--amber);}
   .mpin.live .ring{border-color:var(--amber);}
+  .mpin.live.stale{background:#6b7280;filter:saturate(.3);}
+  .mpin.live.stale .ring{display:none;}
+  .mlabel{position:absolute;top:34px;left:50%;transform:translateX(-50%);white-space:nowrap;font:800 10.5px var(--mono);background:rgba(10,12,16,.82);color:#fff;padding:2px 7px;border-radius:6px;pointer-events:none}
+  .live-chip.lost{background:var(--red-bg);color:var(--red-txt);border:1px solid var(--red-border);}
+  .locate-btn.on{background:var(--amber);color:#111;border-color:var(--amber);}
+  .locate-btn.danger{color:var(--red-txt);border-color:var(--red-border);}
+  .flag.hub{background:rgba(245,158,11,.12);color:var(--amber);border-color:rgba(245,158,11,.4);}
   .m-ic.blue{background:var(--amber);color:#0c0d12;}
 </style>
 </head>
@@ -392,7 +399,6 @@
    ============================================================ */
 const SUPABASE_URL="https://yuxklzcdqorzlqagvyql.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1eGtsemNkcW9yemxxYWd2eXFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1NjA0MDIsImV4cCI6MjEwNTEzNjQwMn0.0Jn2LUj8SoGEVV-3B-pN-IAOE9tArf4k02r-gU8wzhw";
-const ADMIN_PASSCODE="9999";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const KM_FLAG_MAX=400;
 
@@ -452,9 +458,9 @@ const STATIONS=["KNPC Petrol Station","Q8 Fuel Station","Al-Soor Fuel & Gas","Ot
 
 const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driverId:null,ready:false,
   selectedPlatform:null,mplat:null,drivers:[],shifts:[],fuelRecords:[],
-  filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{}};
+  filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
-const SESSION_KEY="sumou_session_v2";
+const SESSION_KEY="sumou_session_v3";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -468,8 +474,9 @@ const money=n=>Number(n||0).toFixed(3);
 const km=n=>Number(n||0).toLocaleString("en-US");
 const initials=n=>(n||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
 const nowTime=()=>new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:true}).toLowerCase();
-const today=()=>new Date().toISOString().slice(0,10);
-const monthStart=()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);};
+const kwDate=(d=new Date())=>d.toLocaleDateString("en-CA",{timeZone:"Asia/Kuwait"}); /* YYYY-MM-DD in Kuwait time */
+const today=()=>kwDate();
+const monthStart=()=>kwDate().slice(0,8)+"01";
 const fmtDate=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),3000);}
 
@@ -480,12 +487,13 @@ const mapShift=r=>({id:r.id,driverId:r.driver_id,platform:r.platform,date:r.date
   loginTime:r.login_time,loginPlace:r.login_place,loginAddr:r.login_addr,loginLat:r.login_lat,loginLng:r.login_lng,
   logoutTime:r.logout_time,logoutPlace:r.logout_place,logoutAddr:r.logout_addr,logoutLat:r.logout_lat,logoutLng:r.logout_lng,
   duration:r.duration,summary:r.summary,liveLat:r.live_lat,liveLng:r.live_lng,speed:r.speed,lastPing:r.live_time,
+  liveAt:r.live_at?Date.parse(r.live_at):null,liveAcc:r.live_acc,heading:r.heading,loginSrc:r.login_src||null,logoutSrc:r.logout_src||null,
   startedAt:r.started_at?new Date(r.started_at).getTime():Date.now()});
 const mapFuel=r=>({id:r.id,driverId:r.driver_id,shiftId:r.shift_id,plate:r.plate,station:r.station,cost:r.cost,receiptPhoto:r.receipt_photo,place:r.place,lat:r.lat,lng:r.lng,date:r.date,time:r.time});
 
-const driverById=id=>state.drivers.find(d=>d.id===id);
-const driverShifts=id=>state.shifts.filter(s=>s.driverId===id);
-const activeShift=id=>state.shifts.find(s=>s.driverId===id&&s.status==="ACTIVE");
+const driverById=id=>state.drivers.find(d=>String(d.id)===String(id));
+const driverShifts=id=>state.shifts.filter(s=>String(s.driverId)===String(id));
+const activeShift=id=>state.shifts.find(s=>String(s.driverId)===String(id)&&s.status==="ACTIVE");
 const completedShifts=()=>state.shifts.filter(s=>s.status==="COMPLETED");
 const driverKm=id=>driverShifts(id).filter(s=>s.status==="COMPLETED").reduce((a,s)=>a+(s.distance||0),0);
 const driverFuelKwd=id=>state.fuelRecords.filter(f=>f.driverId===id).reduce((a,f)=>a+(f.cost||0),0);
@@ -500,7 +508,8 @@ const todayFuel=()=>state.fuelRecords.filter(f=>f.date===today()).reduce((a,f)=>
 const todayOrders=()=>state.shifts.filter(s=>s.date===today()).reduce((a,s)=>({done:a.done+(s.ordersDone||0),canc:a.canc+(s.ordersCancelled||0)}),{done:0,canc:0});
 
 /* ============================================================ DATA LAYER ============================================================ */
-async function loadAll(){
+/* Admin: logged in with Supabase Auth, reads tables directly (allowed by RLS for admins only) */
+async function loadAdmin(){
   const [d,s,f]=await Promise.all([
     sb.from("drivers").select("*").order("created_at"),
     sb.from("shifts").select("*").order("created_at"),
@@ -511,22 +520,53 @@ async function loadAll(){
   state.shifts=(s.data||[]).map(mapShift);
   state.fuelRecords=(f.data||[]).map(mapFuel);
 }
-function subscribeRealtime(){sb.channel("sumou-live").on("postgres_changes",{event:"*",schema:"public"},onRealtime).subscribe();}
+/* Driver: gets ONLY their own data through a server function (no other drivers, no PINs) */
+async function loadDriver(){
+  const {data,error}=await sb.rpc("driver_bootstrap",{p_token:state.token});
+  if(error)throw error;
+  state.drivers=data&&data.driver?[mapDriver(data.driver)]:[];
+  state.shifts=((data&&data.shifts)||[]).map(mapShift);
+  state.fuelRecords=((data&&data.fuel)||[]).map(mapFuel);
+  state.driverId=data&&data.driver?data.driver.id:null;
+}
+function loadAll(){return state.token&&state.screen!=="admin"?loadDriver():loadAdmin();}
+const ERRMSG={SESSION_EXPIRED:"Session expired — please sign in again.",ALREADY_ON_DUTY:"You are already on duty.",NO_ACTIVE_SHIFT:"No active shift found — pull to refresh.",BAD_ODO:"Enter a valid odometer reading.",END_LESS_THAN_START:"End KM can't be less than start KM.",BAD_COST:"Enter the fuel amount."};
+function friendly(m){m=m||"";for(const k in ERRMSG)if(m.includes(k))return ERRMSG[k];return m;}
+async function rpc(fn,args){
+  const {data,error}=await sb.rpc(fn,args);
+  if(error){if(/SESSION_EXPIRED/.test(error.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);throw new Error(friendly(error.message));}
+  return data;
+}
+function forceDriverLogout(msg){stopLiveWatch();clearSession();state.token=null;state.driverId=null;state.screen="landing";state.drivers=[];state.shifts=[];state.fuelRecords=[];closeModal();render();if(msg)toast(msg);}
+async function checkAdmin(){try{const {data,error}=await sb.rpc("is_admin");return !error&&data===true;}catch(e){return false;}}
+async function enterAdmin(){state.screen="admin";await loadAdmin();subscribeRealtime();render();}
+
+/* Realtime — admin only */
+let rtChan=null;
+function subscribeRealtime(){if(rtChan)return;rtChan=sb.channel("sumou-admin");
+  ["drivers","shifts","fuel_records","shift_points"].forEach(t=>rtChan.on("postgres_changes",{event:"*",schema:"public",table:t},onRealtime));
+  rtChan.subscribe();}
+function unsubscribeRealtime(){if(rtChan){try{sb.removeChannel(rtChan);}catch(e){}rtChan=null;}}
 function applyChange(table,ev,nw,oldRow){
   const cfg={drivers:["drivers",mapDriver],shifts:["shifts",mapShift],fuel_records:["fuelRecords",mapFuel]}[table];
   if(!cfg)return;const [arrName,mapper]=cfg;const arr=state[arrName];
-  if(ev==="DELETE"){const id=oldRow&&oldRow.id;const i=arr.findIndex(x=>x.id===id);if(i>=0)arr.splice(i,1);return;}
-  const row=mapper(nw);const i=arr.findIndex(x=>x.id===row.id);if(i>=0)arr[i]=row;else arr.push(row);
+  if(ev==="DELETE"){const id=oldRow&&oldRow.id;const i=arr.findIndex(x=>String(x.id)===String(id));if(i>=0)arr.splice(i,1);return;}
+  const row=mapper(nw);const i=arr.findIndex(x=>String(x.id)===String(row.id));if(i>=0)arr[i]=row;else arr.push(row);
 }
 let renderT=null;
 function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(()=>{
   if($("#overlay"))return;const ae=document.activeElement;
   if(ae&&["INPUT","SELECT","TEXTAREA"].includes(ae.tagName))return;render();},450);}
 function onRealtime(p){
+  if(state.screen!=="admin")return;
+  /* new route point → extend that driver's trail line */
+  if(p.table==="shift_points"){if(p.eventType==="INSERT"&&p.new)addTrailPoint(p.new.shift_id,p.new.lat,p.new.lng);return;}
+  /* live GPS ping on a running shift → just move the marker (NO full re-render, map keeps its zoom) */
+  if(p.table==="shifts"&&p.eventType==="UPDATE"&&p.new){
+    const prev=state.shifts.find(x=>String(x.id)===String(p.new.id));
+    if(prev&&prev.status==="ACTIVE"&&p.new.status==="ACTIVE"){applyChange(p.table,p.eventType,p.new,p.old);onLiveMove(p.new.id);return;}
+  }
   applyChange(p.table,p.eventType,p.new,p.old);
-  const liveMove=p.table==="shifts"&&p.eventType==="UPDATE"&&p.new&&p.new.status==="ACTIVE"&&p.old&&p.old.status==="ACTIVE";
-  if(state.screen==="admin"&&state.adminTab==="map"&&liveMove){refreshLiveMarkers();return;}
-  if(state.screen==="driver")updateDriverGps();
   scheduleRender();
 }
 
@@ -539,7 +579,7 @@ function compressImage(file){return new Promise((res,rej)=>{
     c.toBlob(b=>b?res(b):rej(new Error("compress failed")),"image/jpeg",0.68);};
   img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};img.src=url;});}
 async function uploadPhoto(blob,path){
-  const {error}=await sb.storage.from("photos").upload(path,blob,{contentType:"image/jpeg",upsert:true});
+  const {error}=await sb.storage.from("photos").upload(path,blob,{contentType:"image/jpeg",upsert:false});
   if(error)throw error;
   const {data}=sb.storage.from("photos").getPublicUrl(path);
   return data.publicUrl;
@@ -568,15 +608,19 @@ async function reverseGeocode(lat,lng){
 }
 function detectGps(kind){
   if(!navigator.geolocation){toast("GPS not supported on this device — pick a Hub");return;}
+  /* on duty the phone already has a fresh fix from live tracking — use it straight away */
+  if(live.last&&Date.now()-live.last.t<20000){const f=live.last;
+    reverseGeocode(f.lat,f.lng).then(g=>{state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:Math.max(1,f.acc||15),time:nowTime(),src:"gps"};refreshGps(kind);});
+    return;}
   toast("Getting GPS location…");
   navigator.geolocation.getCurrentPosition(async pos=>{
     const {latitude:lat,longitude:lng,accuracy}=pos.coords;
     const g=await reverseGeocode(lat,lng);
-    state.gps[kind]={place:g.place,addr:g.addr,lat:+lat.toFixed(5),lng:+lng.toFixed(5),acc:Math.max(1,Math.round(accuracy||15)),time:nowTime()};
+    state.gps[kind]={place:g.place,addr:g.addr,lat:+lat.toFixed(6),lng:+lng.toFixed(6),acc:Math.max(1,Math.round(accuracy||15)),time:nowTime(),src:"gps"};
     refreshGps(kind);toast("GPS locked ✓");
   },err=>{toast(err.code===1?"Location permission denied — allow location, then retry":"Couldn't get GPS — pick a Hub");},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
 }
-function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime()};refreshGps(kind);toast("Hub location set ✓");}
+function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime(),src:"hub"};refreshGps(kind);toast("Hub location set ✓");}
 function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);if(kind==="login")updateDriverGps();}
 
 function updateDriverGps(){
@@ -587,47 +631,101 @@ function updateDriverGps(){
   else{sp.textContent="0";if(tl)tl.textContent="GPS ready";}
 }
 
-let watchId=null,liveHb=null,lastGeo=null,lastPos=null,bgWatcherId=null;
+/* ------------------------------------------------------------------
+   LIVE TRACKING — why it looked frozen before:
+   1) every GPS write came back through realtime and re-rendered the driver
+      screen, and each re-render STOPPED and restarted the GPS watcher, so the
+      phone kept sending its first / cached fix instead of real movement;
+   2) it only sent every 7 s and the admin map re-zoomed out to fit all pins;
+   3) native background tracking ignored moves under 8 m.
+   Now: one watcher for the whole shift, sends as soon as the driver moves
+   ~3-5 m (max every 2 s), a heartbeat every 15 s when standing still,
+   every move is saved as a route point, and offline points are queued.
+   ------------------------------------------------------------------ */
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
-async function writeLive(shiftId,lat,lng){
-  let kmh=0;if(lastPos){const dist=haversine(lastPos.lat,lastPos.lng,lat,lng);const dt=(Date.now()-lastPos.t)/1000;if(dt>0)kmh=Math.round((dist/dt)*3.6);}
-  lastPos={lat,lng,t:Date.now()};
-  try{await sb.from("shifts").update({live_lat:+lat.toFixed(5),live_lng:+lng.toFixed(5),speed:kmh,live_time:nowTime()}).eq("id",shiftId);}catch(e){}
-  const sh=state.shifts.find(s=>s.id===shiftId);if(sh){sh.liveLat=+lat.toFixed(5);sh.liveLng=+lng.toFixed(5);sh.speed=kmh;sh.lastPing=nowTime();}
+const live={shiftId:null,watchId:null,bgId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,queue:[],flushing:false};
+function startLiveWatch(shiftId){
+  if(String(live.shiftId)===String(shiftId)&&(live.watchId!=null||live.bgId!=null||live.starting))return; /* already tracking this shift */
+  stopLiveWatch();live.shiftId=shiftId;
+  if(BGGeo){
+    live.starting=true;
+    BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:3},
+      (loc,err)=>{if(err||!loc)return;onFix(loc.latitude,loc.longitude,loc.accuracy,loc.bearing,loc.speed);})
+      .then(id=>{live.bgId=id;live.starting=false;}).catch(()=>{live.starting=false;startWebWatch();});
+  }else startWebWatch();
+  live.hb=setInterval(()=>{if(live.last)pushLive(true);},15000);
+}
+function startWebWatch(){
+  if(!navigator.geolocation){toast("GPS not supported on this device.");return;}
+  acquireWake();
+  live.watchId=navigator.geolocation.watchPosition(
+    p=>{const c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},
+    e=>{if(e.code===1)toast("Location permission denied — live tracking is OFF. Allow location in settings.");},
+    {enableHighAccuracy:true,maximumAge:0,timeout:20000});
+}
+function onFix(lat,lng,acc,heading,spd){
+  if(lat==null||lng==null||!live.shiftId)return;
+  const now=Date.now();acc=Math.round(acc||0);
+  if(acc>100&&live.sent&&now-live.sent.t<30000)return;               /* skip very poor fixes */
+  let kmh=(spd!=null&&spd>=0)?spd*3.6:null;
+  if(kmh==null&&live.last){const dt=(now-live.last.t)/1000;if(dt>0)kmh=haversine(live.last.lat,live.last.lng,lat,lng)/dt*3.6;}
+  kmh=Math.max(0,Math.min(200,Math.round(kmh||0)));
+  live.last={lat,lng,acc,heading:(heading!=null&&!isNaN(heading))?Math.round(heading):null,kmh,t:now};
+  const moved=live.sent?haversine(live.sent.lat,live.sent.lng,lat,lng):Infinity;
+  const minMove=Math.max(3,Math.min(acc*0.4,15));                    /* walking pace shows up */
+  if(moved>=minMove&&(!live.sent||now-live.sent.t>=2000))pushLive(false);
+  else if(!live.sent||now-live.sent.t>=15000)pushLive(true);
   updateDriverGps();
 }
-function startLiveWatch(shiftId){
-  stopLiveWatch();
-  if(BGGeo){BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:8},
-      (location,error)=>{if(error)return;if(location)writeLive(shiftId,location.latitude,location.longitude);})
-      .then(id=>{bgWatcherId=id;}).catch(()=>startWebWatch(shiftId));return;}
-  startWebWatch(shiftId);
+async function pushLive(heartbeat){
+  const Lf=live.last,sid=live.shiftId;if(!Lf||!sid||!state.token)return;
+  if(live.busy){live.pending=(live.pending==="pt"||!heartbeat)?"pt":"hb";return;}
+  live.busy=true;
+  const p={lat:+Lf.lat.toFixed(6),lng:+Lf.lng.toFixed(6),acc:Lf.acc,speed:Lf.kmh,heading:Lf.heading,time:nowTime()};
+  live.sent={lat:Lf.lat,lng:Lf.lng,t:Date.now()};
+  const sh=state.shifts.find(s=>String(s.id)===String(sid));
+  if(sh){sh.liveLat=p.lat;sh.liveLng=p.lng;sh.speed=p.speed;sh.lastPing=p.time;sh.liveAt=Date.now();}
+  try{
+    const {error}=await sb.rpc("driver_update_live",{p_token:state.token,p_shift:String(sid),p,p_point:!heartbeat});
+    if(error){
+      const m=error.message||"";
+      if(/NO_ACTIVE_SHIFT/.test(m)){stopLiveWatch();loadDriver().then(render).catch(()=>{});}
+      else if(/SESSION_EXPIRED/.test(m))forceDriverLogout(ERRMSG.SESSION_EXPIRED);
+      else if(!heartbeat)queuePoint(p);
+    }else if(live.queue.length)flushQueue();
+  }catch(e){if(!heartbeat)queuePoint(p);}
+  finally{live.busy=false;const pn=live.pending;live.pending=null;if(pn)pushLive(pn==="hb");}
 }
-function startWebWatch(shiftId){
-  if(!navigator.geolocation)return;acquireWake();
-  const opts={enableHighAccuracy:true,maximumAge:0,timeout:15000};
-  navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);
-  watchId=navigator.geolocation.watchPosition(p=>{lastGeo={lat:p.coords.latitude,lng:p.coords.longitude};},e=>{},opts);
-  liveHb=setInterval(()=>{if(lastGeo)writeLive(shiftId,lastGeo.lat,lastGeo.lng);
-    else navigator.geolocation.getCurrentPosition(p=>writeLive(shiftId,p.coords.latitude,p.coords.longitude),e=>{},opts);},7000);
+function queuePoint(p){live.queue.push({...p,at:new Date().toISOString()});if(live.queue.length>500)live.queue.shift();}
+async function flushQueue(){
+  if(live.flushing||!live.queue.length||!live.shiftId)return;live.flushing=true;
+  const batch=live.queue.splice(0,100);
+  try{const {error}=await sb.rpc("driver_add_points",{p_token:state.token,p_shift:String(live.shiftId),p_pts:batch});if(error)live.queue.unshift(...batch);}
+  catch(e){live.queue.unshift(...batch);}
+  live.flushing=false;
 }
 function stopLiveWatch(){
-  if(BGGeo&&bgWatcherId){try{BGGeo.removeWatcher({id:bgWatcherId});}catch(e){}bgWatcherId=null;}
-  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
-  if(liveHb){clearInterval(liveHb);liveHb=null;}lastGeo=null;lastPos=null;releaseWake();}
+  if(BGGeo&&live.bgId!=null){try{BGGeo.removeWatcher({id:live.bgId});}catch(e){}}
+  if(live.watchId!=null){try{navigator.geolocation.clearWatch(live.watchId);}catch(e){}}
+  if(live.hb)clearInterval(live.hb);
+  Object.assign(live,{shiftId:null,watchId:null,bgId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false});
+  releaseWake();
+}
 
+/* Admin fallback: re-read running shifts every 5 s (in case realtime drops) */
 let adminPoll=null;
 function startAdminPoll(){stopAdminPoll();adminPoll=setInterval(async()=>{
   if(state.screen!=="admin")return;
   try{const {data}=await sb.from("shifts").select("*").eq("status","ACTIVE");
-    if(data){data.forEach(r=>{const ms=mapShift(r);const i=state.shifts.findIndex(x=>x.id===ms.id);if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);});
-      if(state.adminTab==="map")refreshLiveMarkers();}}catch(e){}},5000);}
+    if(data){data.forEach(r=>{const ms=mapShift(r);const i=state.shifts.findIndex(x=>String(x.id)===String(ms.id));if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);});
+      data.forEach(r=>onLiveMove(r.id));}}catch(e){}
+  refreshLivePanel();},5000);}
 function stopAdminPoll(){if(adminPoll){clearInterval(adminPoll);adminPoll=null;}}
 
 let wakeLock=null;
 async function acquireWake(){try{if("wakeLock" in navigator)wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
 function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&state.screen==="driver"){const sh=activeShift(state.driverId);if(sh){acquireWake();if(lastGeo)writeLive(sh.id,lastGeo.lat,lastGeo.lng);}}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&state.screen==="driver"){const sh=activeShift(state.driverId);if(sh){acquireWake();startLiveWatch(sh.id);if(live.last)pushLive(true);if(live.queue.length)flushQueue();}}});
 
 /* ============================================================ ROUTER ============================================================ */
 function render(){
@@ -659,15 +757,15 @@ function landingDriver(){
     <label class="fld">${ic('phone','i-xs')} Phone / Driver ID</label><input id="dlPhone" inputmode="tel" placeholder="e.g. 5123 4567" />
     <label class="fld">${ic('shield','i-xs')} Security PIN</label><input id="dlPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" />
     <button class="btn btn-amber btn-block" style="height:44px;margin-top:16px" data-act="driverLogin">${ic('zap','i-xs')} Sign In as Driver</button>
-    ${state.drivers.length?"":`<div class="infobox" style="margin-top:16px">${ic('alert','i-xs')}<span>No driver accounts exist yet. Ask your fleet admin to create your account.</span></div>`}
     <div class="authnote">Fleet admin? Open the admin link you were given.</div></div></div>`;
 }
 function landingAdmin(){
   return `<div class="authgate"><div class="authcard">
     <div class="authbrand"><div class="logo-box" style="background:#172554;border-color:rgba(59,130,246,.5);color:var(--blue-ink)">${ic('shield','i-lg')}</div><div class="ab-text"><b>SUMOU FLEET</b><small style="color:var(--blue-ink)">Admin Operations Portal</small></div></div>
-    <h2>Fleet Admin Sign In</h2><div class="authsub">Enter your administrator passcode to access operations & live tracking.</div>
+    <h2>Fleet Admin Sign In</h2><div class="authsub">Sign in with your admin email and password.</div>
     <div id="adminErr" class="autherr hidden"></div>
-    <label class="fld">${ic('shield','i-xs')} Admin Passcode</label><input id="adminPass" type="password" placeholder="Enter admin passcode" />
+    <label class="fld">${ic('user','i-xs')} Admin Email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="you@company.com" />
+    <label class="fld">${ic('shield','i-xs')} Password</label><input id="adminPass" type="password" autocomplete="current-password" placeholder="Your password" />
     <button class="btn btn-blue btn-block" style="height:44px;margin-top:16px" data-act="adminLogin">${ic('shield','i-xs')} Sign In to Admin Portal</button>
     <div class="authnote">Authorized Fleet Dispatch & Management Only</div></div></div>`;
 }
@@ -756,7 +854,7 @@ function driverHistoryPage(d){
 function shiftCard(s,d){
   const fuel=shiftFuel(s.id);
   const oc=(s.ordersDone!=null||s.ordersCancelled!=null)?`${s.ordersDone||0} done · ${s.ordersCancelled||0} cancel`:"—";
-  return `<div class="rec"><div class="rec-head"><div class="rec-title">${s.platform} <span class="tag-plate">${d?d.plate:""}</span> <span class="st-badge ${s.status==="ACTIVE"?"st-active":"st-done"}">${s.status}</span>${isFlagged(s)?`<span class="flag">${ic('alert','i-xs')} CHECK KM</span>`:""}</div>
+  return `<div class="rec"><div class="rec-head"><div class="rec-title">${s.platform} <span class="tag-plate">${d?d.plate:""}</span> <span class="st-badge ${s.status==="ACTIVE"?"st-active":"st-done"}">${s.status}</span>${isFlagged(s)?`<span class="flag">${ic('alert','i-xs')} CHECK KM</span>`:""}${(s.loginSrc==="hub"||s.logoutSrc==="hub")?`<span class="flag hub">${ic('pin','i-xs')} HUB · NOT GPS</span>`:""}</div>
       ${s.status==="COMPLETED"?`<span class="rec-title" style="color:var(--green-ink);font-size:13px">+${s.distance} KM</span>`:""}</div>
     <div class="rec-meta">
       <div class="row">${ic('login','i-xs')} In: <b>${s.loginPlace||"—"}</b> (${s.loginTime||"—"}) · ${km(s.startOdo)} KM</div>
@@ -804,12 +902,12 @@ function ringSvg(pct,color,text){const off=(150.8*(1-Math.max(0,Math.min(pct,1))
   return `<div class="ring"><svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="rgba(255,255,255,.08)" stroke-width="6" fill="none"/><circle cx="28" cy="28" r="24" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="${off}"/></svg><div class="rc" style="color:${color}">${text}</div></div>`;}
 function donutSvg(done,canc){const tot=(done+canc)||1;const off=(150.8*(1-done/tot)).toFixed(1);
   return `<div class="ring"><svg width="56" height="56"><circle cx="28" cy="28" r="24" stroke="var(--red)" stroke-width="6" fill="none" stroke-dasharray="150.8"/><circle cx="28" cy="28" r="24" stroke="#34d399" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="${off}"/></svg><div class="rc" style="font-size:11px">${done}</div></div>`;}
-function last7(){const a=[];for(let i=6;i>=0;i--){const day=new Date(Date.now()-i*86400000).toISOString().slice(0,10);a.push(completedShifts().filter(s=>s.date===day).reduce((x,s)=>x+(s.distance||0),0));}return a;}
+function last7(){const a=[];for(let i=6;i>=0;i--){const day=kwDate(new Date(Date.now()-i*86400000));a.push(completedShifts().filter(s=>s.date===day).reduce((x,s)=>x+(s.distance||0),0));}return a;}
 function spark(){const a=last7(),mx=Math.max(...a,1);return `<div class="spark">${a.map(v=>`<span style="height:${Math.max(6,Math.round(v/mx*32))}px"></span>`).join("")}</div>`;}
 function timeAgo(ms){if(!ms)return "";const d=Date.now()-ms,m=Math.floor(d/60000);if(m<1)return "just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";}
 function ccFeed(){const ev=[];
   state.shifts.forEach(s=>{const d=driverById(s.driverId);
-    if(s.status==="ACTIVE")ev.push({t:s.startedAt,cls:"in",ft:`<b>${d?.name||"Driver"}</b> clocked in · ${s.loginPlace||"—"}`,fm:`ODO ${km(s.startOdo)} · photo verified`});
+    if(s.status==="ACTIVE")ev.push({t:s.startedAt,cls:"in",ft:`<b>${d?.name||"Driver"}</b> clocked in · ${s.loginPlace||"—"}`,fm:`${s.loginSrc==="hub"?"Hub picked (not GPS) · ":""}ODO ${km(s.startOdo)} · photo verified`});
     else ev.push({t:s.startedAt,cls:"out",ft:`<b>${d?.name||"Driver"}</b> clocked out · +${s.distance||0} KM`,fm:`${s.ordersDone||0} orders · ${s.ordersCancelled||0} cancel · ${s.duration||""}`});});
   state.fuelRecords.forEach(f=>{const d=driverById(f.driverId);ev.push({t:(Date.parse(f.date)||0),cls:"fuel",ft:`<b>${d?.name||"Driver"}</b> logged fuel · ${money(f.cost)} KWD`,fm:`${f.station} · receipt attached`});});
   ev.sort((a,b)=>b.t-a.t);const top=ev.slice(0,7);
@@ -823,13 +921,17 @@ function ccLeaderboard(){const map={},fm={};
   if(!arr.length)return `<div class="live-empty">No completed shifts today yet.</div>`;
   return arr.map((x,i)=>`<div class="lrow"><div class="rank ${i===0?"t1":""}">${i+1}</div><div class="ln">${x.d?x.d.name:"—"}</div><div><div class="lk">${km(x.km)} KM</div><div class="le">${x.ord} orders · ${x.eff} KM/KD</div></div></div>`).join("");}
 function flaggedShifts(){return completedShifts().filter(isFlagged);}
+function hubShiftsToday(){return state.shifts.filter(s=>s.date===today()&&(s.loginSrc==="hub"||s.logoutSrc==="hub"));}
+function longShifts(){return onDutyShifts().filter(s=>Date.now()-s.startedAt>14*3600000);}
 function noFuelDrivers(){return state.drivers.filter(d=>{const ds=driverShifts(d.id).filter(s=>s.status==="COMPLETED");const fu=state.fuelRecords.filter(f=>f.driverId===d.id);return ds.length>=3&&fu.length===0;});}
 function ccAlerts(){const items=[];
   flaggedShifts().sort((a,b)=>b.startedAt-a.startedAt).slice(0,4).forEach(s=>{const d=driverById(s.driverId);items.push(`<div class="alert"><div class="at">${ic('alert','i-xs')} Odometer check · ${d?d.name:"Driver"}</div><div class="am">${fmtDate(s.date)} · shift showed +${s.distance} KM (over ${KM_FLAG_MAX} limit). Verify the end-ODO photo.</div></div>`);});
+  longShifts().forEach(s=>{const d=driverById(s.driverId);items.push(`<div class="alert"><div class="at">${ic('clock','i-xs')} Shift open 14h+ · ${d?d.name:"Driver"}</div><div class="am">Clocked in ${timeAgo(s.startedAt)}. Probably forgot to clock out — use "End shift" in On Duty Now.</div></div>`);});
+  hubShiftsToday().slice(0,3).forEach(s=>{const d=driverById(s.driverId);items.push(`<div class="alert"><div class="at">${ic('pin','i-xs')} Hub picked instead of GPS · ${d?d.name:"Driver"}</div><div class="am">Check-in/out location was chosen from the hub list, not detected by GPS.</div></div>`);});
   noFuelDrivers().slice(0,3).forEach(d=>{items.push(`<div class="alert"><div class="at">${ic('alert','i-xs')} No fuel logged · ${d.name}</div><div class="am">${driverShifts(d.id).filter(s=>s.status==="COMPLETED").length} shifts, zero fuel entries.</div></div>`);});
   if(!items.length)return `<div class="live-empty">All clear — no anomalies flagged.</div>`;
   return items.join("")+`<div style="font-family:var(--mono);font-size:10px;color:var(--txt-dim);margin-top:6px;text-align:center">Odometer photos auto-flag suspicious readings</div>`;}
-function ccAlertsCount(){return flaggedShifts().length+noFuelDrivers().length;}
+function ccAlertsCount(){return flaggedShifts().length+noFuelDrivers().length+longShifts().length+hubShiftsToday().length;}
 function passFilter(sh){const f=state.filters,d=driverById(sh.driverId);
   if(f.driver!=="all"&&sh.driverId!==f.driver)return false;
   if(f.platform!=="all"&&sh.platform!==f.platform)return false;
@@ -838,18 +940,27 @@ function passFilter(sh){const f=state.filters,d=driverById(sh.driverId);
 function adminSection(){return {map:secMap,logs:secLogs,km:secKm,fuel:secFuel,drivers:secDrivers}[state.adminTab]();}
 function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?mountMap():teardownMap();}
 
+const STALE_MS=120000; /* no ping for 2 min = GPS lost */
+const isStale=s=>!s.liveAt||Date.now()-s.liveAt>STALE_MS;
+function ago(ms){if(!ms)return "no GPS yet";const sec=Math.max(0,Math.round((Date.now()-ms)/1000));if(sec<60)return sec+"s ago";const m=Math.floor(sec/60);if(m<60)return m+"m ago";return Math.floor(m/60)+"h "+(m%60)+"m ago";}
 function livePanelInner(){
   const live=onDutyShifts().filter(passFilter);
   if(!live.length)return `<div class="live-empty">No drivers on duty right now. When a driver clocks in, their live location streams here and on the map.</div>`;
-  return live.map(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;
+  return live.map(s=>{const d=driverById(s.driverId);const st=isStale(s);const f=String(state.follow)===String(s.id);
+    const canEnd=(st&&Date.now()-(s.liveAt||s.startedAt)>30*60000)||Date.now()-s.startedAt>14*3600000;
     return `<div class="live-driver-bar"><div class="av">${initials(d?.name)}</div>
-      <div class="m"><div class="nm">${d?.name||"Driver"} <span class="tag-plate">${d?.plate||""}</span> <span class="live-chip">LIVE</span></div>
-        <div class="sub"><b style="color:var(--amber)">${s.platform}</b> · ${s.loginPlace||"—"} · <span class="spd">${s.speed?s.speed+" km/h":"awaiting GPS…"}</span></div></div>
-      <button class="locate-btn" data-map="${lat},${lng}">${ic('pin','i-xs')} Locate</button></div>`;}).join("");
+      <div class="m"><div class="nm">${d?.name||"Driver"} <span class="tag-plate">${d?.plate||""}</span> ${st?`<span class="live-chip lost">GPS LOST</span>`:`<span class="live-chip">LIVE</span>`}</div>
+        <div class="sub"><b style="color:var(--amber)">${s.platform}</b> · ${st?"":`<span class="spd">${s.speed||0} km/h</span> · `}updated ${ago(s.liveAt)}${s.liveAcc?` · ±${Math.round(s.liveAcc)} m`:""}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="locate-btn ${f?"on":""}" data-follow="${s.id}">${ic('nav','i-xs')} ${f?"Following":"Follow"}</button>
+        ${canEnd?`<button class="locate-btn danger" data-forceend="${s.id}">${ic('stop','i-xs')} End shift</button>`:""}
+      </div></div>`;}).join("");
 }
+function refreshLivePanel(){const lp=$("#livePanel");if(lp)lp.innerHTML=livePanelInner();}
+let lpT=null;function refreshLivePanelSoon(){if(lpT)return;lpT=setTimeout(()=>{lpT=null;refreshLivePanel();},400);}
 function secMap(){return `
   <div class="cc-main">
-    <div class="admin-card"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Live Fleet Map</h3><p>Green = login · Red = logout · Amber pulse = live driver.</p></div><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} moving</span></div>
+    <div class="admin-card"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Live Fleet Map</h3><p>Amber pulse = live driver · amber line = route since clock-in · grey = GPS lost. Tap <b>Follow</b> to zoom in and track one driver.</p></div><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} moving</span></div>
       <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--amber)"></span>Live</span></div><div id="leafmap"></div></div></div>
     <div class="admin-card"><div class="sec-head"><h3>${ic('nav','i-xs')} On Duty Now</h3><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} live</span></div><div id="livePanel">${livePanelInner()}</div></div>
   </div>
@@ -858,29 +969,84 @@ function secMap(){return `
     <div class="admin-card"><div class="sec-head"><h3>${ic('trend','i-xs')} Top Drivers Today</h3><span class="badge-count">by KM</span></div>${ccLeaderboard()}</div>
     <div class="admin-card"><div class="sec-head"><h3>${ic('alert','i-xs')} Needs Review</h3><span class="badge-count" style="color:var(--red-txt);border-color:rgba(239,68,68,.3);background:var(--red-bg)">${ccAlertsCount()} flags</span></div>${ccAlerts()}</div>
   </div>`;}
-let liveMarkers={},LMAP=null;
-function pinIcon(kind){const inner=kind==="live"?`<span class="ring"></span><span>●</span>`:`<span>${kind==="in"?"↓":"↑"}</span>`;return L.divIcon({className:"",html:`<div class="mpin ${kind}">${inner}</div>`,iconSize:[32,32],iconAnchor:[16,kind==="live"?16:30]});}
-function teardownMap(){if(LMAP){try{LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};}}
+let liveMarkers={},trails={},LMAP=null,mapView=null;
+function pinIcon(kind){const inner=`<span>${kind==="in"?"↓":"↑"}</span>`;return L.divIcon({className:"",html:`<div class="mpin ${kind}">${inner}</div>`,iconSize:[32,32],iconAnchor:[16,30]});}
+function liveIcon(name,stale){return L.divIcon({className:"",html:`<div class="mpin live ${stale?"stale":""}"><span class="ring"></span><span>●</span></div><div class="mlabel">${(name||"Driver").split(" ")[0]}</div>`,iconSize:[32,32],iconAnchor:[16,16]});}
+function teardownMap(){if(LMAP){try{mapView={c:LMAP.getCenter(),z:LMAP.getZoom()};LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};trails={};}}
 function mountMap(){
   const el=$("#leafmap");if(!el)return;
   if(typeof L==="undefined"){el.innerHTML=`<div style="height:100%;display:grid;place-items:center;background:var(--tile-bg);color:var(--txt-muted);font-size:13px;text-align:center;padding:20px;font-family:var(--mono)">Map is loading… check internet.</div>`;return;}
-  teardownMap();
+  if(LMAP){try{LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};trails={};}
   LMAP=L.map(el,{scrollWheelZoom:true}).setView([29.32,47.98],11);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
-  const bounds=[];
-  state.shifts.filter(passFilter).forEach(s=>{
-    if(s.loginLat!=null){L.marker([s.loginLat,s.loginLng],{icon:pinIcon("in")}).addTo(LMAP).bindPopup(`<b>Login</b><br>${s.loginPlace||""}`);bounds.push([s.loginLat,s.loginLng]);}
-    if(s.logoutLat!=null){L.marker([s.logoutLat,s.logoutLng],{icon:pinIcon("out")}).addTo(LMAP).bindPopup(`<b>Logout</b><br>${s.logoutPlace||""}`);bounds.push([s.logoutLat,s.logoutLng]);
-      if(s.loginLat!=null)L.polyline([[s.loginLat,s.loginLng],[s.logoutLat,s.logoutLng]],{color:"#f59e0b",weight:2,dashArray:"6 7",opacity:.65}).addTo(LMAP);}
+  const bounds=[],td=today();
+  /* only TODAY's login / logout pins, so old pins don't bury the live drivers */
+  state.shifts.filter(passFilter).filter(s=>s.date===td).forEach(s=>{
+    if(s.loginLat!=null){L.marker([s.loginLat,s.loginLng],{icon:pinIcon("in")}).addTo(LMAP).bindPopup(`<b>Login</b><br>${s.loginPlace||""}${s.loginSrc==="hub"?"<br><i>Hub picked, not GPS</i>":""}`);bounds.push([s.loginLat,s.loginLng]);}
+    if(s.logoutLat!=null){L.marker([s.logoutLat,s.logoutLng],{icon:pinIcon("out")}).addTo(LMAP).bindPopup(`<b>Logout</b><br>${s.logoutPlace||""}`);bounds.push([s.logoutLat,s.logoutLng]);}
   });
-  onDutyShifts().filter(passFilter).forEach(s=>{const d=driverById(s.driverId);const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;if(lat==null)return;
-    const m=L.marker([lat,lng],{icon:pinIcon("live"),zIndexOffset:1000}).addTo(LMAP).bindPopup(`<b>${d?.name||"Driver"}</b><br>Live · ${s.speed||0} km/h`);liveMarkers[s.id]=m;bounds.push([lat,lng]);});
-  if(bounds.length)LMAP.fitBounds(bounds,{padding:[50,50],maxZoom:14});
+  onDutyShifts().filter(passFilter).forEach(s=>{addLiveMarker(s);const lat=s.liveLat??s.loginLat;if(lat!=null)bounds.push([lat,s.liveLng??s.loginLng]);});
+  if(mapView)LMAP.setView(mapView.c,mapView.z,{animate:false});        /* keep the admin's zoom between refreshes */
+  else if(bounds.length)LMAP.fitBounds(bounds,{padding:[50,50],maxZoom:16});
+  LMAP.on("dragstart",()=>{if(state.follow){state.follow=null;refreshLivePanel();}});
+  LMAP.on("moveend",()=>{if(LMAP)mapView={c:LMAP.getCenter(),z:LMAP.getZoom()};});
+  loadTrails();
   setTimeout(()=>{if(LMAP)LMAP.invalidateSize();},60);
 }
-function refreshLiveMarkers(){const lp=$("#livePanel");if(lp)lp.innerHTML=livePanelInner();if(!LMAP)return;
-  onDutyShifts().forEach(s=>{const m=liveMarkers[s.id];if(m&&s.liveLat!=null)m.setLatLng([s.liveLat,s.liveLng]);});
-  if(onDutyShifts().some(s=>s.liveLat!=null&&!liveMarkers[s.id]))mountMap();}
+function addLiveMarker(s){
+  if(!LMAP)return;const lat=s.liveLat??s.loginLat,lng=s.liveLng??s.loginLng;if(lat==null)return;
+  const d=driverById(s.driverId);const st=isStale(s);
+  const m=L.marker([lat,lng],{icon:liveIcon(d?.name,st),zIndexOffset:1000}).addTo(LMAP)
+    .bindPopup(()=>{const x=state.shifts.find(y=>String(y.id)===String(s.id))||s;return `<b>${d?.name||"Driver"}</b><br>${x.platform} · ${x.speed||0} km/h<br>updated ${ago(x.liveAt)}`;});
+  m._stale=st;liveMarkers[s.id]=m;
+}
+async function loadTrails(){
+  const ids=onDutyShifts().map(s=>String(s.id));if(!ids.length||!LMAP)return;
+  const {data,error}=await sb.from("shift_points").select("shift_id,lat,lng,recorded_at").in("shift_id",ids).order("recorded_at",{ascending:true}).limit(10000);
+  if(error||!data||!LMAP)return;
+  const by={};data.forEach(p=>{(by[p.shift_id]=by[p.shift_id]||[]).push([p.lat,p.lng]);});
+  Object.keys(by).forEach(sid=>{const ll=by[sid];const sh=state.shifts.find(s=>String(s.id)===sid);if(sh&&sh.liveLat!=null)ll.push([sh.liveLat,sh.liveLng]);
+    if(trails[sid])trails[sid].setLatLngs(ll);else trails[sid]=L.polyline(ll,{color:"#f59e0b",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);});
+}
+function addTrailPoint(sid,lat,lng){
+  sid=String(sid);if(!LMAP||state.adminTab!=="map"||lat==null)return;
+  if(trails[sid])trails[sid].addLatLng([lat,lng]);
+  else trails[sid]=L.polyline([[lat,lng]],{color:"#f59e0b",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);
+}
+/* glide the marker to its new spot instead of jumping */
+function animateMarker(m,to,ms=900){
+  const from=m.getLatLng();if(Math.abs(from.lat-to[0])<1e-7&&Math.abs(from.lng-to[1])<1e-7)return;
+  if(m._anim)cancelAnimationFrame(m._anim);const t0=performance.now();
+  const step=t=>{const k=Math.min(1,(t-t0)/ms),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    m.setLatLng([from.lat+(to[0]-from.lat)*e,from.lng+(to[1]-from.lng)*e]);m._anim=k<1?requestAnimationFrame(step):null;};
+  m._anim=requestAnimationFrame(step);
+}
+function onLiveMove(id){
+  const s=state.shifts.find(x=>String(x.id)===String(id));if(!s)return;
+  if(LMAP&&state.adminTab==="map"&&s.status==="ACTIVE"&&passFilter(s)){
+    const m=liveMarkers[s.id];
+    if(!m)addLiveMarker(s);
+    else if(s.liveLat!=null){
+      animateMarker(m,[s.liveLat,s.liveLng]);
+      const st=isStale(s);if(st!==m._stale){m.setIcon(liveIcon(driverById(s.driverId)?.name,st));m._stale=st;}
+    }
+    if(String(state.follow)===String(s.id)&&s.liveLat!=null)LMAP.panTo([s.liveLat,s.liveLng],{animate:true,duration:.8});
+  }
+  refreshLivePanelSoon();
+}
+function followShift(id){
+  state.follow=String(state.follow)===String(id)?null:id;refreshLivePanel();
+  if(!state.follow||!LMAP)return;const s=state.shifts.find(x=>String(x.id)===String(id));
+  if(s&&(s.liveLat??s.loginLat)!=null)LMAP.flyTo([s.liveLat??s.loginLat,s.liveLng??s.loginLng],17,{duration:.8});
+}
+async function doForceEnd(id){
+  const s=state.shifts.find(x=>String(x.id)===String(id));if(!s)return;const d=driverById(s.driverId);
+  if(!confirm(`End ${d?d.name:"this driver"}'s shift now? Distance will be saved as 0 KM — correct the odometer later if needed.`))return;
+  const mins=Math.max(1,Math.round((Date.now()-s.startedAt)/60000));
+  const {error}=await sb.from("shifts").update({status:"COMPLETED",end_odo:s.startOdo,distance:0,logout_time:nowTime(),logout_place:"Force-closed by admin",duration:`${Math.floor(mins/60)}h ${mins%60}m`,summary:"Force-closed by admin (driver did not clock out)"}).eq("id",s.id);
+  if(error){toast("Error: "+error.message);return;}
+  toast("Shift ended");await loadAdmin();render();
+}
 
 function secLogs(){
   const shifts=state.shifts.filter(passFilter).sort((a,b)=>b.startedAt-a.startedAt);
@@ -1026,8 +1192,7 @@ async function doStartDuty(){
   try{
     const g=state.gps.login;const plat=state.mplat||state.selectedPlatform||(d.platforms||PLATFORMS)[0];
     const photoUrl=await uploadPhoto(photoBuf.odoin,`odo/${d.id}-in-${Date.now()}.jpg`);
-    const {data,error}=await sb.from("shifts").insert({driver_id:d.id,platform:plat,date:today(),status:"ACTIVE",start_odo:odo,start_odo_photo:photoUrl,login_time:g.time,login_place:g.place,login_addr:g.addr,login_lat:g.lat,login_lng:g.lng,live_lat:g.lat,live_lng:g.lng,live_time:g.time,started_at:new Date().toISOString()}).select().single();
-    if(error)throw error;
+    const data=await rpc("driver_start_shift",{p_token:state.token,p:{platform:plat,start_odo:odo,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps"}});
     const ms=mapShift(data);const i=state.shifts.findIndex(x=>x.id===ms.id);if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);
     delete photoBuf.odoin;state.gps.login=null;closeModal();toast("Clocked in — you are ON DUTY ✓");render();
   }catch(e){toast("Clock-in failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('zap','i-xs')+" Clock In";}}
@@ -1043,9 +1208,9 @@ async function doEndDuty(){
   try{
     const g=state.gps.logout;const mins=Math.max(1,Math.round((Date.now()-sh.startedAt)/60000));
     const photoUrl=await uploadPhoto(photoBuf.odoout,`odo/${d.id}-out-${Date.now()}.jpg`);
-    const upd={status:"COMPLETED",end_odo:end,distance:end-sh.startOdo,orders_done:+$("#edDone").value||0,orders_cancelled:+$("#edCanc").value||0,end_odo_photo:photoUrl,logout_time:g.time,logout_place:g.place,logout_addr:g.addr,logout_lat:g.lat,logout_lng:g.lng,duration:`${Math.floor(mins/60)}h ${mins%60}m`,summary:$("#edNote").value};
-    const {error}=await sb.from("shifts").update(upd).eq("id",sh.id);if(error)throw error;
-    stopLiveWatch();delete photoBuf.odoout;state.gps.logout=null;closeModal();toast("Duty completed — clocked out ✓");await loadAll();render();
+    await rpc("driver_end_shift",{p_token:state.token,p_shift:String(sh.id),p:{end_odo:end,orders_done:+$("#edDone").value||0,orders_cancelled:+$("#edCanc").value||0,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps",summary:$("#edNote").value}});
+    if(live.queue.length)await flushQueue();
+    stopLiveWatch();delete photoBuf.odoout;state.gps.logout=null;closeModal();toast("Duty completed — clocked out ✓");await loadDriver();render();
   }catch(e){toast("Clock-out failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('stop','i-xs')+" Confirm & Clock Out";}}
 }
 async function doSaveFuel(){
@@ -1057,14 +1222,13 @@ async function doSaveFuel(){
   try{
     const g=state.gps.fuel;
     const photoUrl=await uploadPhoto(photoBuf.receipt,`receipt/${d.id}-${Date.now()}.jpg`);
-    const {data,error}=await sb.from("fuel_records").insert({driver_id:d.id,shift_id:sh?sh.id:null,plate:d.plate,station:$("#fuStation").value,cost,receipt_photo:photoUrl,place:g.place,lat:g.lat,lng:g.lng,date:today(),time:nowTime()}).select().single();
-    if(error)throw error;
+    const data=await rpc("driver_add_fuel",{p_token:state.token,p:{station:$("#fuStation").value,cost,photo:photoUrl,place:g.place,lat:g.lat,lng:g.lng,time:nowTime()}});
     const mf=mapFuel(data);if(!state.fuelRecords.find(x=>x.id===mf.id))state.fuelRecords.push(mf);
     delete photoBuf.receipt;state.gps.fuel=null;closeModal();toast("Fuel refill saved ✓");render();
   }catch(e){toast("Fuel save failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('check','i-xs')+" Save Fuel";}}
 }
-async function doDeleteDriver(id){if(!confirm("Remove this driver and ALL their records?"))return;const {error}=await sb.from("drivers").delete().eq("id",id);if(error){toast("Error: "+error.message);return;}await loadAll();toast("Driver removed");render();}
-async function doResetDevice(id){const d=driverById(id);if(!confirm(`Reset ${d.name}'s device login? They can then sign in on a new phone.`))return;const {error}=await sb.from("drivers").update({active_device:null}).eq("id",id);if(error){toast("Error: "+error.message);return;}d.activeDevice=null;toast("Device reset — driver can log in on a new phone.");render();}
+async function doDeleteDriver(id){if(!confirm("Remove this driver and ALL their records?"))return;await sb.from("driver_sessions").delete().eq("driver_id",String(id));const {error}=await sb.from("drivers").delete().eq("id",id);if(error){toast("Error: "+error.message);return;}await loadAll();toast("Driver removed");render();}
+async function doResetDevice(id){const d=driverById(id);if(!confirm(`Reset ${d.name}'s device login? They can then sign in on a new phone.`))return;const {error}=await sb.from("drivers").update({active_device:null}).eq("id",id);if(error){toast("Error: "+error.message);return;}await sb.from("driver_sessions").delete().eq("driver_id",String(id));d.activeDevice=null;toast("Device reset — driver can log in on a new phone.");render();}
 function exportCsv(rows,fn){const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=fn;a.click();toast("Exported "+fn);}
 function doExportAll(){const rows=[["Date","Driver","Plate","Platform","Status","Start ODO","End ODO","Distance KM","Orders Done","Orders Cancel","Login","Logout","Duration"]];
   state.shifts.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")).forEach(s=>{const d=driverById(s.driverId);rows.push([s.date,d?.name,d?.plate,s.platform,s.status,s.startOdo,s.endOdo??"-",s.distance??"-",s.ordersDone??"-",s.ordersCancelled??"-",s.loginPlace,s.logoutPlace||"pending",s.duration||"-"]);});exportCsv(rows,"sumou-shifts.csv");}
@@ -1084,10 +1248,12 @@ async function claimDevice(driver){
 
 /* ============================================================ EVENTS ============================================================ */
 document.addEventListener("click",async e=>{
-  const t=e.target.closest("[data-act],[data-tab],[data-dtab],[data-plat],[data-mplat],[data-camkey],[data-deldriver],[data-reset],[data-summary],[data-sumexport],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-photo],[data-close],[data-zclose]");
+  const t=e.target.closest("[data-act],[data-tab],[data-dtab],[data-plat],[data-mplat],[data-camkey],[data-deldriver],[data-reset],[data-summary],[data-sumexport],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-photo],[data-close],[data-zclose],[data-follow],[data-forceend]");
   if(!t)return;
   if(t.hasAttribute("data-close")){closeModal();return;}
   if(t.dataset.photo){openZoom(t.dataset.photo);return;}
+  if(t.dataset.follow){followShift(t.dataset.follow);return;}
+  if(t.dataset.forceend){doForceEnd(t.dataset.forceend);return;}
   if(t.dataset.camkey){const inp=$("#cam-"+t.dataset.camkey);if(inp)inp.click();return;}
   if(t.dataset.dtab){state.driverTab=t.dataset.dtab;render();return;}
   if(t.dataset.plat){state.selectedPlatform=t.dataset.plat;document.querySelectorAll(".dispatch-strip .btn-p").forEach(b=>b.classList.toggle("active",b.dataset.plat===t.dataset.plat));return;}
@@ -1103,19 +1269,33 @@ document.addEventListener("click",async e=>{
   if(t.dataset.hubpick){const[k,i]=t.dataset.hubpick.split(":");setHubGps(k,+i);return;}
   const a=t.dataset.act;if(!a)return;
   switch(a){
-    case "adminLogin":{const err=$("#adminErr");if($("#adminPass").value===ADMIN_PASSCODE){state.screen="admin";saveSession({role:"admin"});render();}else if(err){err.textContent="Incorrect admin passcode (default: 9999).";err.classList.remove("hidden");}break;}
+    case "adminLogin":{const err=$("#adminErr");const show=m=>{if(err){err.textContent=m;err.classList.remove("hidden");}else toast(m);};
+      const email=($("#adminEmail").value||"").trim(),pw=$("#adminPass").value;
+      if(!email||!pw){show("Enter your admin email and password.");break;}
+      t.disabled=true;
+      const {error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error){t.disabled=false;show(/invalid/i.test(error.message)?"Wrong email or password.":error.message);break;}
+      if(!(await checkAdmin())){await sb.auth.signOut();t.disabled=false;show("This account is not an admin.");break;}
+      try{await enterAdmin();}catch(e){t.disabled=false;show("Could not load data: "+(e.message||e));}
+      break;}
     case "driverLogin":{const err=$("#loginErr");const ph=digitsOnly($("#dlPhone").value),pin=$("#dlPin").value;
       const fail=m=>{if(err){err.textContent=m;err.classList.remove("hidden");}else toast(m);};
       if(ph.length<4){fail("Enter your phone number.");break;}
-      const d=state.drivers.find(x=>{const p=digitsOnly(x.phone);return p&&(p===ph||p.slice(-8)===ph.slice(-8)||p.endsWith(ph)||ph.endsWith(p));});
-      if(!d){fail("No account found for this phone number.");break;}
-      if(d.pin!==pin){fail("Incorrect PIN.");break;}
-      const ok=await claimDevice(d);
-      if(!ok){fail("This driver is already logged in on another phone. Ask admin to reset the device.");break;}
-      state.driverId=d.id;state.screen="driver";state.driverTab="home";state.selectedPlatform=(d.platforms&&d.platforms[0])||null;saveSession({role:"driver",driverId:d.id,dev:deviceId()});render();break;}
-    case "logout":{const d=state.driverId&&driverById(state.driverId);if(d){try{await sb.from("drivers").update({active_device:null}).eq("id",d.id);d.activeDevice=null;}catch(e){}}
-      stopLiveWatch();clearSession();state.screen="landing";state.driverId=null;state.gps={};state.selectedPlatform=null;render();break;}
-    case "gpsGauge":{const sh=activeShift(state.driverId);if(sh){if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>writeLive(sh.id,p.coords.latitude,p.coords.longitude),e=>{},{enableHighAccuracy:true,timeout:12000});toast("Refreshing live location…");}else detectGps("login");break;}
+      if(!/^\d{4}$/.test(pin)){fail("Enter your 4-digit PIN.");break;}
+      t.disabled=true;
+      const {data,error}=await sb.rpc("driver_login",{p_phone:ph,p_pin:pin,p_device:deviceId()});
+      if(error){t.disabled=false;fail("Sign-in failed: "+error.message);break;}
+      if(data&&data.error){t.disabled=false;fail({NO_ACCOUNT:"No account found for this phone number.",BAD_PIN:"Incorrect PIN.",LOCKED:"Too many wrong PINs. Try again in 15 minutes.",DEVICE_LOCKED:"This driver is already logged in on another phone. Ask admin to reset the device.",BAD_PHONE:"Enter your phone number."}[data.error]||data.error);break;}
+      state.token=data.token;state.screen="driver";
+      try{await loadDriver();}catch(e){t.disabled=false;state.token=null;state.screen="landing";fail("Could not load your data: "+(e.message||e));break;}
+      const d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=(d&&d.platforms&&d.platforms[0])||null;
+      saveSession({role:"driver",token:data.token,dev:deviceId()});render();break;}
+    case "logout":{
+      if(state.screen==="admin"){unsubscribeRealtime();stopAdminPoll();try{await sb.auth.signOut();}catch(e){}
+        state.drivers=[];state.shifts=[];state.fuelRecords=[];state.follow=null;mapView=null;state.screen="landing";render();break;}
+      stopLiveWatch();if(state.token){try{await sb.rpc("driver_logout",{p_token:state.token});}catch(e){}}
+      clearSession();state.token=null;state.screen="landing";state.driverId=null;state.gps={};state.selectedPlatform=null;state.drivers=[];state.shifts=[];state.fuelRecords=[];render();break;}
+    case "gpsGauge":{const sh=activeShift(state.driverId);if(sh){startLiveWatch(sh.id);if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{const c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},e=>{},{enableHighAccuracy:true,timeout:12000});toast("Refreshing live location…");}else detectGps("login");break;}
     case "openStartDuty":modalStartDuty();break;
     case "startDuty":doStartDuty();break;
     case "openEndDuty":modalEndDuty();break;
@@ -1140,20 +1320,27 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;if(e.target.id
 /* ============================================================ BOOT ============================================================ */
 (async function boot(){
   try{
-    await loadAll();state.ready=true;subscribeRealtime();
+    if(isAdminGate()){
+      state.ready=true;
+      const {data}=await sb.auth.getSession();
+      if(data&&data.session&&await checkAdmin()){await enterAdmin();return;}
+      state.screen="landing";render();return;
+    }
+    state.ready=true;
     const sess=loadSession();
-    if(sess&&sess.role==="admin"){state.screen="admin";}
-    else if(sess&&sess.role==="driver"&&driverById(sess.driverId)){
-      const d=driverById(sess.driverId);const my=deviceId();
-      if(d.activeDevice&&d.activeDevice!==my){clearSession();state.screen="landing";toast("Logged out — your account was opened on another phone.");}
-      else{if(!d.activeDevice){try{await sb.from("drivers").update({active_device:my}).eq("id",d.id);d.activeDevice=my;}catch(e){}}
-        state.screen="driver";state.driverId=d.id;state.driverTab="home";state.selectedPlatform=(d.platforms||[])[0]||null;}
+    if(sess&&sess.role==="driver"&&sess.token){
+      state.token=sess.token;state.screen="driver";
+      try{await loadDriver();
+        if(!state.driverId)throw new Error("SESSION_EXPIRED");
+        const d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=((d&&d.platforms)||[])[0]||null;}
+      catch(e){state.token=null;state.screen="landing";clearSession();
+        if(/SESSION_EXPIRED/.test((e&&e.message)||""))setTimeout(()=>toast("Please sign in again."),300);else throw e;}
     }
     render();
   }catch(err){
     console.error(err);
     app.innerHTML=`<div class="authgate"><div class="authcard"><div class="authbrand"><div class="logo-box">${ic('truck','i-lg')}</div><div class="ab-text"><b>SUMOU FLEET</b><small>Connection error</small></div></div>
-      <div class="autherr" style="display:block">Could not connect to the database. Run the Supabase SQL setup (v1 + v2) and check the URL/key.<br><br><b>Error:</b> ${(err&&err.message)||err}</div>
+      <div class="autherr" style="display:block">Could not connect to the database. Make sure step1-setup.sql was run in Supabase, then retry.<br><br><b>Error:</b> ${(err&&err.message)||err}</div>
       <button class="btn btn-amber btn-block" style="height:44px" onclick="location.reload()">Retry</button></div></div>`;
   }
 })();
