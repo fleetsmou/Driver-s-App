@@ -461,7 +461,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.2";
+const APP_VERSION="3.3";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -610,27 +610,28 @@ async function reverseGeocode(lat,lng){
 /* One location fix, tried 3 ways so clock-in works indoors too:
    1) precise GPS (15 s)  2) WiFi / mobile-network location (15 s)
    3) the app's native GPS plugin (APK only; also asks for permission) */
-function getFix(){return new Promise((res,rej)=>{
-  let done=false;const ok=(lat,lng,acc,how)=>{if(!done){done=true;res({lat,lng,acc:Math.max(1,Math.round(acc||25)),how});}};
+let gpsDiag=[];
+function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
+  let done=false;const T0=Date.now();const note=(m,e)=>gpsDiag.push(m+":"+(e?(e.code!=null?"code"+e.code:"")+(e.message?" "+String(e.message).slice(0,40):""):"ok")+" "+((Date.now()-T0)/1000).toFixed(0)+"s");const ok=(lat,lng,acc,how)=>{if(!done){done=true;res({lat,lng,acc:Math.max(1,Math.round(acc||25)),how});}};
   const fail=e=>{if(!done){done=true;rej(e||{code:2});}};
   const G=navigator.geolocation;
   const nativeTry=prev=>{
-    if(!BGGeo)return fail(prev);
+    if(!BGGeo){note("native",{message:"plugin missing"});return fail(prev);}
     let wid=null;const stop=()=>{if(wid!=null){try{BGGeo.removeWatcher({id:wid});}catch(e){}}};
-    const t=setTimeout(()=>{stop();fail({code:3});},20000);
+    const t=setTimeout(()=>{note("native",{code:3,message:"no fix in 20s"});stop();fail({code:3});},20000);
     BGGeo.addWatcher({requestPermissions:true,stale:true},(loc,err)=>{
-      if(err){clearTimeout(t);stop();fail({code:err.code==="NOT_AUTHORIZED"?1:2});return;}
+      if(err){note("native",{code:err.code,message:err.message});clearTimeout(t);stop();fail({code:err.code==="NOT_AUTHORIZED"?1:2});return;}
       if(loc){clearTimeout(t);stop();ok(loc.latitude,loc.longitude,loc.accuracy,"native");}
-    }).then(id=>{wid=id;if(done)stop();}).catch(()=>{clearTimeout(t);fail(prev);});
+    }).then(id=>{wid=id;if(done)stop();}).catch(e=>{note("native",{message:"start failed "+(e&&e.message||e)});clearTimeout(t);fail(prev);});
   };
   const coarse=prev=>{
     if(!G)return nativeTry(prev);
     G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"network"),
-      e=>nativeTry(e.code===1?e:prev),{enableHighAccuracy:false,timeout:15000,maximumAge:300000});
+      e=>{note("wifi",e);nativeTry(e.code===1?e:prev);},{enableHighAccuracy:false,timeout:15000,maximumAge:300000});
   };
-  if(!G)return nativeTry({code:2});
+  if(!G){note("web",{message:"no navigator.geolocation"});return nativeTry({code:2});}
   G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"gps"),
-    e=>e.code===1?nativeTry(e):coarse(e),{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+    e=>{note("gps",e);e.code===1?nativeTry(e):coarse(e);},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 });}
 let gpsBusy={},gpsWait={},gpsMsg={};
 async function detectGps(kind){
@@ -652,7 +653,9 @@ async function detectGps(kind){
     gpsMsg[kind]=c===1?"Location permission is OFF. Open phone Settings → Apps → this app → Permissions → Location → Allow, then tap GPS."
          :c===2?"Phone Location is turned OFF. Swipe down, turn on Location, then tap GPS."
          :"No signal yet. Step near a window or outside and tap GPS again, or pick a Hub.";
-    toast(gpsMsg[kind]);
+    let perm="?";try{if(navigator.permissions){const q=await navigator.permissions.query({name:"geolocation"});perm=q.state;}}catch(e){perm="n/a";}
+    gpsMsg[kind]+=`<div style="margin-top:8px;font-family:var(--mono);font-size:10px;opacity:.85;word-break:break-word">Details for support: app=${isNativeApp?"native":"browser"} · capacitor=${window.Capacitor?"yes":"no"} · gps-plugin=${BGGeo?"yes":"no"} · permission=${perm} · https=${location.protocol} · ${gpsDiag.join(" | ")}</div>`;
+    toast("Location not found — see details in the box");
   }finally{clearInterval(tick);gpsBusy[kind]=false;refreshGps(kind);resolveWait();}
 }
 function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime(),src:"hub"};refreshGps(kind);toast("Hub location set ✓");}
