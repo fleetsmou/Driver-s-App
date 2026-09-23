@@ -606,19 +606,50 @@ async function reverseGeocode(lat,lng){
     return {place,addr:j.display_name?j.display_name.split(",").slice(0,3).join(", "):`${place}, ${city}`};
   }catch(e){return {place:"Current Location",addr:`${(+lat).toFixed(5)}, ${(+lng).toFixed(5)}`};}
 }
-function detectGps(kind){
-  if(!navigator.geolocation){toast("GPS not supported on this device — pick a Hub");return;}
+/* One location fix, tried 3 ways so clock-in works indoors too:
+   1) precise GPS (15 s)  2) WiFi / mobile-network location (15 s)
+   3) the app's native GPS plugin (APK only; also asks for permission) */
+function getFix(){return new Promise((res,rej)=>{
+  let done=false;const ok=(lat,lng,acc,how)=>{if(!done){done=true;res({lat,lng,acc:Math.max(1,Math.round(acc||25)),how});}};
+  const fail=e=>{if(!done){done=true;rej(e||{code:2});}};
+  const G=navigator.geolocation;
+  const nativeTry=prev=>{
+    if(!BGGeo)return fail(prev);
+    let wid=null;const stop=()=>{if(wid!=null){try{BGGeo.removeWatcher({id:wid});}catch(e){}}};
+    const t=setTimeout(()=>{stop();fail({code:3});},20000);
+    BGGeo.addWatcher({requestPermissions:true,stale:true},(loc,err)=>{
+      if(err){clearTimeout(t);stop();fail({code:err.code==="NOT_AUTHORIZED"?1:2});return;}
+      if(loc){clearTimeout(t);stop();ok(loc.latitude,loc.longitude,loc.accuracy,"native");}
+    }).then(id=>{wid=id;if(done)stop();}).catch(()=>{clearTimeout(t);fail(prev);});
+  };
+  const coarse=prev=>{
+    if(!G)return nativeTry(prev);
+    G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"network"),
+      e=>nativeTry(e.code===1?e:prev),{enableHighAccuracy:false,timeout:15000,maximumAge:300000});
+  };
+  if(!G)return nativeTry({code:2});
+  G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"gps"),
+    e=>e.code===1?nativeTry(e):coarse(e),{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+});}
+let gpsBusy={};
+async function detectGps(kind){
   /* on duty the phone already has a fresh fix from live tracking — use it straight away */
   if(live.last&&Date.now()-live.last.t<20000){const f=live.last;
     reverseGeocode(f.lat,f.lng).then(g=>{state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:Math.max(1,f.acc||15),time:nowTime(),src:"gps"};refreshGps(kind);});
     return;}
-  toast("Getting GPS location…");
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    const {latitude:lat,longitude:lng,accuracy}=pos.coords;
-    const g=await reverseGeocode(lat,lng);
-    state.gps[kind]={place:g.place,addr:g.addr,lat:+lat.toFixed(6),lng:+lng.toFixed(6),acc:Math.max(1,Math.round(accuracy||15)),time:nowTime(),src:"gps"};
-    refreshGps(kind);toast("GPS locked ✓");
-  },err=>{toast(err.code===1?"Location permission denied — allow location, then retry":"Couldn't get GPS — pick a Hub");},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+  if(gpsBusy[kind])return;gpsBusy[kind]=true;
+  toast("Finding your location… (can take up to 30 s indoors)");
+  try{
+    const f=await getFix();
+    const g=await reverseGeocode(f.lat,f.lng);
+    state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:f.acc,time:nowTime(),src:"gps"};
+    refreshGps(kind);toast(f.acc>100?"Location found (approx. ±"+f.acc+" m) ✓":"GPS locked ✓");
+  }catch(err){
+    const c=err&&err.code;
+    toast(c===1?"Location permission is OFF — Settings → Apps → Sumou Fleet → Permissions → Location → Allow"
+         :c===2?"Phone Location is turned OFF — swipe down and turn on Location, then tap GPS"
+         :"No signal yet — step near a window or outside and tap GPS again");
+  }finally{gpsBusy[kind]=false;}
 }
 function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime(),src:"hub"};refreshGps(kind);toast("Hub location set ✓");}
 function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);if(kind==="login")updateDriverGps();}
