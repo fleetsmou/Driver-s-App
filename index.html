@@ -461,6 +461,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
+const APP_VERSION="3.2";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -631,14 +632,16 @@ function getFix(){return new Promise((res,rej)=>{
   G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"gps"),
     e=>e.code===1?nativeTry(e):coarse(e),{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 });}
-let gpsBusy={};
+let gpsBusy={},gpsWait={},gpsMsg={};
 async function detectGps(kind){
   /* on duty the phone already has a fresh fix from live tracking — use it straight away */
   if(live.last&&Date.now()-live.last.t<20000){const f=live.last;
     reverseGeocode(f.lat,f.lng).then(g=>{state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:Math.max(1,f.acc||15),time:nowTime(),src:"gps"};refreshGps(kind);});
     return;}
-  if(gpsBusy[kind])return;gpsBusy[kind]=true;
-  toast("Finding your location… (can take up to 30 s indoors)");
+  if(gpsBusy[kind])return gpsWait[kind];
+  gpsBusy[kind]=Date.now();gpsMsg[kind]=null;refreshGps(kind);
+  const tick=setInterval(()=>{const el=$("#gpsSecs-"+kind);if(el)el.textContent=Math.round((Date.now()-gpsBusy[kind])/1000)+"s";},1000);
+  let resolveWait;gpsWait[kind]=new Promise(r=>resolveWait=r);
   try{
     const f=await getFix();
     const g=await reverseGeocode(f.lat,f.lng);
@@ -646,10 +649,11 @@ async function detectGps(kind){
     refreshGps(kind);toast(f.acc>100?"Location found (approx. ±"+f.acc+" m) ✓":"GPS locked ✓");
   }catch(err){
     const c=err&&err.code;
-    toast(c===1?"Location permission is OFF — Settings → Apps → Sumou Fleet → Permissions → Location → Allow"
-         :c===2?"Phone Location is turned OFF — swipe down and turn on Location, then tap GPS"
-         :"No signal yet — step near a window or outside and tap GPS again");
-  }finally{gpsBusy[kind]=false;}
+    gpsMsg[kind]=c===1?"Location permission is OFF. Open phone Settings → Apps → this app → Permissions → Location → Allow, then tap GPS."
+         :c===2?"Phone Location is turned OFF. Swipe down, turn on Location, then tap GPS."
+         :"No signal yet. Step near a window or outside and tap GPS again, or pick a Hub.";
+    toast(gpsMsg[kind]);
+  }finally{clearInterval(tick);gpsBusy[kind]=false;refreshGps(kind);resolveWait();}
 }
 function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime(),src:"hub"};refreshGps(kind);toast("Hub location set ✓");}
 function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);if(kind==="login")updateDriverGps();}
@@ -788,7 +792,7 @@ function landingDriver(){
     <label class="fld">${ic('phone','i-xs')} Phone / Driver ID</label><input id="dlPhone" inputmode="tel" placeholder="e.g. 5123 4567" />
     <label class="fld">${ic('shield','i-xs')} Security PIN</label><input id="dlPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" />
     <button class="btn btn-amber btn-block" style="height:44px;margin-top:16px" data-act="driverLogin">${ic('zap','i-xs')} Sign In as Driver</button>
-    <div class="authnote">Fleet admin? Open the admin link you were given.</div></div></div>`;
+    <div class="authnote">Fleet admin? Open the admin link you were given.<br><span style="opacity:.6">App version ${APP_VERSION}</span></div></div></div>`;
 }
 function landingAdmin(){
   return `<div class="authgate"><div class="authcard">
@@ -1114,7 +1118,10 @@ function gpsCard(g){return `<div class="gps-card"><div class="gc-head"><span cla
 function gpsPickerMini(kind){const g=state.gps[kind];const L={login:["Duty Check-in Location","Auto-detected when you clock in."],logout:["Log Out Location","Auto-detected where you end your shift."],fuel:["Gas Station Location","Auto-detected where you refuel."]}[kind];
   return `<div class="gpsbox" id="${kind}Gps"><div class="gps-head"><div class="gps-ic">${ic('pin','i-xs')}</div><div class="gh-t"><b>${L[0]}</b><span>${L[1]}</span></div>
     <div class="gps-actions"><button class="btn-sm amber" data-gpsdetect="${kind}">${ic('radar','i-xs')} GPS</button><div style="position:relative"><button class="btn-sm" data-hubstoggle="${kind}">Hubs ▾</button>${hubMenu(kind)}</div></div></div>
-    ${g?gpsCard(g):`<div class="fhint" style="margin-top:10px">Detecting your location… tap GPS to retry, or pick a Hub.</div>`}</div>`;}
+    ${g?gpsCard(g):gpsBusy[kind]?`<div class="fhint" style="margin-top:10px;color:var(--amber)">${ic('radar','i-xs')} Searching for your location… <b id="gpsSecs-${kind}">${Math.round((Date.now()-gpsBusy[kind])/1000)}s</b> (up to 45 s indoors)</div>`
+      :gpsMsg[kind]?`<div class="autherr" style="margin:10px 0 0">${gpsMsg[kind]}</div>`
+      :`<div class="fhint" style="margin-top:10px">Tap GPS to detect your location, or pick a Hub.</div>`}
+    <div class="fhint" style="margin-top:6px;opacity:.5">v${APP_VERSION}</div></div>`;}
 function footer(){return `<div class="foot"><span><b>SUMOU FLEET</b> · Duty, GPS Check-in & Fuel Operations</span><span>Real-time multi-device fleet platform</span></div>`;}
 function emptyBox(msg){return `<div class="empty"><div class="eic">${ic('inbox','i-lg')}</div><p>${msg}</p></div>`;}
 
@@ -1218,7 +1225,8 @@ async function doStartDuty(){
   const d=driverById(state.driverId);const odo=+$("#sdOdo").value;
   if(!odo||odo<=0)return toast("Enter the starting odometer KM.");
   if(!photoBuf.odoin)return toast("Take the odometer photo first (camera).");
-  if(!state.gps.login)return toast("Waiting for GPS location — tap GPS to retry, or pick a Hub.");
+  if(!state.gps.login&&gpsBusy.login){const b0=$('[data-act="startDuty"]');if(b0){b0.disabled=true;b0.textContent="Waiting for location…";}await gpsWait.login;if(b0){b0.disabled=false;b0.textContent="Clock In";}}
+  if(!state.gps.login)return toast(gpsMsg.login||"No location yet — tap GPS to retry, or pick a Hub.");
   const btn=$('[data-act="startDuty"]');if(btn){btn.disabled=true;btn.textContent="Uploading…";}
   try{
     const g=state.gps.login;const plat=state.mplat||state.selectedPlatform||(d.platforms||PLATFORMS)[0];
@@ -1234,7 +1242,8 @@ async function doEndDuty(){
   if(!end||end<=0)return toast("Enter the ending odometer KM.");
   if(end<sh.startOdo)return toast("End KM can't be less than start ("+km(sh.startOdo)+"). Check the reading.");
   if(!photoBuf.odoout)return toast("Take the odometer photo first (camera).");
-  if(!state.gps.logout)return toast("Waiting for GPS location — tap GPS to retry, or pick a Hub.");
+  if(!state.gps.logout&&gpsBusy.logout){const b0=$('[data-act="confirmEndDuty"]');if(b0){b0.disabled=true;b0.textContent="Waiting for location…";}await gpsWait.logout;if(b0){b0.disabled=false;b0.textContent="Confirm & Clock Out";}}
+  if(!state.gps.logout)return toast(gpsMsg.logout||"No location yet — tap GPS to retry, or pick a Hub.");
   const btn=$('[data-act="confirmEndDuty"]');if(btn){btn.disabled=true;btn.textContent="Uploading…";}
   try{
     const g=state.gps.logout;const mins=Math.max(1,Math.round((Date.now()-sh.startedAt)/60000));
@@ -1248,7 +1257,8 @@ async function doSaveFuel(){
   const d=driverById(state.driverId);const sh=activeShift(d.id);
   const cost=+$("#fuCost").value;if(!cost||cost<=0)return toast("Enter the fuel amount in KWD.");
   if(!photoBuf.receipt)return toast("Take the receipt photo first (camera).");
-  if(!state.gps.fuel)return toast("Waiting for GPS location — tap GPS to retry, or pick a Hub.");
+  if(!state.gps.fuel&&gpsBusy.fuel){const b0=$('[data-act="saveFuel"]');if(b0){b0.disabled=true;b0.textContent="Waiting for location…";}await gpsWait.fuel;if(b0){b0.disabled=false;b0.textContent="Save Fuel";}}
+  if(!state.gps.fuel)return toast(gpsMsg.fuel||"No location yet — tap GPS to retry, or pick a Hub.");
   const btn=$('[data-act="saveFuel"]');if(btn){btn.disabled=true;btn.textContent="Uploading…";}
   try{
     const g=state.gps.fuel;
