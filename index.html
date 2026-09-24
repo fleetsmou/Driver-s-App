@@ -465,7 +465,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.5";
+const APP_VERSION="3.6";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -706,7 +706,7 @@ function startLiveWatch(shiftId){
     live.starting=true;
     try{
       Promise.resolve(
-        BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:3},
+        BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:0},
           (loc,err)=>{if(err||!loc)return;onFix(loc.latitude,loc.longitude,loc.accuracy,loc.bearing,loc.speed);})
       ).then(id=>{live.bgId=id;live.starting=false;}).catch(()=>{live.starting=false;startWebWatch();});
     }catch(e){live.starting=false;startWebWatch();}
