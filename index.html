@@ -6,24 +6,26 @@
 <title>Sumou Fleet — Driver Telemetry HUD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --sans:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;
-    --display:'Outfit',-apple-system,sans-serif;
+    --sans:'Manrope',-apple-system,system-ui,sans-serif;
+    --display:'Bricolage Grotesque','Manrope',-apple-system,sans-serif;
     --mono:'JetBrains Mono',ui-monospace,monospace;
-    --bg-page:#0a0b0f; --card-bg:#12141a; --card-inner:#181a22; --tile-bg:#0d0f15;
-    --border:rgba(255,255,255,.09); --border-2:rgba(255,255,255,.14); --border-accent:rgba(245,158,11,.4);
-    --amber:#f59e0b; --amber-2:#fbbf24; --amber-glow:rgba(245,158,11,.28); --amber-tint:rgba(245,158,11,.12);
-    --green:#10b981; --green-ink:#34d399; --green-tint:rgba(16,185,129,.14);
-    --blue:#3b82f6; --blue-ink:#60a5fa; --blue-tint:rgba(37,99,235,.14);
-    --violet:#a78bfa; --violet-tint:rgba(167,139,250,.14);
-    --txt-white:#f8fafc; --txt-muted:#94a3b8; --txt-dim:#64748b;
-    --red-bg:rgba(239,68,68,.12); --red-border:rgba(239,68,68,.35); --red-txt:#fca5a5; --red:#ef4444;
-    --shadow:0 4px 20px rgba(0,0,0,.4); --shadow2:0 10px 40px rgba(0,0,0,.7);
+    /* ---- Oasis theme ---- */
+    --bg-page:#061815; --card-bg:#0B231F; --card-inner:#10302A; --tile-bg:#07201C;
+    --border:rgba(233,241,237,.10); --border-2:rgba(233,241,237,.17); --border-accent:rgba(242,196,109,.42);
+    --amber:#F2C46D; --amber-2:#F7D68F; --amber-glow:rgba(242,196,109,.30); --amber-tint:rgba(242,196,109,.13);
+    --green:#2BB39A; --green-ink:#3DD68C; --green-tint:rgba(61,214,140,.15);
+    --blue:#2BB39A; --blue-ink:#5FD0BE; --blue-tint:rgba(43,179,154,.15);
+    --violet:#F2C46D; --violet-tint:rgba(242,196,109,.13);
+    --txt-white:#E7F1ED; --txt-muted:#B9D0C8; --txt-dim:#7FA096;
+    --red-bg:rgba(255,107,91,.13); --red-border:rgba(255,107,91,.36); --red-txt:#FFA79B; --red:#FF6B5B;
+    --shadow:0 4px 20px rgba(0,0,0,.4); --shadow2:0 16px 46px rgba(0,0,0,.6);
+    --ink-gold:#0C3B33;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{width:100%;min-height:100vh;min-height:100dvh;background:var(--bg-page);color:var(--txt-white);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
@@ -388,6 +390,35 @@
   .locate-btn.danger{color:var(--red-txt);border-color:var(--red-border);}
   .flag.hub{background:rgba(245,158,11,.12);color:var(--amber);border-color:rgba(245,158,11,.4);}
   .m-ic.blue{background:var(--amber);color:#0c0d12;}
+  /* ============ OASIS THEME LAYER (skin only) ============ */
+  body{background:
+    radial-gradient(1100px 620px at 12% -12%,rgba(43,179,154,.10),transparent 60%),
+    radial-gradient(1000px 560px at 112% 6%,rgba(242,196,109,.09),transparent 55%),
+    var(--bg-page);}
+  /* dark-grey surfaces -> teal */
+  .brand-icon,.admin-brand .logo-box,.authbrand .logo-box{background:var(--card-inner);}
+  .veh-chip,.tag-plate,.st-done,.toast{background:var(--tile-bg);}
+  .dispatch-strip{background:var(--card-inner);}
+  .btn-p{background:var(--tile-bg);}
+  .tabbar{background:color-mix(in srgb,var(--card-bg) 96%,transparent);}
+  .mlabel{background:color-mix(in srgb,var(--bg-page) 84%,transparent);}
+  .dial-center{background:radial-gradient(circle at 50% 34%,#12332C,#071B17);}
+  .dial-center .spd{background:linear-gradient(180deg,#FFF6E4,var(--amber));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .mpin.live.stale{background:#4B6259;}
+  /* gradients -> gold / crit */
+  .btn-amber,.btn-launch,.dial-center .stbtn.in,.btn-blue{background:linear-gradient(135deg,var(--amber-2),#C9922F);}
+  .btn-launch.duty-on,.dial-center .stbtn{background:linear-gradient(135deg,#FF6B5B,#C23A2B);}
+  .live-driver-bar .av{background:linear-gradient(135deg,var(--amber),#C9922F);}
+  /* deep-green text on gold surfaces (matches mockup) */
+  .btn-amber,.btn-launch,.btn-p.active,.btn-blue,.dial-center .stbtn.in,
+  .m-ic,.m-ic.blue,.live-driver-bar .av,.locate-btn.on{color:var(--ink-gold);}
+  /* softer rounded panels + subtle gold ring on hero cards */
+  .cockpit-card,.telemetry-card,.trail-card,.admin-card,.admin-kpi,.rec,.authcard,.modal{border-radius:18px;}
+  .dial-center{box-shadow:0 0 46px rgba(242,196,109,.16),inset 0 2px 12px rgba(0,0,0,.5);}
+  /* leaflet dark polish */
+  .leaflet-container{background:#04110E;}
+  .leaflet-control-attribution{background:rgba(6,24,21,.6)!important;}
+  .leaflet-control-attribution a{color:var(--txt-dim)!important;}
 </style>
 </head>
 <body>
@@ -469,7 +500,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.8";
+const APP_VERSION="3.9";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -936,7 +967,7 @@ function viewAdmin(){
     <div class="admin-kpis">
       <div class="admin-kpi kri">${ringSvg(activeCount()/Math.max(state.drivers.length,1),'#34d399',activeCount())}<div><div class="admin-kpi-t"><span>Active On Duty</span></div><div class="admin-kpi-v">${activeCount()} <small>/ ${state.drivers.length}</small></div><div class="admin-kpi-s green">streaming GPS live</div></div></div>
       <div class="admin-kpi"><div class="admin-kpi-t"><span>Today's Distance</span><span class="kic blue">${ic('car','i-xs')}</span></div><div class="admin-kpi-v" style="color:var(--amber)">${km(todayKm())} <small>KM</small></div>${spark()}</div>
-      <div class="admin-kpi kri">${ringSvg(Math.min(todayFuel()/60,1),'#f59e0b',Math.round(Math.min(todayFuel()/60,1)*100)+'%')}<div><div class="admin-kpi-t"><span>Today's Fuel</span></div><div class="admin-kpi-v">${money(todayFuel())} <small>KWD</small></div><div class="admin-kpi-s mut">refills today</div></div></div>
+      <div class="admin-kpi kri">${ringSvg(Math.min(todayFuel()/60,1),'#F2C46D',Math.round(Math.min(todayFuel()/60,1)*100)+'%')}<div><div class="admin-kpi-t"><span>Today's Fuel</span></div><div class="admin-kpi-v">${money(todayFuel())} <small>KWD</small></div><div class="admin-kpi-s mut">refills today</div></div></div>
       <div class="admin-kpi kri">${donutSvg(o.done,o.canc)}<div><div class="admin-kpi-t"><span>Today's Orders</span></div><div class="admin-kpi-v">${o.done} <small>done</small></div><div class="donut-l"><span><span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--green)"></span>${o.done} done</span><span><span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--red)"></span>${o.canc} cancel</span></div></div></div>
     </div>
     <div class="admin-tabs-bar"><div class="admin-tabs">
@@ -1034,7 +1065,7 @@ function mountMap(){
   if(typeof L==="undefined"){el.innerHTML=`<div style="height:100%;display:grid;place-items:center;background:var(--tile-bg);color:var(--txt-muted);font-size:13px;text-align:center;padding:20px;font-family:var(--mono)">Map is loading… check internet.</div>`;return;}
   if(LMAP){try{LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};trails={};}
   LMAP=L.map(el,{scrollWheelZoom:true}).setView([29.32,47.98],11);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:"&copy; OpenStreetMap &copy; CARTO"}).addTo(LMAP);
   const bounds=[],td=today();
   /* only TODAY's login / logout pins, so old pins don't bury the live drivers */
   state.shifts.filter(passFilter).filter(s=>s.date===td).forEach(s=>{
@@ -1062,12 +1093,12 @@ async function loadTrails(){
   if(error||!data||!LMAP)return;
   const by={};data.forEach(p=>{(by[p.shift_id]=by[p.shift_id]||[]).push([p.lat,p.lng]);});
   Object.keys(by).forEach(sid=>{const ll=by[sid];const sh=state.shifts.find(s=>String(s.id)===sid);if(sh&&sh.liveLat!=null)ll.push([sh.liveLat,sh.liveLng]);
-    if(trails[sid])trails[sid].setLatLngs(ll);else trails[sid]=L.polyline(ll,{color:"#f59e0b",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);});
+    if(trails[sid])trails[sid].setLatLngs(ll);else trails[sid]=L.polyline(ll,{color:"#F2C46D",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);});
 }
 function addTrailPoint(sid,lat,lng){
   sid=String(sid);if(!LMAP||state.adminTab!=="map"||lat==null)return;
   if(trails[sid])trails[sid].addLatLng([lat,lng]);
-  else trails[sid]=L.polyline([[lat,lng]],{color:"#f59e0b",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);
+  else trails[sid]=L.polyline([[lat,lng]],{color:"#F2C46D",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);
 }
 /* glide the marker to its new spot instead of jumping */
 function animateMarker(m,to,ms=900){
