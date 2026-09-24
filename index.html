@@ -1127,7 +1127,7 @@ function adminSection(){
   return `<div class="oa-page">${adminToolsRow()}${inner}${footer()}</div>`;
 }
 function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?(mountMap(),drawKmChart()):teardownMap();}
-function setAppMode(m){m=(m==="day"?"day":"night");document.documentElement.dataset.mode=m;try{localStorage.setItem("sumou-mode",m);}catch(e){}document.querySelectorAll(".oa-mode button").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));if(typeof LMAP!=="undefined"&&LMAP)setTimeout(()=>{try{LMAP.invalidateSize();}catch(e){}},60);}
+function setAppMode(m){m=(m==="day"?"day":"night");document.documentElement.dataset.mode=m;document.querySelectorAll(".oa-mode button").forEach(function(b){if(b.dataset.mode===m)b.classList.add("on");else b.classList.remove("on");});try{localStorage.setItem("sumou-mode",m);}catch(e){}if(typeof LMAP!=="undefined"&&LMAP)setTimeout(function(){try{LMAP.invalidateSize();}catch(e){}},60);}
 
 const STALE_MS=120000; /* no ping for 2 min = GPS lost */
 const isStale=s=>!s.liveAt||Date.now()-s.liveAt>STALE_MS;
@@ -1477,7 +1477,7 @@ async function claimDevice(driver){
 
 /* ============================================================ EVENTS ============================================================ */
 document.addEventListener("click",async e=>{
-  const t=e.target.closest("[data-act],[data-tab],[data-dtab],[data-plat],[data-mplat],[data-camkey],[data-deldriver],[data-reset],[data-summary],[data-sumexport],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-photo],[data-close],[data-zclose],[data-follow],[data-forceend]");
+  const t=e.target.closest("[data-act],[data-tab],[data-mode],[data-dtab],[data-plat],[data-mplat],[data-camkey],[data-deldriver],[data-reset],[data-summary],[data-sumexport],[data-gpsdetect],[data-hubstoggle],[data-hubpick],[data-map],[data-photo],[data-close],[data-zclose],[data-follow],[data-forceend]");
   if(!t)return;
   if(t.hasAttribute("data-close")){closeModal();return;}
   if(t.dataset.photo){openZoom(t.dataset.photo);return;}
