@@ -465,7 +465,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.4";
+const APP_VERSION="3.5";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -632,10 +632,14 @@ function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
     if(!BGGeo){note("native",{message:"plugin missing"});return fail(prev);}
     let wid=null;const stop=()=>{if(wid!=null){try{BGGeo.removeWatcher({id:wid});}catch(e){}}};
     const t=setTimeout(()=>{note("native",{code:3,message:"no fix in 20s"});stop();fail({code:3});},20000);
-    BGGeo.addWatcher({requestPermissions:true,stale:true},(loc,err)=>{
-      if(err){note("native",{code:err.code,message:err.message});clearTimeout(t);stop();fail({code:err.code==="NOT_AUTHORIZED"?1:2});return;}
-      if(loc){clearTimeout(t);stop();ok(loc.latitude,loc.longitude,loc.accuracy,"native");}
-    }).then(id=>{wid=id;if(done)stop();}).catch(e=>{note("native",{message:"start failed "+(e&&e.message||e)});clearTimeout(t);fail(prev);});
+    try{
+      Promise.resolve(
+        BGGeo.addWatcher({requestPermissions:true,stale:true},(loc,err)=>{
+          if(err){note("native",{code:err.code,message:err.message});clearTimeout(t);stop();fail({code:err.code==="NOT_AUTHORIZED"?1:2});return;}
+          if(loc){clearTimeout(t);stop();ok(loc.latitude,loc.longitude,loc.accuracy,"native");}
+        })
+      ).then(id=>{wid=id;if(done)stop();}).catch(e=>{note("native",{message:"start failed "+(e&&e.message||e)});clearTimeout(t);fail(prev);});
+    }catch(e){note("native",{message:"start threw "+(e&&e.message||e)});clearTimeout(t);fail(prev);}
   };
   const coarse=prev=>{
     if(!G)return nativeTry(prev);
@@ -700,9 +704,12 @@ function startLiveWatch(shiftId){
   stopLiveWatch();live.shiftId=shiftId;
   if(BGGeo){
     live.starting=true;
-    BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:3},
-      (loc,err)=>{if(err||!loc)return;onFix(loc.latitude,loc.longitude,loc.accuracy,loc.bearing,loc.speed);})
-      .then(id=>{live.bgId=id;live.starting=false;}).catch(()=>{live.starting=false;startWebWatch();});
+    try{
+      Promise.resolve(
+        BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:3},
+          (loc,err)=>{if(err||!loc)return;onFix(loc.latitude,loc.longitude,loc.accuracy,loc.bearing,loc.speed);})
+      ).then(id=>{live.bgId=id;live.starting=false;}).catch(()=>{live.starting=false;startWebWatch();});
+    }catch(e){live.starting=false;startWebWatch();}
   }else startWebWatch();
   live.hb=setInterval(()=>{if(live.last)pushLive(true);},15000);
 }
