@@ -419,6 +419,93 @@
   .leaflet-container{background:#04110E;}
   .leaflet-control-attribution{background:rgba(6,24,21,.6)!important;}
   .leaflet-control-attribution a{color:var(--txt-dim)!important;}
+
+  /* ============ DAY MODE PALETTE (Night/Day toggle) ============ */
+  :root[data-mode="day"]{
+    --bg-page:#EDF2EF; --card-bg:#FFFFFF; --card-inner:#F3F7F5; --tile-bg:#EAF1EE;
+    --border:rgba(15,32,27,.10); --border-2:rgba(15,32,27,.17); --border-accent:rgba(168,116,28,.42);
+    --amber:#A8741C; --amber-2:#C4952F; --amber-glow:rgba(168,116,28,.22); --amber-tint:rgba(168,116,28,.12);
+    --green:#0E6B5C; --green-ink:#13784C; --green-tint:rgba(19,120,76,.14);
+    --blue:#0E6B5C; --blue-ink:#0E6B5C; --blue-tint:rgba(14,107,92,.14);
+    --violet:#A8741C; --violet-tint:rgba(168,116,28,.12);
+    --txt-white:#0F201B; --txt-muted:#34473F; --txt-dim:#5A7068;
+    --red-bg:rgba(194,58,43,.10); --red-border:rgba(194,58,43,.30); --red-txt:#9A2C22; --red:#C23A2B;
+    --shadow:0 4px 18px rgba(14,107,92,.12); --shadow2:0 16px 40px rgba(14,107,92,.18);
+    --ink-gold:#FFFFFF; color-scheme:light;
+  }
+  :root[data-mode="day"] body{background:
+    radial-gradient(1100px 620px at 12% -12%,rgba(14,107,92,.08),transparent 60%),
+    radial-gradient(1000px 560px at 112% 6%,rgba(168,116,28,.08),transparent 55%),
+    var(--bg-page);}
+  :root[data-mode="day"] .dial-center{background:radial-gradient(circle at 50% 34%,#FFFFFF,#EAF1EE);}
+  :root[data-mode="day"] .dial-center .spd{background:linear-gradient(180deg,#3a4a44,var(--amber));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  :root[data-mode="day"] .oa-nav{background:#0C3B33;}
+
+  /* ============ ADMIN — OASIS COMMAND STAGE ============ */
+  .adminwrap{width:100%;display:grid;grid-template-rows:auto 1fr;min-height:100dvh;}
+  .oa-nav{position:sticky;top:0;z-index:800;display:flex;align-items:center;gap:20px;height:58px;padding:0 18px;background:#0C3B33;color:#E8F1ED;border-bottom:1px solid rgba(242,208,142,.18);}
+  .oa-brand{display:flex;align-items:center;gap:9px;font:800 15px var(--display);letter-spacing:-.01em;white-space:nowrap;}
+  .oa-logo{width:29px;height:29px;border-radius:9px;background:#F2D08E;color:#0C3B33;display:grid;place-items:center;font-weight:800;font-family:var(--display);}
+  .oa-links{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;}
+  .oa-links::-webkit-scrollbar{display:none;}
+  .oa-tools{flex-shrink:0;}
+  .oa-nav .admin-tab{padding:7px 12px;border-radius:8px;border:0;background:transparent;color:#A9C8BE;font:600 13px var(--body);white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .oa-nav .admin-tab .ct{opacity:.6;font-family:var(--mono);font-size:11px;}
+  .oa-nav .admin-tab:hover{color:#F2D08E;}
+  .oa-nav .admin-tab.active{background:rgba(242,208,142,.16);color:#F2D08E;}
+  .oa-tools{display:flex;align-items:center;gap:9px;}
+  .oa-live{display:flex;align-items:center;gap:7px;font:700 11px var(--mono);letter-spacing:.1em;color:#F2D08E;padding:5px 10px;border-radius:99px;background:rgba(242,208,142,.12);}
+  .oa-live i{width:7px;height:7px;border-radius:50%;background:#FF6B5B;box-shadow:0 0 0 0 rgba(255,107,91,.7);animation:opng 1.6s infinite;}
+  @keyframes opng{70%{box-shadow:0 0 0 8px rgba(255,107,91,0)}100%{box-shadow:0 0 0 0 rgba(255,107,91,0)}}
+  .oa-clock{font:500 13px var(--mono);color:#CFE3DC;min-width:74px;text-align:right;}
+  .oa-mode{display:flex;background:rgba(255,255,255,.08);border-radius:99px;padding:3px;}
+  .oa-mode button{border:0;background:transparent;color:#A9C8BE;font-weight:700;font-size:12px;padding:5px 11px;border-radius:99px;cursor:pointer;}
+  .oa-mode button.on{background:#F2D08E;color:#0C3B33;}
+  .oa-icon{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.08);border:0;color:#CFE3DC;display:grid;place-items:center;cursor:pointer;}
+  .oa-logout{background:rgba(255,107,91,.16);border:1px solid rgba(255,107,91,.35);color:#FFC7BF;border-radius:9px;padding:6px 11px;font:700 12px var(--body);cursor:pointer;white-space:nowrap;}
+  .oa-av{width:31px;height:31px;border-radius:50%;background:#F2D08E;color:#0C3B33;display:grid;place-items:center;font-weight:800;font-family:var(--display);}
+
+  .oa-stage{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(320px,1fr);grid-template-rows:minmax(0,1fr) auto;gap:13px;padding:13px;min-height:0;height:calc(100dvh - 58px);min-height:760px;}
+  .oa-panel{background:var(--card-bg);border:1px solid var(--border);border-radius:18px;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+  .oa-ph{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 15px 0;}
+  .oa-ph b{font:700 13.5px var(--display);display:flex;align-items:center;gap:7px;}
+  .oa-ph b svg{color:var(--amber);}
+  .oa-eyebrow{font:700 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--txt-dim);}
+  .oa-map{grid-row:1;grid-column:1;padding:0;}
+  .oa-map #leafmap{position:absolute!important;inset:0;width:100%;height:100%;border:0;border-radius:0;margin:0;}
+  .oa-maptop{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none;z-index:500;}
+  .oa-maptop h1{margin:0;font:800 clamp(20px,2.1vw,29px)/1.05 var(--display);letter-spacing:-.02em;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);}
+  .oa-maptop p{margin:4px 0 0;color:#EAF3EF;font-size:12.5px;text-shadow:0 1px 8px rgba(0,0,0,.6);}
+  .oa-legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;pointer-events:auto;}
+  .oa-chip{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:99px;background:color-mix(in srgb,var(--card-bg) 84%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--border);font:600 12px var(--body);color:var(--txt-white);}
+  .oa-chip i{width:9px;height:9px;border-radius:50%;}
+  .oa-focus{position:absolute;right:16px;bottom:14px;z-index:500;max-width:250px;padding:11px 13px;border-radius:13px;background:color-mix(in srgb,var(--card-bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border);box-shadow:var(--glow,var(--shadow));font-size:12px;color:var(--txt-muted);}
+  .oa-focus b{color:var(--txt-white);}
+
+  .oa-side{grid-row:1/3;grid-column:2;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:13px;min-height:0;}
+  .oa-hero{padding:17px 17px 0;}
+  .oa-big{font:800 clamp(44px,4.6vw,68px)/.95 var(--display);letter-spacing:-.04em;margin-top:6px;color:var(--amber);font-variant-numeric:tabular-nums;}
+  .oa-big small{font:600 14px var(--body);color:var(--txt-dim);margin-left:6px;}
+  .oa-minis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);margin:15px -17px 0;}
+  .oa-minis div{background:var(--card-bg);padding:11px 13px;display:grid;gap:2px;}
+  .oa-minis span{font-size:11px;color:var(--txt-dim);}
+  .oa-minis b{font:700 16px var(--mono);color:var(--txt-white);}
+  .oa-scroll{overflow:hidden;flex:1;min-height:0;padding:6px 15px 12px;-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent);}
+  .oa-body{padding:6px 15px 13px;}
+  .oa-strip{grid-row:2;grid-column:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;}
+  .oa-strip .oa-panel{min-height:195px;}
+  #kmchart{display:block;width:100%;height:auto;padding:6px 12px 12px;}
+  .kmaxis{fill:var(--txt-dim);font:500 10px var(--mono);}
+  .kmgrid{stroke:var(--border);}
+  .oa-page{width:100%;max-width:1240px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:13px;}
+  @media(max-width:1080px){
+    .oa-stage{grid-template-columns:1fr;grid-template-rows:auto;height:auto;min-height:0;}
+    .oa-map{grid-row:auto;min-height:56vh;}
+    .oa-side{grid-row:auto;grid-column:1;}
+    .oa-strip{grid-row:auto;grid-column:1;grid-template-columns:1fr 1fr;}
+    .oa-focus{display:none;}
+  }
+  @media(max-width:640px){.oa-strip{grid-template-columns:1fr;}.oa-links{display:none;}.oa-clock{display:none;}.oa-stage{padding:10px;gap:10px;}}
 </style>
 </head>
 <body>
@@ -500,7 +587,8 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.9";
+const APP_VERSION="3.10";
+try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -823,15 +911,16 @@ function render(){
   else if(state.screen==="driver")app.innerHTML=viewDriver();
   postRender();
 }
-let timerInt=null;
+let timerInt=null,ccClockInt=null;
 function postRender(){
   if(timerInt){clearInterval(timerInt);timerInt=null;}
+  if(ccClockInt){clearInterval(ccClockInt);ccClockInt=null;}
   if(state.screen==="driver"){
     const sh=activeShift(state.driverId);
     if(sh){timerInt=setInterval(()=>{const el=$("#dialTime");if(!el)return;const m=Math.floor((Date.now()-sh.startedAt)/60000);el.textContent=`${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`;const arc=$("#arcTime");if(arc){const f=Math.min(m/SHIFT_TARGET_MIN,1);arc.setAttribute("stroke-dasharray",`${(f*518.3).toFixed(1)} 691.1`);}},1000);startLiveWatch(sh.id);}else stopLiveWatch();
     updateDriverGps();
   }else stopLiveWatch();
-  if(state.screen==="admin"){if(state.adminTab==="map")mountMap();startAdminPoll();}else stopAdminPoll();
+  if(state.screen==="admin"){if(state.adminTab==="map"){mountMap();drawKmChart();}ccClockInt=setInterval(()=>{const c=$("#ccClock");if(c)c.textContent=clockStr();},1000);startAdminPoll();}else stopAdminPoll();
 }
 
 /* ============================================================ LANDING ============================================================ */
@@ -959,30 +1048,38 @@ function shiftCard(s,d){
 
 /* ============================================================ ADMIN ============================================================ */
 function viewAdmin(){
-  const o=todayOrders();
-  return `<div class="admin">
-    <header class="admin-appbar"><div class="admin-brand"><div class="logo-box">${ic('shield','i-lg')}</div>
-      <div class="t"><span><b>SUMOU FLEET</b><span class="admin-badge">Admin Portal</span></span><small>Fleet Operations & Live Driver Telemetry</small></div></div>
-      <div class="admin-appbar-r"><div class="cc-clock"><span class="lv"></span>${new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:true})} · ${new Date().toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}</div><button class="btn btn-ghost" data-act="reload">${ic('refresh','i-xs')} Refresh</button><button class="btn-logout" data-act="logout">${ic('power','i-xs')}<span>Log Out</span></button></div></header>
-    <div class="admin-kpis">
-      <div class="admin-kpi kri">${ringSvg(activeCount()/Math.max(state.drivers.length,1),'#34d399',activeCount())}<div><div class="admin-kpi-t"><span>Active On Duty</span></div><div class="admin-kpi-v">${activeCount()} <small>/ ${state.drivers.length}</small></div><div class="admin-kpi-s green">streaming GPS live</div></div></div>
-      <div class="admin-kpi"><div class="admin-kpi-t"><span>Today's Distance</span><span class="kic blue">${ic('car','i-xs')}</span></div><div class="admin-kpi-v" style="color:var(--amber)">${km(todayKm())} <small>KM</small></div>${spark()}</div>
-      <div class="admin-kpi kri">${ringSvg(Math.min(todayFuel()/60,1),'#F2C46D',Math.round(Math.min(todayFuel()/60,1)*100)+'%')}<div><div class="admin-kpi-t"><span>Today's Fuel</span></div><div class="admin-kpi-v">${money(todayFuel())} <small>KWD</small></div><div class="admin-kpi-s mut">refills today</div></div></div>
-      <div class="admin-kpi kri">${donutSvg(o.done,o.canc)}<div><div class="admin-kpi-t"><span>Today's Orders</span></div><div class="admin-kpi-v">${o.done} <small>done</small></div><div class="donut-l"><span><span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--green)"></span>${o.done} done</span><span><span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--red)"></span>${o.canc} cancel</span></div></div></div>
-    </div>
-    <div class="admin-tabs-bar"><div class="admin-tabs">
-        ${atab("map","Live Map & Radar","pin")}${atab("logs","Duty & Shift Logs","compass",completedShifts().length+onDutyShifts().length)}
-        ${atab("km","Daily KM Records","chart")}${atab("fuel","Fuel Refill Audits","fuel",state.fuelRecords.length)}${atab("drivers","Drivers & Fleet","users",state.drivers.length)}
+  return `<div class="adminwrap">
+    ${adminNav()}
+    <main id="adminSection">${adminSection()}</main>
+  </div>`;
+}
+function appMode(){try{return localStorage.getItem("sumou-mode")==="day"?"day":"night";}catch(e){return "night";}}
+function clockStr(){return new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
+function navtab(id,label,c){return `<button class="admin-tab ${state.adminTab===id?"active":""}" data-tab="${id}">${label}${c!=null?` <span class="ct">${c}</span>`:""}</button>`;}
+function adminNav(){const day=appMode()==="day";
+  return `<header class="oa-nav">
+    <div class="oa-brand"><span class="oa-logo">S</span>SUMOU FLEET</div>
+    <nav class="oa-links" aria-label="Admin sections">
+      ${navtab("map","Live Map & Radar")}${navtab("logs","Duty & Shift Logs",completedShifts().length+onDutyShifts().length)}${navtab("km","Daily KM Records")}${navtab("fuel","Fuel Refill Audits",state.fuelRecords.length)}${navtab("drivers","Drivers & Fleet",state.drivers.length)}
+    </nav>
+    <div class="oa-tools">
+      <span class="oa-live"><i></i>LIVE</span>
+      <span class="oa-clock" id="ccClock">${clockStr()}</span>
+      <div class="oa-mode" role="group" aria-label="Theme">
+        <button data-mode="night" class="${day?"":"on"}">Night</button><button data-mode="day" class="${day?"on":""}">Day</button>
       </div>
-      <div class="admin-actions"><button class="btn btn-blue" data-act="openAddDriver">${ic('plus','i-xs')} Add Driver</button><button class="btn btn-ghost" data-act="exportCsv">${ic('download','i-xs')} Export CSV</button></div></div>
+      <button class="oa-icon" data-act="reload" title="Refresh">${ic('refresh','i-xs')}</button>
+      <button class="oa-logout" data-act="logout">${ic('power','i-xs')} Log out</button>
+    </div>
+  </header>`;
+}
+function adminToolsRow(){return `<div class="admin-tabs-bar"><div class="admin-actions"><button class="btn btn-blue" data-act="openAddDriver">${ic('plus','i-xs')} Add Driver</button><button class="btn btn-ghost" data-act="exportCsv">${ic('download','i-xs')} Export CSV</button></div></div>
     <div class="admin-card"><div class="admin-filters">
       <div class="search">${ic('search','i-xs')}<input id="fSearch" placeholder="Search driver, plate, or place..." value="${state.filters.search}"/></div>
       <select id="fDriver"><option value="all">All Drivers (${state.drivers.length})</option>${state.drivers.map(d=>`<option value="${d.id}" ${state.filters.driver===d.id?"selected":""}>${d.name}</option>`).join("")}</select>
       <select id="fPlatform"><option value="all">All Platforms</option>${PLATFORMS.map(p=>`<option ${state.filters.platform===p?"selected":""}>${p}</option>`).join("")}</select>
       <select id="fStatus"><option value="all">All Statuses</option><option ${state.filters.status==="ACTIVE"?"selected":""}>ACTIVE</option><option ${state.filters.status==="COMPLETED"?"selected":""}>COMPLETED</option></select>
-    </div></div>
-    <div id="adminSection">${adminSection()}</div>${footer()}</div>`;
-}
+    </div></div>`;}
 function atab(id,label,icon,c){return `<button class="admin-tab ${state.adminTab===id?"active":""}" data-tab="${id}">${ic(icon,'i-xs')} ${label}${c!=null?` <span class="ct">(${c})</span>`:""}</button>`;}
 /* command-center helpers */
 function ringSvg(pct,color,text){const off=(150.8*(1-Math.max(0,Math.min(pct,1)))).toFixed(1);
@@ -1024,8 +1121,13 @@ function passFilter(sh){const f=state.filters,d=driverById(sh.driverId);
   if(f.platform!=="all"&&sh.platform!==f.platform)return false;
   if(f.status!=="all"&&sh.status!==f.status)return false;
   if(f.search){const q=f.search.toLowerCase();if(!`${d?.name} ${d?.plate} ${sh.loginPlace} ${sh.logoutPlace||""}`.toLowerCase().includes(q))return false;}return true;}
-function adminSection(){return {map:secMap,logs:secLogs,km:secKm,fuel:secFuel,drivers:secDrivers}[state.adminTab]();}
-function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?mountMap():teardownMap();}
+function adminSection(){
+  if(state.adminTab==="map")return secMap();
+  const inner={logs:secLogs,km:secKm,fuel:secFuel,drivers:secDrivers}[state.adminTab]();
+  return `<div class="oa-page">${adminToolsRow()}${inner}${footer()}</div>`;
+}
+function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?(mountMap(),drawKmChart()):teardownMap();}
+function setAppMode(m){m=(m==="day"?"day":"night");document.documentElement.dataset.mode=m;try{localStorage.setItem("sumou-mode",m);}catch(e){}document.querySelectorAll(".oa-mode button").forEach(b=>b.classList.toggle("on",b.dataset.mode===m));if(typeof LMAP!=="undefined"&&LMAP)setTimeout(()=>{try{LMAP.invalidateSize();}catch(e){}},60);}
 
 const STALE_MS=120000; /* no ping for 2 min = GPS lost */
 const isStale=s=>!s.liveAt||Date.now()-s.liveAt>STALE_MS;
@@ -1045,17 +1147,51 @@ function livePanelInner(){
 }
 function refreshLivePanel(){const lp=$("#livePanel");if(lp)lp.innerHTML=livePanelInner();}
 let lpT=null;function refreshLivePanelSoon(){if(lpT)return;lpT=setTimeout(()=>{lpT=null;refreshLivePanel();},400);}
-function secMap(){return `
-  <div class="cc-main">
-    <div class="admin-card"><div class="sec-head"><div><h3>${ic('pin','i-xs')} Live Fleet Map</h3><p>Amber pulse = live driver · amber line = route since clock-in · grey = GPS lost. Tap <b>Follow</b> to zoom in and track one driver.</p></div><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} moving</span></div>
-      <div class="mapholder"><div class="map-legend"><span class="lg"><span class="lgd" style="background:var(--green)"></span>Login</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--red)"></span>Logout</span><span class="sep"></span><span class="lg"><span class="lgd" style="background:var(--amber)"></span>Live</span></div><div id="leafmap"></div></div></div>
-    <div class="admin-card"><div class="sec-head"><h3>${ic('nav','i-xs')} On Duty Now</h3><span class="badge-count ${onDutyShifts().length?"green":""}">${onDutyShifts().length} live</span></div><div id="livePanel">${livePanelInner()}</div></div>
-  </div>
-  <div class="cc-main" style="grid-template-columns:1.2fr 1fr 1fr;margin-top:13px">
-    <div class="admin-card"><div class="sec-head"><h3>${ic('clock','i-xs')} Live Activity Feed</h3><span class="badge-count green">live</span></div><div class="cc-feed">${ccFeed()}</div></div>
-    <div class="admin-card"><div class="sec-head"><h3>${ic('trend','i-xs')} Top Drivers Today</h3><span class="badge-count">by KM</span></div>${ccLeaderboard()}</div>
-    <div class="admin-card"><div class="sec-head"><h3>${ic('alert','i-xs')} Needs Review</h3><span class="badge-count" style="color:var(--red-txt);border-color:rgba(239,68,68,.3);background:var(--red-bg)">${ccAlertsCount()} flags</span></div>${ccAlerts()}</div>
+function secMap(){
+  const live=onDutyShifts().length, kmToday=todayKm();
+  const shiftsToday=completedShifts().filter(s=>s.date===today()).length+live;
+  const avg=activeCount()?Math.round(kmToday/activeCount()):0;
+  const wk=last7(), wkTot=wk.reduce((a,b)=>a+b,0);
+  return `<div class="oa-stage">
+    <section class="oa-panel oa-map">
+      <div id="leafmap"></div>
+      <div class="oa-maptop">
+        <div><div class="oa-eyebrow">Kuwait · live fleet</div>
+          <h1><span class="num">${live}</span> driver${live===1?"":"s"} on duty right now</h1>
+          <p>Tap <b>Follow</b> on a driver to track · amber route = trail since clock-in</p></div>
+        <div class="oa-legend">
+          <span class="oa-chip"><i style="background:var(--green)"></i>Login</span>
+          <span class="oa-chip"><i style="background:var(--red)"></i>Logout</span>
+          <span class="oa-chip"><i style="background:var(--amber)"></i>Live</span>
+        </div>
+      </div>
+      ${live?"":`<div class="oa-focus">No drivers on duty right now. When someone clocks in, their live location streams here.</div>`}
+    </section>
+    <aside class="oa-side">
+      <section class="oa-panel oa-hero">
+        <div class="oa-eyebrow">Distance driven today</div>
+        <div class="oa-big"><span>${km(kmToday)}</span><small>km</small></div>
+        <div class="oa-minis"><div><span>On duty</span><b class="num">${live}</b></div><div><span>Shifts today</span><b class="num">${shiftsToday}</b></div><div><span>Avg / driver</span><b class="num">${avg} km</b></div></div>
+      </section>
+      <section class="oa-panel"><div class="oa-ph"><b>${ic('nav','i-xs')} On Duty Now</b><span class="badge-count ${live?"green":""}">${live} live</span></div><div class="oa-scroll" id="livePanel">${livePanelInner()}</div></section>
+      <section class="oa-panel"><div class="oa-ph"><b>${ic('clock','i-xs')} Live activity feed</b><span class="badge-count green">live</span></div><div class="oa-scroll cc-feed">${ccFeed()}</div></section>
+    </aside>
+    <div class="oa-strip">
+      <section class="oa-panel"><div class="oa-ph"><b>${ic('trend','i-xs')} Top drivers today</b><span class="badge-count">by KM</span></div><div class="oa-body">${ccLeaderboard()}</div></section>
+      <section class="oa-panel"><div class="oa-ph"><b>${ic('chart','i-xs')} KM · last 7 days</b><span class="badge-count">${km(wkTot)} total</span></div><svg id="kmchart" viewBox="0 0 520 150" role="img" aria-label="Kilometres over the last 7 days"></svg></section>
+      <section class="oa-panel"><div class="oa-ph"><b>${ic('alert','i-xs')} Needs review</b><span class="badge-count" style="color:var(--red-txt);border-color:var(--red-border);background:var(--red-bg)">${ccAlertsCount()} flags</span></div><div class="oa-body">${ccAlerts()}</div></section>
+    </div>
   </div>`;}
+function drawKmChart(){const el=$("#kmchart");if(!el)return;const a=last7();const W=520,H=150,L=32,R=8,T=12,B=22,max=Math.max(...a,10);
+  const days=[];for(let i=6;i>=0;i--){const d=new Date(Date.now()-i*86400000);days.push(d.toLocaleDateString("en-GB",{weekday:"short"}).slice(0,2));}
+  const x=i=>L+i*(W-L-R)/6,y=v=>T+(H-T-B)*(1-v/max);
+  let g="";[0,max/2,max].forEach(v=>{g+=`<line class="kmgrid" x1="${L}" x2="${W-R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="kmaxis" x="${L-6}" y="${(y(v)+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`;});
+  days.forEach((d,i)=>{g+=`<text class="kmaxis" x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle">${d}</text>`;});
+  const pl=a.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("");
+  g+=`<defs><linearGradient id="kmg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--amber)" stop-opacity=".34"/><stop offset="1" stop-color="var(--amber)" stop-opacity="0"/></linearGradient></defs>`;
+  g+=`<path d="${pl} L${x(6).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z" fill="url(#kmg)"/><path d="${pl}" fill="none" stroke="var(--amber)" stroke-width="2.4" stroke-linejoin="round"/>`;
+  a.forEach((v,i)=>{g+=`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="var(--amber)"/>`;});
+  el.innerHTML=g;}
 let liveMarkers={},trails={},LMAP=null,mapView=null;
 function pinIcon(kind){const inner=`<span>${kind==="in"?"↓":"↑"}</span>`;return L.divIcon({className:"",html:`<div class="mpin ${kind}">${inner}</div>`,iconSize:[32,32],iconAnchor:[16,30]});}
 function liveIcon(name,stale){return L.divIcon({className:"",html:`<div class="mpin live ${stale?"stale":""}"><span class="ring"></span><span>●</span></div><div class="mlabel">${(name||"Driver").split(" ")[0]}</div>`,iconSize:[32,32],iconAnchor:[16,16]});}
@@ -1065,7 +1201,7 @@ function mountMap(){
   if(typeof L==="undefined"){el.innerHTML=`<div style="height:100%;display:grid;place-items:center;background:var(--tile-bg);color:var(--txt-muted);font-size:13px;text-align:center;padding:20px;font-family:var(--mono)">Map is loading… check internet.</div>`;return;}
   if(LMAP){try{LMAP.remove();}catch(e){}LMAP=null;liveMarkers={};trails={};}
   LMAP=L.map(el,{scrollWheelZoom:true}).setView([29.32,47.98],11);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:"&copy; OpenStreetMap &copy; CARTO"}).addTo(LMAP);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles &copy; Esri"}).addTo(LMAP);
   const bounds=[],td=today();
   /* only TODAY's login / logout pins, so old pins don't bury the live drivers */
   state.shifts.filter(passFilter).filter(s=>s.date===td).forEach(s=>{
@@ -1351,6 +1487,7 @@ document.addEventListener("click",async e=>{
   if(t.dataset.dtab){state.driverTab=t.dataset.dtab;render();return;}
   if(t.dataset.plat){state.selectedPlatform=t.dataset.plat;document.querySelectorAll(".dispatch-strip .btn-p").forEach(b=>b.classList.toggle("active",b.dataset.plat===t.dataset.plat));return;}
   if(t.dataset.mplat){state.mplat=t.dataset.mplat;document.querySelectorAll("[data-mplat]").forEach(b=>b.classList.toggle("active",b.dataset.mplat===t.dataset.mplat));return;}
+  if(t.dataset.mode){setAppMode(t.dataset.mode);return;}
   if(t.dataset.tab){state.adminTab=t.dataset.tab;document.querySelectorAll(".admin-tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===t.dataset.tab));paintAdmin();return;}
   if(t.dataset.deldriver){doDeleteDriver(t.dataset.deldriver);return;}
   if(t.dataset.reset){doResetDevice(t.dataset.reset);return;}
