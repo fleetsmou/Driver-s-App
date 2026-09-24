@@ -403,11 +403,14 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const KM_FLAG_MAX=400;
 
 const isNativeApp=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
-let BGGeo=null;
+/* Transistorsoft Background Geolocation — native GPS + native HTTP posting.
+   Keeps streaming to the server even when the app is minimised, screen is off,
+   or the OS freezes the WebView (Honor/Xiaomi), because the POST happens in native code. */
+let TSG=null;
 try{if(isNativeApp){const P=window.Capacitor.Plugins||{};
-  if(P.BackgroundGeolocation)BGGeo=P.BackgroundGeolocation;
-  else if(window.Capacitor.registerPlugin&&(!window.Capacitor.isPluginAvailable||window.Capacitor.isPluginAvailable("BackgroundGeolocation")))BGGeo=window.Capacitor.registerPlugin("BackgroundGeolocation");}}catch(e){}
-/* @capacitor/geolocation (if the APK has it) asks Android for permission properly */
+  if(P.BackgroundGeolocation)TSG=P.BackgroundGeolocation;
+  else if(window.Capacitor.registerPlugin&&(!window.Capacitor.isPluginAvailable||window.Capacitor.isPluginAvailable("BackgroundGeolocation")))TSG=window.Capacitor.registerPlugin("BackgroundGeolocation");}}catch(e){}
+/* @capacitor/geolocation (if the APK has it) asks Android for permission properly — used for the one-shot clock-in fix */
 const CapGeo=(()=>{try{return isNativeApp&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation||null;}catch(e){return null;}})();
 
 const IC={
@@ -465,7 +468,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.6";
+const APP_VERSION="3.7";
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
@@ -629,17 +632,16 @@ function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
   };
   const nativeTry=prev=>capTry(prev);
   const bgTry=prev=>{
-    if(!BGGeo){note("native",{message:"plugin missing"});return fail(prev);}
-    let wid=null;const stop=()=>{if(wid!=null){try{BGGeo.removeWatcher({id:wid});}catch(e){}}};
-    const t=setTimeout(()=>{note("native",{code:3,message:"no fix in 20s"});stop();fail({code:3});},20000);
-    try{
-      Promise.resolve(
-        BGGeo.addWatcher({requestPermissions:true,stale:true},(loc,err)=>{
-          if(err){note("native",{code:err.code,message:err.message});clearTimeout(t);stop();fail({code:err.code==="NOT_AUTHORIZED"?1:2});return;}
-          if(loc){clearTimeout(t);stop();ok(loc.latitude,loc.longitude,loc.accuracy,"native");}
-        })
-      ).then(id=>{wid=id;if(done)stop();}).catch(e=>{note("native",{message:"start failed "+(e&&e.message||e)});clearTimeout(t);fail(prev);});
-    }catch(e){note("native",{message:"start threw "+(e&&e.message||e)});clearTimeout(t);fail(prev);}
+    if(!TSG){note("native",{message:"plugin missing"});return fail(prev);}
+    const t=setTimeout(()=>{note("native",{code:3,message:"no fix in 22s"});fail({code:3});},22000);
+    (async()=>{try{
+      await tsEnsureReady();
+      try{await TSG.requestPermission();}catch(e){}
+      const loc=await TSG.getCurrentPosition({timeout:20,maximumAge:30000,samples:1,persist:false,desiredAccuracy:10});
+      const c=(loc&&loc.coords)||loc;clearTimeout(t);
+      if(c&&c.latitude!=null)ok(c.latitude,c.longitude,c.accuracy,"native");
+      else{note("native",{message:"no coords"});fail(prev);}
+    }catch(e){note("native",{message:"gcp "+(e&&e.message||e)});clearTimeout(t);fail(prev);}})();
   };
   const coarse=prev=>{
     if(!G)return nativeTry(prev);
@@ -671,7 +673,7 @@ async function detectGps(kind){
          :c===2?"Phone Location is turned OFF. Swipe down, turn on Location, then tap GPS."
          :"No signal yet. Step near a window or outside and tap GPS again, or pick a Hub.";
     let perm="?";try{if(navigator.permissions){const q=await navigator.permissions.query({name:"geolocation"});perm=q.state;}}catch(e){perm="n/a";}
-    gpsMsg[kind]+=`<div style="margin-top:8px;font-family:var(--mono);font-size:10px;opacity:.85;word-break:break-word">Details for support: app=${isNativeApp?"native":"browser"} · capacitor=${window.Capacitor?"yes":"no"} · gps-plugin=${BGGeo?"yes":"no"} · geo-plugin=${CapGeo?"yes":"no"} · plugins=${(()=>{try{return Object.keys(window.Capacitor&&window.Capacitor.Plugins||{}).join(",")||"none";}catch(e){return "?";}})()} · permission=${perm} · https=${location.protocol} · ${gpsDiag.join(" | ")}</div>`;
+    gpsMsg[kind]+=`<div style="margin-top:8px;font-family:var(--mono);font-size:10px;opacity:.85;word-break:break-word">Details for support: app=${isNativeApp?"native":"browser"} · capacitor=${window.Capacitor?"yes":"no"} · gps-plugin=${TSG?"yes":"no"} · geo-plugin=${CapGeo?"yes":"no"} · plugins=${(()=>{try{return Object.keys(window.Capacitor&&window.Capacitor.Plugins||{}).join(",")||"none";}catch(e){return "?";}})()} · permission=${perm} · https=${location.protocol} · ${gpsDiag.join(" | ")}</div>`;
     toast("Location not found — see details in the box");
   }finally{clearInterval(tick);gpsBusy[kind]=false;refreshGps(kind);resolveWait();}
 }
@@ -698,19 +700,60 @@ function updateDriverGps(){
    every move is saved as a route point, and offline points are queued.
    ------------------------------------------------------------------ */
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
-const live={shiftId:null,watchId:null,bgId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,queue:[],flushing:false};
+const live={shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,queue:[],flushing:false,native:false};
+
+/* ---- Transistorsoft native background tracking: posts each fix straight to the Supabase RPC
+        from native code, so it keeps working with the app minimised / screen off / OS-frozen ---- */
+let tsReady=false,tsLocSub=null;
+const LIVE_URL=SUPABASE_URL+"/rest/v1/rpc/driver_update_live";
+const LIVE_HEADERS={"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+SUPABASE_ANON_KEY,"Content-Type":"application/json"};
+function tsConfig(){return {
+  desiredAccuracy:-1, distanceFilter:0,
+  locationUpdateInterval:10000, fastestLocationUpdateInterval:5000,
+  disableElasticity:true, disableStopDetection:true, stopTimeout:5,
+  stopOnTerminate:false, startOnBoot:true, foregroundService:true, enableHeadless:false,
+  notification:{title:"On duty — GPS active",text:"Sumou Fleet is sharing your live location.",sticky:true},
+  backgroundPermissionRationale:{title:"Keep sharing location while on duty",message:"Allow location 'All the time' so dispatch can see you during your shift.",positiveAction:"Open settings",negativeAction:"Cancel"},
+  locationAuthorizationRequest:"Always",
+  url:LIVE_URL, method:"POST", httpRootProperty:".",
+  locationTemplate:'{"p":{"lat":<%= latitude %>,"lng":<%= longitude %>,"acc":<%= accuracy %>,"speed":<%= speed %>,"heading":<%= heading %>,"time":"<%= timestamp %>"},"p_point":true}',
+  headers:LIVE_HEADERS,
+  autoSync:true, autoSyncThreshold:0, batchSync:false, maxDaysToPersist:3, maxRecordsToPersist:10000,
+  debug:false, logLevel:0
+};}
+async function tsEnsureReady(){
+  if(!TSG)return false;
+  if(!tsReady){
+    await TSG.ready(tsConfig());
+    tsReady=true;
+    try{if(tsLocSub&&tsLocSub.remove)await tsLocSub.remove();}catch(e){}
+    try{tsLocSub=await TSG.addListener("location",(loc)=>{
+      try{const c=(loc&&loc.coords)||loc;if(!c||c.latitude==null)return;
+        live.last={lat:c.latitude,lng:c.longitude,acc:Math.round(c.accuracy||0),heading:(c.heading!=null&&!isNaN(c.heading)?Math.round(c.heading):null),kmh:Math.max(0,Math.round(c.speed!=null&&c.speed>=0?c.speed*3.6:0)),t:Date.now()};
+        const sh=state.shifts.find(s=>String(s.id)===String(live.shiftId));
+        if(sh){sh.liveLat=+c.latitude.toFixed(6);sh.liveLng=+c.longitude.toFixed(6);sh.speed=live.last.kmh;sh.lastPing=nowTime();sh.liveAt=Date.now();}
+        updateDriverGps();
+      }catch(e){}
+    });}catch(e){}
+  }
+  return true;
+}
 function startLiveWatch(shiftId){
-  if(String(live.shiftId)===String(shiftId)&&(live.watchId!=null||live.bgId!=null||live.starting))return; /* already tracking this shift */
+  if(String(live.shiftId)===String(shiftId)&&(live.native||live.watchId!=null||live.starting))return; /* already tracking this shift */
   stopLiveWatch();live.shiftId=shiftId;
-  if(BGGeo){
-    live.starting=true;
-    try{
-      Promise.resolve(
-        BGGeo.addWatcher({backgroundMessage:"Sumou Fleet is sharing your live location.",backgroundTitle:"On duty — GPS active",requestPermissions:true,stale:false,distanceFilter:0},
-          (loc,err)=>{if(err||!loc)return;onFix(loc.latitude,loc.longitude,loc.accuracy,loc.bearing,loc.speed);})
-      ).then(id=>{live.bgId=id;live.starting=false;}).catch(()=>{live.starting=false;startWebWatch();});
-    }catch(e){live.starting=false;startWebWatch();}
-  }else startWebWatch();
+  if(TSG){
+    live.starting=true;live.native=true;
+    (async()=>{try{
+      await tsEnsureReady();
+      try{await TSG.requestPermission();}catch(e){}
+      await TSG.setConfig({url:LIVE_URL,headers:LIVE_HEADERS,params:{p_token:state.token,p_shift:String(shiftId)}});
+      const st=await TSG.getState();
+      if(!st||!st.enabled)await TSG.start();
+      live.starting=false;
+    }catch(e){live.starting=false;live.native=false;startWebWatch();if(!live.hb)live.hb=setInterval(()=>{if(live.last)pushLive(true);},15000);}})();
+    return;
+  }
+  startWebWatch();
   live.hb=setInterval(()=>{if(live.last)pushLive(true);},15000);
 }
 function startWebWatch(){
@@ -736,6 +779,7 @@ function onFix(lat,lng,acc,heading,spd){
   updateDriverGps();
 }
 async function pushLive(heartbeat){
+  if(live.native)return; /* native (transistorsoft) mode posts directly from the plugin — no JS POST */
   const Lf=live.last,sid=live.shiftId;if(!Lf||!sid||!state.token)return;
   if(live.busy){live.pending=(live.pending==="pt"||!heartbeat)?"pt":"hb";return;}
   live.busy=true;
@@ -763,10 +807,10 @@ async function flushQueue(){
   live.flushing=false;
 }
 function stopLiveWatch(){
-  if(BGGeo&&live.bgId!=null){try{BGGeo.removeWatcher({id:live.bgId});}catch(e){}}
+  if(TSG&&live.native){try{Promise.resolve(TSG.getState()).then(st=>{if(st&&st.enabled)TSG.stop();}).catch(()=>{});}catch(e){}}
   if(live.watchId!=null){try{navigator.geolocation.clearWatch(live.watchId);}catch(e){}}
   if(live.hb)clearInterval(live.hb);
-  Object.assign(live,{shiftId:null,watchId:null,bgId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false});
+  Object.assign(live,{shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,native:false});
   releaseWake();
 }
 
