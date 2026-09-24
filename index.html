@@ -506,6 +506,54 @@
     .oa-focus{display:none;}
   }
   @media(max-width:640px){.oa-strip{grid-template-columns:1fr;}.oa-links{display:none;}.oa-clock{display:none;}.oa-stage{padding:10px;gap:10px;}}
+
+  /* ============ DRIVER — OASIS MOBILE ============ */
+  .dcpit{gap:12px;}
+  .dapp{display:flex;align-items:center;gap:11px;padding:4px 2px 2px;border:0;}
+  .davatar{width:44px;height:44px;border-radius:14px;background:var(--amber);color:var(--ink-gold);display:grid;place-items:center;font:800 16px var(--display);flex-shrink:0;}
+  .dwho{flex:1;min-width:0;}
+  .dwho b{display:block;font:800 16px var(--display);letter-spacing:-.01em;color:var(--txt-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dwho span{display:block;font-size:12px;color:var(--txt-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dbadge{display:inline-flex;align-items:center;gap:6px;font:700 11px var(--mono);letter-spacing:.05em;padding:5px 10px;border-radius:99px;flex-shrink:0;}
+  .dbadge.on{background:var(--green-tint);color:var(--green-ink);}
+  .dbadge.off{background:var(--tile-bg);color:var(--txt-dim);}
+  .dbadge .dd{width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .dbadge.on .dd{animation:pulse 1.6s infinite;}
+  .dlogout{width:34px;height:34px;border-radius:11px;background:var(--tile-bg);border:1px solid var(--border);color:var(--txt-dim);display:grid;place-items:center;cursor:pointer;flex-shrink:0;}
+  .dmode{display:flex;background:var(--tile-bg);border:1px solid var(--border);border-radius:99px;padding:3px;flex-shrink:0;}
+  .dmode button{border:0;background:transparent;color:var(--txt-dim);font:700 11px var(--sans);padding:5px 9px;border-radius:99px;cursor:pointer;}
+  .dmode button.on{background:var(--amber);color:var(--ink-gold);}
+  .dclock{border:1px solid var(--border);background:linear-gradient(180deg,var(--card-inner),var(--card-bg));border-radius:22px;padding:20px 16px;text-align:center;}
+  .dlab{font:700 10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--txt-dim);}
+  .dtimer{font:800 clamp(42px,13vw,54px)/1 var(--display);letter-spacing:-.03em;margin:8px 0 2px;color:var(--amber);font-variant-numeric:tabular-nums;}
+  .dtimer.off{color:var(--txt-white);}
+  .dsub{font-size:12.5px;color:var(--txt-muted);}
+  .dgps{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font:700 12px var(--sans);padding:7px 13px;border-radius:99px;background:var(--amber-tint);color:var(--amber);}
+  .dgps.lost{background:var(--red-bg);color:var(--red-txt);}
+  .drings{position:relative;width:11px;height:11px;}
+  .drings i{position:absolute;inset:0;border-radius:50%;background:currentColor;}
+  .drings i:after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 0 currentColor;animation:opng 1.9s infinite;}
+  .dgps.lost .drings i:after{animation:none;}
+  .dact{width:100%;border:0;border-radius:18px;padding:18px;font:800 17px var(--display);display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;transition:transform .1s;}
+  .dact svg{width:19px;height:19px;}
+  .dact.start{background:linear-gradient(135deg,var(--amber-2),#C9922F);color:var(--ink-gold);box-shadow:0 4px 18px var(--amber-glow);}
+  .dact.stop{background:linear-gradient(135deg,#FF6B5B,#C23A2B);color:#fff;box-shadow:0 4px 20px rgba(255,107,91,.4);}
+  .dact:active{transform:scale(.98);}
+  .dstats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .dstat{border:1px solid var(--border);background:var(--card-inner);border-radius:16px;padding:13px 14px;}
+  .dstat.wide{grid-column:1/3;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .dk{display:flex;align-items:center;gap:7px;font:700 11.5px var(--sans);color:var(--txt-muted);}
+  .dk svg{color:var(--green-ink);}
+  .dv{font:800 23px/1 var(--display);margin-top:8px;color:var(--txt-white);font-variant-numeric:tabular-nums;}
+  .dv small{font:600 12px var(--sans);color:var(--txt-dim);margin-left:3px;}
+  .dloc{display:flex;align-items:center;gap:11px;border:1px solid var(--border);background:var(--card-inner);border-radius:16px;padding:12px 13px;}
+  .dloc-ic{width:34px;height:34px;border-radius:11px;background:var(--tile-bg);display:grid;place-items:center;color:var(--green-ink);flex-shrink:0;}
+  .dloc-t{flex:1;min-width:0;}
+  .dloc-t b{display:block;font-size:13.5px;color:var(--txt-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dloc-t span{font-size:11.5px;color:var(--txt-dim);}
+  .dloc-mini{font:700 12px var(--mono);color:var(--amber);flex-shrink:0;}
+  .dfuel{text-align:center;font:600 12px var(--sans);color:var(--txt-muted);padding:2px;}
+  .dfuel b{color:var(--amber);font-family:var(--mono);}
 </style>
 </head>
 <body>
@@ -587,7 +635,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="3.10";
+const APP_VERSION="3.11";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -917,7 +965,7 @@ function postRender(){
   if(ccClockInt){clearInterval(ccClockInt);ccClockInt=null;}
   if(state.screen==="driver"){
     const sh=activeShift(state.driverId);
-    if(sh){timerInt=setInterval(()=>{const el=$("#dialTime");if(!el)return;const m=Math.floor((Date.now()-sh.startedAt)/60000);el.textContent=`${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`;const arc=$("#arcTime");if(arc){const f=Math.min(m/SHIFT_TARGET_MIN,1);arc.setAttribute("stroke-dasharray",`${(f*518.3).toFixed(1)} 691.1`);}},1000);startLiveWatch(sh.id);}else stopLiveWatch();
+    if(sh){timerInt=setInterval(()=>{const el=$("#dialTime");if(!el)return;const s=Math.floor((Date.now()-sh.startedAt)/1000);const p=n=>String(n).padStart(2,"0");el.textContent=`${p(Math.floor(s/3600))}:${p(Math.floor(s%3600/60))}:${p(s%60)}`;const hv=$("#dHrs");if(hv)hv.textContent=(s/3600).toFixed(1);},1000);startLiveWatch(sh.id);}else stopLiveWatch();
     updateDriverGps();
   }else stopLiveWatch();
   if(state.screen==="admin"){if(state.adminTab==="map"){mountMap();drawKmChart();}ccClockInt=setInterval(()=>{const c=$("#ccClock");if(c)c.textContent=clockStr();},1000);startAdminPoll();}else stopAdminPoll();
@@ -962,57 +1010,44 @@ function driverHome(d,sh){
   const selPlat=sh?sh.platform:(state.selectedPlatform||plats[0]);
   const tShifts=driverShifts(d.id).filter(s=>s.date===today());
   const tKm=tShifts.filter(s=>s.status==="COMPLETED").reduce((a,s)=>a+(s.distance||0),0);
-  const tOrders=tShifts.reduce((a,s)=>a+(s.ordersDone||0),0);
   const tFuel=state.fuelRecords.filter(f=>f.driverId===d.id&&f.date===today()).reduce((a,f)=>a+(f.cost||0),0);
-  const C1=816.8,V1=612.6,C2=691.1,V2=518.3;
-  const kmFrac=Math.min(tKm/KM_TARGET,1);
-  const mins=sh?Math.floor((Date.now()-sh.startedAt)/60000):0;
-  const timeFrac=Math.min(mins/SHIFT_TARGET_MIN,1);
+  const secs=sh?Math.floor((Date.now()-sh.startedAt)/1000):0;
+  const hh=Math.floor(secs/3600),mm=Math.floor(secs%3600/60),ss=secs%60;
+  const p2=n=>String(n).padStart(2,"0");
+  const hrs=(secs/3600).toFixed(1);
   const spd=sh?(sh.speed||0):0;
-  const hh=Math.floor(mins/60),mm=mins%60;
-  return `<div class="cockpit">
-    <header class="header-bar">
-      <div class="brand-side"><div class="brand-icon">${ic('truck')}</div>
-        <div><div class="brand-title">SUMOU <span class="hud-badge">FLEET</span></div>
-        <div class="driver-sub"><span class="status-dot"></span><span class="dn">${d.name}</span><span>·</span><span>${sh?"On Duty":"Off Duty"}</span></div></div></div>
-      <div class="header-actions"><div class="veh-chip">${ic('car','i-xs')}<b>${d.plate}</b></div>
-        <button class="btn-logout" data-act="logout">${ic('power','i-xs')}<span>Log Out</span></button></div>
+  return `<div class="cockpit dcpit">
+    <header class="dapp">
+      <div class="davatar">${initials(d.name)}</div>
+      <div class="dwho"><b>${d.name}</b><span>${d.plate||"—"}${selPlat?" · "+selPlat:""}</span></div>
+      <span class="dbadge ${sh?"on":"off"}"><span class="dd"></span>${sh?"ON DUTY":"OFF DUTY"}</span>
+      <div class="dmode" role="group" aria-label="Theme"><button data-mode="night" class="${appMode()==="day"?"":"on"}">Night</button><button data-mode="day" class="${appMode()==="day"?"on":""}">Day</button></div>
+      <button class="dlogout" data-act="logout" title="Log out">${ic('power','i-xs')}</button>
     </header>
-    <div class="dispatch-strip"><span class="dispatch-label">${ic('compass','i-xs')} Dispatch</span>
-      <div class="platform-btns">${plats.map(p=>`<button class="btn-p ${selPlat===p?"active":""} ${sh?"locked":""}" ${sh?"":`data-plat="${p}"`}>${p}</button>`).join("")}</div></div>
 
-    <div class="dialwrap">
-      <div class="dial">
-        <svg viewBox="0 0 284 284">
-          <circle cx="142" cy="142" r="130" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${V1} ${C1}"/>
-          <circle id="arcKm" cx="142" cy="142" r="130" fill="none" stroke="var(--amber)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${(kmFrac*V1).toFixed(1)} ${C1}" style="filter:drop-shadow(0 0 6px rgba(245,158,11,.6))"/>
-          <circle cx="142" cy="142" r="110" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${V2} ${C2}"/>
-          <circle id="arcTime" cx="142" cy="142" r="110" fill="none" stroke="var(--green)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(timeFrac*V2).toFixed(1)} ${C2}"/>
-        </svg>
-        <div class="dial-center" data-act="${sh?"openEndDuty":"openStartDuty"}">
-          <div class="lab">${sh?"Live Speed":"Tap to Start"}</div>
-          <div class="spd" id="dialSpeed">${sh?spd:"0"}</div>
-          <div class="unit">KM / H</div>
-          <div class="stbtn ${sh?"":"in"}">${sh?ic('stop','i-xs')+" CLOCK OUT":ic('zap','i-xs')+" CLOCK IN"}</div>
-        </div>
-        <div class="arclab km"><span class="v">${km(tKm)}</span>KM today</div>
-        <div class="arclab tm"><span class="v" id="dialTime">${hh}:${String(mm).padStart(2,"0")}</span>shift time</div>
-      </div>
-      <div class="dbanner" style="${sh?"":"opacity:.5"}"><span class="p"></span>${sh?("DUTY ACTIVE · "+sh.platform+" · streaming GPS"):"OFF DUTY · tap dial to clock in"}</div>
+    <section class="dclock">
+      <div class="dlab">${sh?"Shift running":"Ready to start"}</div>
+      <div class="dtimer ${sh?"":"off"}" id="dialTime">${sh?`${p2(hh)}:${p2(mm)}:${p2(ss)}`:"00:00:00"}</div>
+      <div class="dsub">${sh?("Clocked in "+(sh.loginTime||"")+(sh.loginPlace?" · "+sh.loginPlace:"")):"Tap Clock in to start your shift"}</div>
+      <div class="dgps ${sh?"":"lost"}"><span class="drings"><i></i></span>${sh?"Live GPS · tracking on":"GPS idle · not tracking"}</div>
+    </section>
+
+    <button class="dact ${sh?"stop":"start"}" data-act="${sh?"openEndDuty":"openStartDuty"}">${sh?ic('stop','i-xs')+" Clock out":ic('zap','i-xs')+" Clock in &amp; start shift"}</button>
+
+    <div class="dstats">
+      <div class="dstat"><div class="dk">${ic('gauge','i-xs')} Distance today</div><div class="dv">${km(tKm)}<small>km</small></div></div>
+      <div class="dstat"><div class="dk">${ic('clock','i-xs')} Hours today</div><div class="dv"><span id="dHrs">${hrs}</span><small>h</small></div></div>
+      <div class="dstat wide"><div class="dk">${ic('compass','i-xs')} Platform</div>
+        <div class="platform-btns">${plats.map(p=>`<button class="btn-p ${selPlat===p?"active":""} ${sh?"locked":""}" ${sh?"":`data-plat="${p}"`}>${p}</button>`).join("")}</div></div>
     </div>
 
-    <div class="chips">
-      <div class="chip a"><div class="cl">${ic('gauge','i-xs')} KM</div><div class="cv">${km(tKm)} <small>km</small></div></div>
-      <div class="chip"><div class="cl">${ic('box','i-xs')} Orders</div><div class="cv">${tOrders} <small>done</small></div></div>
-      <div class="chip"><div class="cl">${ic('fuel','i-xs')} Fuel</div><div class="cv">${tFuel.toFixed(1)} <small>kwd</small></div></div>
-    </div>
+    <div class="dloc"><div class="dloc-ic">${ic('pin','i-xs')}</div>
+      <div class="dloc-t"><b id="trailLive">${sh?(sh.loginPlace||"On road"):"Detecting your location…"}</b>
+        <span>${sh?`Live · <span id="dialSpeed">${spd}</span> km/h`:`<span id="dialSpeed" style="display:none">0</span>Tap Clock in to start GPS`}</span></div>
+      <div class="dloc-mini">${sh?"LIVE":"—"}</div></div>
 
-    ${sh?`<button class="btn-fuel-lg" data-act="openFuel">${ic('fuel','i-xs')} Log Fuel Refill (with receipt)</button>`:""}
-
-    <div class="routebar"><div class="ic">${ic('nav','i-xs')}</div>
-      <div class="rm"><div class="rt" id="trailLive">${sh?("Live: "+(sh.loginPlace||"On road")):"GPS ready"}</div>
-        <div class="rs">${sh?("Origin: "+(sh.loginPlace||"Depot")+" ("+(sh.loginTime||"")+") · "+km(sh.startOdo)+" KM"):"Clock in to start streaming your route"}</div></div>
-      <span class="rb" style="${sh?"":"opacity:.4"}">${sh?"LIVE":"IDLE"}</span></div>
+    ${sh?`<button class="btn-fuel-lg" data-act="openFuel">${ic('fuel','i-xs')} Log fuel refill (with receipt)</button>`:""}
+    ${tFuel>0?`<div class="dfuel">${ic('fuel','i-xs')} Fuel today · <b>${tFuel.toFixed(1)} KWD</b></div>`:""}
   </div>`;
 }
 function driverHistoryPage(d){
@@ -1127,7 +1162,7 @@ function adminSection(){
   return `<div class="oa-page">${adminToolsRow()}${inner}${footer()}</div>`;
 }
 function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?(mountMap(),drawKmChart()):teardownMap();}
-function setAppMode(m){m=(m==="day"?"day":"night");document.documentElement.dataset.mode=m;document.querySelectorAll(".oa-mode button").forEach(function(b){if(b.dataset.mode===m)b.classList.add("on");else b.classList.remove("on");});try{localStorage.setItem("sumou-mode",m);}catch(e){}if(typeof LMAP!=="undefined"&&LMAP)setTimeout(function(){try{LMAP.invalidateSize();}catch(e){}},60);}
+function setAppMode(m){m=(m==="day"?"day":"night");document.documentElement.dataset.mode=m;document.querySelectorAll(".oa-mode button,.dmode button").forEach(function(b){if(b.dataset.mode===m)b.classList.add("on");else b.classList.remove("on");});try{localStorage.setItem("sumou-mode",m);}catch(e){}if(typeof LMAP!=="undefined"&&LMAP)setTimeout(function(){try{LMAP.invalidateSize();}catch(e){}},60);}
 
 const STALE_MS=120000; /* no ping for 2 min = GPS lost */
 const isStale=s=>!s.liveAt||Date.now()-s.liveAt>STALE_MS;
