@@ -588,7 +588,7 @@ svg.q{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke
 /* header */
 .q-hd{display:flex;align-items:center;gap:10px;padding:2px 0 4px}
 .q-ava{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:var(--acc-ink);font-weight:800;font-size:15px;position:relative;overflow:visible}
-.q-ava img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.q-ava img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:none;border-radius:50%;object-fit:cover;object-position:center top}
 .q-ava i{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--bg);background:var(--muted)}
 .q-ava i.on{background:#22C55E;animation:qPulse 1.8s ease-out infinite;color:#22C55E}
 .q-who{flex:1;min-width:0}
