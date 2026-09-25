@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Sumou Fleet — Driver Telemetry HUD</title>
+<title>SMOU Driver</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SMOU Driver">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1F1A14">
+<meta name="application-name" content="SMOU Driver">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -1064,6 +1073,33 @@ body.d2on[data-dskin="night"] .dl-cloud{opacity:.2}
 @keyframes dlDraw{to{stroke-dashoffset:0}}
 @keyframes dlBoom{0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(var(--r))}}
 @media (prefers-reduced-motion:reduce){.dl *,.dl *::before,.dl *::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
+/* iPhone "add to home screen" guide */
+.dl-instbtn{margin:12px auto 0;display:inline-flex;align-items:center;gap:7px;border:1.5px dashed var(--line);background:transparent;border-radius:999px;padding:7px 14px;font-weight:800;font-size:12.5px;color:var(--acc-text);cursor:pointer;flex:none;align-self:center}
+.dl-instbtn svg{width:16px;height:16px}
+.dl-inst{position:absolute;inset:0;z-index:20;display:none}
+.dl-inst.on{display:block}
+.dl-inst-bg{position:absolute;inset:0;background:rgba(10,8,6,.55);backdrop-filter:blur(3px);animation:dlFadeIn .25s both}
+.dl-inst-card{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-radius:30px 30px 0 0;padding:26px 22px calc(20px + env(safe-area-inset-bottom));animation:dlSheetUp .45s cubic-bezier(.2,.8,.2,1.05) both;text-align:center;max-height:92%;overflow:auto}
+.dl-inst-ic{width:72px;height:72px;border-radius:18px;margin:0 auto 12px;overflow:hidden;box-shadow:0 14px 30px rgba(0,0,0,.25);background:var(--acc);animation:dlHopIn .6s .2s cubic-bezier(.3,1.7,.5,1) both}
+.dl-inst-ic img{width:100%;height:100%;display:block}
+.dl-inst-card h3{font:800 22px/1.15 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin:0}
+.d2[dir="rtl"] .dl-inst-card h3{font-family:"Noto Sans Arabic","Plus Jakarta Sans",sans-serif}
+.dl-inst-steps{list-style:none;margin:18px 0 18px;padding:0;display:grid;gap:10px;text-align:start}
+.dl-inst-steps li{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:12px;animation:dlFadeUp .4s both}
+.dl-inst-steps li:nth-child(2){animation-delay:.08s}.dl-inst-steps li:nth-child(3){animation-delay:.16s}
+.dl-inst-steps .n{width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--panel);font:800 12px/24px "JetBrains Mono",monospace;text-align:center;flex:none}
+.dl-inst-steps .ic{width:40px;height:40px;border-radius:12px;background:var(--acc-soft);color:var(--acc-text);display:grid;place-items:center;flex:none;overflow:hidden}
+.dl-inst-steps .ic svg{width:22px;height:22px}
+.dl-inst-steps .ic.sh svg{animation:dlNudge 1.4s ease-in-out infinite}
+.dl-inst-steps .ic.ap img{width:100%;height:100%}
+.dl-inst-steps b{display:block;font-size:14px;line-height:1.3}
+.dl-inst-steps small{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-top:2px}
+.dl-inst-card .dl-cta{width:100%;margin-top:0}
+.dl-inst-no{margin-top:10px;border:0;background:none;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;padding:6px}
+@keyframes dlFadeIn{from{opacity:0}}
+@keyframes dlSheetUp{from{transform:translateY(100%)}}
+@keyframes dlHopIn{from{opacity:0;transform:translateY(20px) scale(.6)}}
+@keyframes dlNudge{50%{transform:translateY(-4px)}}
 </style>
 </head>
 <body>
@@ -1145,7 +1181,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.1";
+const APP_VERSION="4.2";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -2886,23 +2922,23 @@ if(state.ready)render();
 <script id="dlogin">
 /* ===== driver login v2: animated scene, phone step → PIN step, 5 languages ===== */
 var DLX={
- en:{gm:"Good morning",ga:"Good afternoon",ge:"Good evening",hero:"Ready to ride?",phoneT:"Your mobile number",phoneS:"The number the office registered for you",cont:"Continue",help:"Need help? Call the office",
+ en:{inst:"Install app",instT:"Put SMOU Driver on your home screen",instS:"It opens full-screen like a normal app — no browser bar.",inst1:"Tap the Share button",inst1b:"Safari: bottom bar · Chrome: top right",inst2:"Choose “Add to Home Screen”",inst3:"Open SMOU Driver from your home screen and sign in once",instOk:"Got it",instNo:"Don’t show again",gm:"Good morning",ga:"Good afternoon",ge:"Good evening",hero:"Ready to ride?",phoneT:"Your mobile number",phoneS:"The number the office registered for you",cont:"Continue",help:"Need help? Call the office",
      pinT:"Enter your PIN",chg:"Change",pinH:"4-digit PIN from the office",chk:"Checking…",wrong:"Wrong PIN — {n} tries left",wrong1:"Wrong PIN — 1 try left",wrong0:"Wrong PIN — try again",
      locked:"Too many tries. Try again in {t}",device:"This account is open on another phone. Ask the office to reset it.",noacc:"No driver account with this number",bad:"Enter your 8-digit number",
      net:"No internet — check your connection and try again",loadf:"Signed in, but your data didn't load — try again",hi:"Yalla, {name}!",safe:"Ride safe today"},
- ar:{gm:"صباح الخير",ga:"طاب يومك",ge:"مساء الخير",hero:"جاهز للانطلاق؟",phoneT:"رقم هاتفك",phoneS:"الرقم المسجّل لدى المكتب",cont:"متابعة",help:"تحتاج مساعدة؟ اتصل بالمكتب",
+ ar:{inst:"تثبيت التطبيق",instT:"ضع SMOU Driver على الشاشة الرئيسية",instS:"يفتح بملء الشاشة مثل أي تطبيق — بدون شريط المتصفح.",inst1:"اضغط زر المشاركة",inst1b:"سفاري: الشريط السفلي · كروم: أعلى اليمين",inst2:"اختر «إضافة إلى الشاشة الرئيسية»",inst3:"افتح SMOU Driver من الشاشة الرئيسية وسجّل الدخول مرة واحدة",instOk:"فهمت",instNo:"لا تعرض مرة أخرى",gm:"صباح الخير",ga:"طاب يومك",ge:"مساء الخير",hero:"جاهز للانطلاق؟",phoneT:"رقم هاتفك",phoneS:"الرقم المسجّل لدى المكتب",cont:"متابعة",help:"تحتاج مساعدة؟ اتصل بالمكتب",
      pinT:"أدخل الرمز السري",chg:"تغيير",pinH:"الرمز المكوّن من 4 أرقام من المكتب",chk:"جارٍ التحقق…",wrong:"رمز خاطئ — تبقّى {n} محاولات",wrong1:"رمز خاطئ — تبقّت محاولة واحدة",wrong0:"رمز خاطئ — حاول مرة أخرى",
      locked:"محاولات كثيرة. حاول بعد {t}",device:"هذا الحساب مفتوح على هاتف آخر. اطلب من المكتب إعادة تعيينه.",noacc:"لا يوجد حساب سائق بهذا الرقم",bad:"أدخل رقمك المكوّن من 8 أرقام",
      net:"لا يوجد إنترنت — تحقق من الاتصال وحاول مجددًا",loadf:"تم الدخول لكن لم تُحمَّل بياناتك — حاول مجددًا",hi:"يلا يا {name}!",safe:"قُد بأمان اليوم"},
- hi:{gm:"सुप्रभात",ga:"नमस्ते",ge:"शुभ संध्या",hero:"चलने के लिए तैयार?",phoneT:"आपका मोबाइल नंबर",phoneS:"जो नंबर ऑफिस में रजिस्टर है",cont:"आगे बढ़ें",help:"मदद चाहिए? ऑफिस को कॉल करें",
+ hi:{inst:"ऐप इंस्टॉल करें",instT:"SMOU Driver को होम स्क्रीन पर लगाएं",instS:"यह आम ऐप की तरह पूरी स्क्रीन में खुलेगा — ब्राउज़र बार नहीं दिखेगा।",inst1:"शेयर बटन दबाएं",inst1b:"Safari: नीचे की पट्टी · Chrome: ऊपर दाईं ओर",inst2:"“Add to Home Screen” चुनें",inst3:"होम स्क्रीन से SMOU Driver खोलें और एक बार लॉगिन करें",instOk:"ठीक है",instNo:"दोबारा न दिखाएं",gm:"सुप्रभात",ga:"नमस्ते",ge:"शुभ संध्या",hero:"चलने के लिए तैयार?",phoneT:"आपका मोबाइल नंबर",phoneS:"जो नंबर ऑफिस में रजिस्टर है",cont:"आगे बढ़ें",help:"मदद चाहिए? ऑफिस को कॉल करें",
      pinT:"अपना PIN डालें",chg:"बदलें",pinH:"ऑफिस से मिला 4 अंकों का PIN",chk:"जाँच हो रही है…",wrong:"गलत PIN — {n} कोशिशें बाकी",wrong1:"गलत PIN — 1 कोशिश बाकी",wrong0:"गलत PIN — फिर से कोशिश करें",
      locked:"बहुत ज़्यादा कोशिशें। {t} बाद फिर कोशिश करें",device:"यह अकाउंट दूसरे फोन पर खुला है। ऑफिस से रीसेट करवाएं।",noacc:"इस नंबर से कोई ड्राइवर अकाउंट नहीं है",bad:"अपना 8 अंकों का नंबर डालें",
      net:"इंटरनेट नहीं है — कनेक्शन देखकर फिर कोशिश करें",loadf:"लॉगिन हो गया, पर डेटा नहीं आया — फिर कोशिश करें",hi:"यल्ला, {name}!",safe:"आज सुरक्षित चलाएं"},
- bn:{gm:"শুভ সকাল",ga:"শুভ দুপুর",ge:"শুভ সন্ধ্যা",hero:"চালাতে প্রস্তুত?",phoneT:"আপনার মোবাইল নম্বর",phoneS:"অফিসে যে নম্বর রেজিস্টার করা আছে",cont:"এগিয়ে যান",help:"সাহায্য লাগবে? অফিসে ফোন করুন",
+ bn:{inst:"অ্যাপ ইনস্টল করুন",instT:"SMOU Driver হোম স্ক্রিনে রাখুন",instS:"সাধারণ অ্যাপের মতো পুরো স্ক্রিনে খুলবে — ব্রাউজার বার থাকবে না।",inst1:"শেয়ার বাটনে চাপুন",inst1b:"Safari: নিচের বার · Chrome: উপরে ডানে",inst2:"“Add to Home Screen” বেছে নিন",inst3:"হোম স্ক্রিন থেকে SMOU Driver খুলে একবার লগইন করুন",instOk:"বুঝেছি",instNo:"আর দেখাবেন না",gm:"শুভ সকাল",ga:"শুভ দুপুর",ge:"শুভ সন্ধ্যা",hero:"চালাতে প্রস্তুত?",phoneT:"আপনার মোবাইল নম্বর",phoneS:"অফিসে যে নম্বর রেজিস্টার করা আছে",cont:"এগিয়ে যান",help:"সাহায্য লাগবে? অফিসে ফোন করুন",
      pinT:"আপনার PIN দিন",chg:"বদলান",pinH:"অফিস থেকে পাওয়া ৪ সংখ্যার PIN",chk:"যাচাই হচ্ছে…",wrong:"ভুল PIN — আর {n} বার চেষ্টা",wrong1:"ভুল PIN — আর ১ বার চেষ্টা",wrong0:"ভুল PIN — আবার চেষ্টা করুন",
      locked:"অনেকবার চেষ্টা হয়েছে। {t} পরে আবার চেষ্টা করুন",device:"এই অ্যাকাউন্ট অন্য ফোনে খোলা আছে। অফিসকে রিসেট করতে বলুন।",noacc:"এই নম্বরে কোনো ড্রাইভার অ্যাকাউন্ট নেই",bad:"আপনার ৮ সংখ্যার নম্বর দিন",
      net:"ইন্টারনেট নেই — সংযোগ দেখে আবার চেষ্টা করুন",loadf:"লগইন হয়েছে, কিন্তু ডেটা আসেনি — আবার চেষ্টা করুন",hi:"ইয়াল্লা, {name}!",safe:"আজ নিরাপদে চালান"},
- ne:{gm:"शुभ प्रभात",ga:"शुभ दिन",ge:"शुभ साँझ",hero:"चलाउन तयार?",phoneT:"तपाईंको मोबाइल नम्बर",phoneS:"अफिसमा दर्ता भएको नम्बर",cont:"अगाडि बढ्नुहोस्",help:"सहयोग चाहियो? अफिसलाई फोन गर्नुहोस्",
+ ne:{inst:"एप इन्स्टल गर्नुहोस्",instT:"SMOU Driver लाई होम स्क्रिनमा राख्नुहोस्",instS:"यो सामान्य एपजस्तै पूरा स्क्रिनमा खुल्छ — ब्राउजर बार देखिँदैन।",inst1:"सेयर बटन थिच्नुहोस्",inst1b:"Safari: तलको बार · Chrome: माथि दायाँ",inst2:"“Add to Home Screen” छान्नुहोस्",inst3:"होम स्क्रिनबाट SMOU Driver खोलेर एक पटक लगइन गर्नुहोस्",instOk:"बुझें",instNo:"फेरि नदेखाउनुहोस्",gm:"शुभ प्रभात",ga:"शुभ दिन",ge:"शुभ साँझ",hero:"चलाउन तयार?",phoneT:"तपाईंको मोबाइल नम्बर",phoneS:"अफिसमा दर्ता भएको नम्बर",cont:"अगाडि बढ्नुहोस्",help:"सहयोग चाहियो? अफिसलाई फोन गर्नुहोस्",
      pinT:"आफ्नो PIN हाल्नुहोस्",chg:"बदल्नुहोस्",pinH:"अफिसबाट पाएको ४ अंकको PIN",chk:"जाँच हुँदैछ…",wrong:"गलत PIN — {n} पटक बाँकी",wrong1:"गलत PIN — १ पटक बाँकी",wrong0:"गलत PIN — फेरि प्रयास गर्नुहोस्",
      locked:"धेरै प्रयास भयो। {t} पछि फेरि प्रयास गर्नुहोस्",device:"यो खाता अर्को फोनमा खुला छ। अफिसलाई रिसेट गर्न भन्नुहोस्।",noacc:"यो नम्बरमा कुनै ड्राइभर खाता छैन",bad:"आफ्नो ८ अंकको नम्बर हाल्नुहोस्",
      net:"इन्टरनेट छैन — जडान जाँचेर फेरि प्रयास गर्नुहोस्",loadf:"लगइन भयो, तर डाटा आएन — फेरि प्रयास गर्नुहोस्",hi:"यल्ला, {name}!",safe:"आज सुरक्षित चलाउनुहोस्"}
@@ -2922,6 +2958,24 @@ function dlScenery(){
       x+=w+2+r()*5;}
     DL.city=p;var s="";for(var i=0;i<45;i++)s+='<i style="left:'+(Math.random()*100).toFixed(1)+'%;top:'+(Math.random()*50).toFixed(1)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s"></i>';DL.stars=s;
     var sp="";for(var j=0;j<10;j++)sp+='<i style="top:'+(150+Math.random()*150).toFixed(0)+'px;width:'+(40+Math.random()*90).toFixed(0)+'px;animation-delay:'+(Math.random()*.45).toFixed(2)+'s"></i>';DL.speed=sp;}
+}
+function dlIOS(){var u=navigator.userAgent||"";return /iPad|iPhone|iPod/.test(u)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);}
+function dlStandalone(){try{return navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;}catch(e){return false;}}
+function dlNative(){try{return !!(window.Capacitor&&(Capacitor.isNativePlatform?Capacitor.isNativePlatform():true));}catch(e){return false;}}
+function dlCanInstall(){return dlIOS()&&!dlStandalone()&&!dlNative();}
+function dlAutoInstall(){if(!dlCanInstall()||DL.instSeen)return false;DL.instSeen=true;
+  try{if(localStorage.getItem("d2-inst-never")==="1")return false;var t=+localStorage.getItem("d2-inst-at")||0;if(Date.now()-t<3*86400000)return false;localStorage.setItem("d2-inst-at",String(Date.now()));}catch(e){}
+  return true;}
+var DL_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
+var DL_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+function dlInstSheet(open){
+  return '<div class="dl-inst'+(open?" on":"")+'" id="dlInst" role="dialog" aria-modal="true"><div class="dl-inst-bg" data-dl="instClose"></div><div class="dl-inst-card">'+
+    '<div class="dl-inst-ic"><img src="icons/icon-180.png" alt=""></div>'+
+    '<h3>'+qe(dlt("instT"))+'</h3><p class="dl-sub">'+qe(dlt("instS"))+'</p>'+
+    '<ol class="dl-inst-steps"><li><span class="n">1</span><span class="ic sh">'+DL_SHARE+'</span><span><b>'+qe(dlt("inst1"))+'</b><small>'+qe(dlt("inst1b"))+'</small></span></li>'+
+      '<li><span class="n">2</span><span class="ic">'+DL_PLUS+'</span><span><b>'+qe(dlt("inst2"))+'</b></span></li>'+
+      '<li><span class="n">3</span><span class="ic ap"><img src="icons/icon-180.png" alt=""></span><span><b>'+qe(dlt("inst3"))+'</b></span></li></ol>'+
+    '<button class="dl-cta" data-dl="instClose">'+qe(dlt("instOk"))+'</button><button class="dl-inst-no" data-dl="instNever">'+qe(dlt("instNo"))+'</button></div></div>';
 }
 var DL_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>';
 function landingDriver(){
@@ -2962,13 +3016,13 @@ function landingDriver(){
         msg("phone")+
         '<button class="dl-cta" data-dl="next"'+(ph.length===8?"":" disabled")+'><span>'+qe(dlt("cont"))+'</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>'+
         '<div class="dl-langs">'+D2LANGS.map(function(l){return '<button class="'+(D2.lang===l[0]?"on":"")+'" data-d2lang="'+l[0]+'" aria-label="'+l[2]+'">'+l[1]+'</button>';}).join("")+'</div>'+
-        '<div class="dl-help">'+qe(dlt("help"))+'</div><div class="dl-ver">v'+APP_VERSION+'</div></section>'+
+        (dlCanInstall()?'<button class="dl-instbtn" data-dl="inst">'+DL_SHARE+qe(dlt("inst"))+'</button>':'')+'<div class="dl-help">'+qe(dlt("help"))+'</div><div class="dl-ver">v'+APP_VERSION+'</div></section>'+
       '<section class="dl-step'+(pinStep?" on":"")+'" id="dlS2"><h2>'+qe(dlt("pinT"))+'</h2>'+
         '<div class="dl-who"><span class="num" id="dlNum">+965 '+qe(dlFmt(ph))+'</span><button data-dl="chg">'+qe(dlt("chg"))+'</button></div>'+
         '<div class="dl-pins" id="dlPins">'+pins+'</div><div class="dl-hint'+(DL.busy?" chk":"")+'" id="dlHint">'+qe(DL.busy?dlt("chk"):dlt("pinH"))+'</div>'+
         msg("pin")+'<div class="dl-keys">'+keys+'</div></section>'+
     '</div>'+
-    '<div class="dl-yay"><div><div class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3 id="dlYay"></h3><p>'+qe(dlt("safe"))+'</p></div></div><div class="dl-conf" id="dlConf"></div>'+
+    '<div class="dl-yay"><div><div class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3 id="dlYay"></h3><p>'+qe(dlt("safe"))+'</p></div></div><div class="dl-conf" id="dlConf"></div>'+(dlCanInstall()?dlInstSheet(DL.instOpen||dlAutoInstall()):'')+
   '</div>');
 }
 function dlEl(id){return document.getElementById(id);}
@@ -3063,6 +3117,8 @@ document.addEventListener("click",function(e){
   var a=e.target.closest("[data-dl]");if(!a)return;var act=a.getAttribute("data-dl");
   if(act==="next"){var d=dlDigits(D2.phone);if(d.length!==8){dlSetMsg("phone",dlt("bad"));var pf=dlEl("dlPf");if(pf)pf.classList.add("bad");return;}
     try{var i=dlEl("dlPhone");if(i)i.blur();}catch(_){}dlGo("pin");dlWave();return;}
+  if(act==="inst"){DL.instOpen=true;var q=dlEl("dlInst");if(q)q.classList.add("on");return;}
+  if(act==="instClose"||act==="instNever"){DL.instOpen=false;var q2=dlEl("dlInst");if(q2)q2.classList.remove("on");if(act==="instNever"){try{localStorage.setItem("d2-inst-never","1");}catch(_){}}return;}
   if(act==="chg"){DL.lockUntil=0;if(DL.lockTimer){clearInterval(DL.lockTimer);DL.lockTimer=null;}var sh=dlEl("dlSheet");if(sh)sh.classList.remove("dis");dlGo("phone");return;}
 });
 setInterval(function(){var c=dlEl("dlClock");if(!c)return;var k=dlKw();c.textContent=k.t;var g=dlEl("dlGreet");if(g)g.textContent=k.g;},1000);
