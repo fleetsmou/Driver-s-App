@@ -1100,6 +1100,30 @@ body.d2on[data-dskin="night"] .dl-cloud{opacity:.2}
 @keyframes dlSheetUp{from{transform:translateY(100%)}}
 @keyframes dlHopIn{from{opacity:0;transform:translateY(20px) scale(.6)}}
 @keyframes dlNudge{50%{transform:translateY(-4px)}}
+
+/* iPhone background GPS (Traccar) */
+.q-btn.sm{color:var(--acc-ink) !important;width:auto;height:40px;margin:0;padding:0 16px;font-size:14px;border-radius:14px;text-decoration:none;flex:none}
+.dt-card .q-row h3,.dt-warn .q-row h3{margin:0}
+.dt-ic{width:40px;height:40px;border-radius:13px;background:var(--track);color:var(--muted);display:grid;place-items:center;flex:none}
+.dt-ic.on{background:var(--good-bg);color:var(--good);animation:dtPulse 2s infinite}
+.dt-ic.warn{background:var(--crit-bg);color:var(--crit)}
+.dt-warn{border:1.5px solid color-mix(in srgb,var(--crit) 40%,transparent);background:color-mix(in srgb,var(--crit-bg) 60%,var(--panel));animation:dtIn .4s both}
+.dt-steps{list-style:none;counter-reset:dt;margin:6px 0 0;padding:0;display:grid;gap:12px}
+.dt-steps>li{counter-increment:dt;position:relative;padding:12px 12px 12px 48px;border:1px solid var(--line);border-radius:18px;background:var(--panel2);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.dt-steps>li::before{content:counter(dt);position:absolute;left:12px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--panel);font:800 13px/26px "JetBrains Mono",monospace;text-align:center}
+.d2[dir="rtl"] .dt-steps>li{padding:12px 48px 12px 12px}.d2[dir="rtl"] .dt-steps>li::before{left:auto;right:12px}
+.dt-steps b{font-size:14px;line-height:1.35}
+.dt-steps small{color:var(--muted);font-weight:600;font-size:12.5px;line-height:1.35}
+.dt-box{width:100%;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+.dt-kv{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid var(--line);font-size:12.5px;direction:ltr}
+.dt-kv:first-child{border-top:0}
+.dt-kv .k{color:var(--muted);font-weight:700;flex:none;min-width:96px}
+.dt-kv .v{flex:1;min-width:0;font-weight:800;word-break:break-all}
+.dt-kv .v.mono{font-family:"JetBrains Mono",monospace;font-size:12px}
+.dt-copy{flex:none;border:0;border-radius:10px;background:var(--acc);color:var(--acc-ink);font-weight:800;font-size:12px;padding:7px 10px;cursor:pointer}
+.dt-copy.ok{background:var(--good);color:#fff}
+@keyframes dtPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 45%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+@keyframes dtIn{from{opacity:0;transform:translateY(-6px)}}
 </style>
 </head>
 <body>
@@ -1181,7 +1205,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.2";
+const APP_VERSION="4.3";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -1210,7 +1234,7 @@ const mapShift=r=>({id:r.id,driverId:r.driver_id,platform:r.platform,date:r.date
   logoutTime:r.logout_time,logoutPlace:r.logout_place,logoutAddr:r.logout_addr,logoutLat:r.logout_lat,logoutLng:r.logout_lng,
   duration:r.duration,summary:r.summary,liveLat:r.live_lat,liveLng:r.live_lng,speed:r.speed,lastPing:r.live_time,
   liveAt:r.live_at?Date.parse(r.live_at):null,liveAcc:r.live_acc,heading:r.heading,loginSrc:r.login_src||null,logoutSrc:r.logout_src||null,
-  breakAt:r.break_started_at?Date.parse(r.break_started_at):null,breakSec:r.break_seconds||0,
+  breakAt:r.break_started_at?Date.parse(r.break_started_at):null,breakSec:r.break_seconds||0,trkAt:r.trk_at?Date.parse(r.trk_at):null,liveSrc:r.live_src||null,
   startedAt:r.started_at?new Date(r.started_at).getTime():Date.now()});
 const mapFuel=r=>({id:r.id,driverId:r.driver_id,shiftId:r.shift_id,plate:r.plate,station:r.station,cost:r.cost,receiptPhoto:r.receipt_photo,place:r.place,lat:r.lat,lng:r.lng,date:r.date,time:r.time});
 
@@ -3126,6 +3150,88 @@ setInterval(function(){var c=dlEl("dlClock");if(!c)return;var k=dlKw();c.textCon
 var _dlForceOut=forceDriverLogout;
 forceDriverLogout=function(msg){DL.step=null;DL.pin="";DL.busy=false;DL.msg=null;return _dlForceOut(msg);};
 if(state.ready&&state.screen==="landing")render();
+</script>
+<script id="dtrack">
+/* ===== iPhone background GPS through the free "Traccar Client" app ===== */
+var DT_URL=SUPABASE_URL.replace(/\/+$/,"")+"/functions/v1/traccar";
+var DT_STORE="https://apps.apple.com/app/traccar-client/id843156974";
+var DTX={
+ en:{t:"iPhone background GPS",sub:"Keeps your live location on while the phone is locked",on:"Connected · {a}",off:"Not connected",idle:"Starts when you clock in",setup:"Set up",howT:"Set up background GPS",howS:"One time only. Takes 2 minutes.",
+     s1:"Install “Traccar Client” (free, by Anton Tananaev)",store:"Open App Store",s2:"Open Traccar Client → Settings, and fill in:",dev:"Device identifier",url:"Server URL",acc:"Location accuracy",accV:"Highest",
+     intv:"Interval",dist:"Distance",hb:"Stationary heartbeat",buf:"Offline buffering",bufV:"On",s3:"Turn tracking ON, then allow location “Always” and keep “Precise Location” on",
+     s3b:"iPhone Settings → Traccar Client → Location → Always",s4:"Clock in here — this card turns green within a minute",copy:"Copy",copied:"Copied",warnT:"Background GPS is off",warnS:"Open Traccar Client and turn tracking on, or the office can’t see you when the phone is locked.",fix:"Fix now",note:"Don’t swipe Traccar away — just press Home."},
+ ar:{t:"GPS في الخلفية للآيفون",sub:"يبقي موقعك المباشر يعمل والهاتف مقفل",on:"متصل · {a}",off:"غير متصل",idle:"يبدأ عند تسجيل الحضور",setup:"إعداد",howT:"إعداد GPS في الخلفية",howS:"مرة واحدة فقط. دقيقتان.",
+     s1:"ثبّت «Traccar Client» (مجاني، من Anton Tananaev)",store:"فتح App Store",s2:"افتح Traccar Client ← الإعدادات واملأ:",dev:"Device identifier",url:"Server URL",acc:"Location accuracy",accV:"Highest",
+     intv:"Interval",dist:"Distance",hb:"Stationary heartbeat",buf:"Offline buffering",bufV:"On",s3:"شغّل التتبع، ثم اسمح بالموقع «دائمًا» وأبقِ «الموقع الدقيق» مفعّلًا",
+     s3b:"إعدادات الآيفون ← Traccar Client ← الموقع ← دائمًا",s4:"سجّل الحضور هنا — تصبح هذه البطاقة خضراء خلال دقيقة",copy:"نسخ",copied:"تم النسخ",warnT:"GPS الخلفية متوقف",warnS:"افتح Traccar Client وشغّل التتبع، وإلا لن يراك المكتب والهاتف مقفل.",fix:"إصلاح الآن",note:"لا تغلق Traccar بالسحب — اضغط زر الرئيسية فقط."},
+ hi:{t:"iPhone बैकग्राउंड GPS",sub:"फोन लॉक होने पर भी लाइव लोकेशन चालू रखता है",on:"कनेक्टेड · {a}",off:"कनेक्ट नहीं",idle:"क्लॉक-इन करने पर शुरू होगा",setup:"सेट करें",howT:"बैकग्राउंड GPS सेट करें",howS:"सिर्फ एक बार। 2 मिनट लगेंगे।",
+     s1:"“Traccar Client” इंस्टॉल करें (फ्री, Anton Tananaev का)",store:"App Store खोलें",s2:"Traccar Client → Settings खोलें और भरें:",dev:"Device identifier",url:"Server URL",acc:"Location accuracy",accV:"Highest",
+     intv:"Interval",dist:"Distance",hb:"Stationary heartbeat",buf:"Offline buffering",bufV:"On",s3:"ट्रैकिंग ON करें, फिर लोकेशन “Always” दें और “Precise Location” चालू रखें",
+     s3b:"iPhone Settings → Traccar Client → Location → Always",s4:"यहाँ क्लॉक-इन करें — एक मिनट में यह कार्ड हरा हो जाएगा",copy:"कॉपी",copied:"कॉपी हो गया",warnT:"बैकग्राउंड GPS बंद है",warnS:"Traccar Client खोलकर ट्रैकिंग चालू करें, वरना फोन लॉक होने पर ऑफिस आपको नहीं देख पाएगा।",fix:"अभी ठीक करें",note:"Traccar को स्वाइप करके बंद न करें — बस Home दबाएं।"},
+ bn:{t:"iPhone ব্যাকগ্রাউন্ড GPS",sub:"ফোন লক থাকলেও লাইভ লোকেশন চালু রাখে",on:"সংযুক্ত · {a}",off:"সংযুক্ত নয়",idle:"ক্লক-ইন করলে শুরু হবে",setup:"সেট করুন",howT:"ব্যাকগ্রাউন্ড GPS সেট করুন",howS:"শুধু একবার। ২ মিনিট লাগবে।",
+     s1:"“Traccar Client” ইনস্টল করুন (ফ্রি, Anton Tananaev-এর)",store:"App Store খুলুন",s2:"Traccar Client → Settings খুলে লিখুন:",dev:"Device identifier",url:"Server URL",acc:"Location accuracy",accV:"Highest",
+     intv:"Interval",dist:"Distance",hb:"Stationary heartbeat",buf:"Offline buffering",bufV:"On",s3:"ট্র্যাকিং ON করুন, তারপর লোকেশন “Always” দিন এবং “Precise Location” চালু রাখুন",
+     s3b:"iPhone Settings → Traccar Client → Location → Always",s4:"এখানে ক্লক-ইন করুন — এক মিনিটে এই কার্ড সবুজ হবে",copy:"কপি",copied:"কপি হয়েছে",warnT:"ব্যাকগ্রাউন্ড GPS বন্ধ",warnS:"Traccar Client খুলে ট্র্যাকিং চালু করুন, নইলে ফোন লক থাকলে অফিস আপনাকে দেখতে পাবে না।",fix:"এখনই ঠিক করুন",note:"Traccar সোয়াইপ করে বন্ধ করবেন না — শুধু Home চাপুন।"},
+ ne:{t:"iPhone ब्याकग्राउन्ड GPS",sub:"फोन लक हुँदा पनि लाइभ लोकेसन चालु राख्छ",on:"जोडिएको · {a}",off:"जोडिएको छैन",idle:"क्लक-इन गर्दा सुरु हुन्छ",setup:"सेट गर्नुहोस्",howT:"ब्याकग्राउन्ड GPS सेट गर्नुहोस्",howS:"एक पटक मात्र। २ मिनेट लाग्छ।",
+     s1:"“Traccar Client” इन्स्टल गर्नुहोस् (निःशुल्क, Anton Tananaev को)",store:"App Store खोल्नुहोस्",s2:"Traccar Client → Settings खोलेर भर्नुहोस्:",dev:"Device identifier",url:"Server URL",acc:"Location accuracy",accV:"Highest",
+     intv:"Interval",dist:"Distance",hb:"Stationary heartbeat",buf:"Offline buffering",bufV:"On",s3:"ट्र्याकिङ ON गर्नुहोस्, त्यसपछि लोकेसन “Always” दिनुहोस् र “Precise Location” चालु राख्नुहोस्",
+     s3b:"iPhone Settings → Traccar Client → Location → Always",s4:"यहाँ क्लक-इन गर्नुहोस् — एक मिनेटमा यो कार्ड हरियो हुन्छ",copy:"कपी",copied:"कपी भयो",warnT:"ब्याकग्राउन्ड GPS बन्द छ",warnS:"Traccar Client खोलेर ट्र्याकिङ चालु गर्नुहोस्, नत्र फोन लक हुँदा अफिसले तपाईंलाई देख्दैन।",fix:"अहिले मिलाउनुहोस्",note:"Traccar लाई स्वाइप गरेर बन्द नगर्नुहोस् — Home मात्र थिच्नुहोस्।"}
+};
+function dtt(k,v){var s=(DTX[D2.lang]||DTX.en)[k]||DTX.en[k]||k;if(v)for(var x in v)s=s.replace("{"+x+"}",v[x]);return s;}
+var DT={code:null,busy:false};
+function dtShow(){return typeof dlIOS==="function"&&dlIOS()&&!(typeof dlNative==="function"&&dlNative());}
+function dtAgo(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+"s":Math.floor(s/60)+"m";}
+function dtState(){var sh=activeShift(state.driverId);if(!sh)return "idle";return sh.trkAt&&Date.now()-sh.trkAt<180000?"on":"off";}
+function dtCode(){if(DT.code||DT.busy||!state.token)return;DT.busy=true;
+  rpc("driver_track_code",{p_token:state.token}).then(function(c){DT.code=c;var el=document.getElementById("dtCode");if(el)el.textContent=c;}).catch(function(){}).then(function(){DT.busy=false;});}
+function dtCard(){
+  if(!dtShow())return "";
+  var st=dtState(),sh=activeShift(state.driverId);
+  var chip=st==="on"?'<span class="q-chip q-g">'+qe(dtt("on",{a:dtAgo(sh.trkAt)}))+'</span>':st==="off"?'<span class="q-chip q-c">'+qe(dtt("off"))+'</span>':'<span class="q-chip q-n">'+qe(dtt("idle"))+'</span>';
+  return '<div class="q-card dt-card" id="dtCard"><div class="q-row"><span class="dt-ic'+(st==="on"?" on":"")+'">'+qi("pin",20)+'</span><div style="flex:1;min-width:0"><h3>'+qe(dtt("t"))+'</h3><div class="q-sub">'+qe(dtt("sub"))+'</div></div></div>'+
+    '<div class="q-row" style="margin-top:12px">'+chip+'<span class="q-sp"></span><button class="q-btn sm" data-dt="setup">'+qe(dtt("setup"))+'</button></div></div>';
+}
+function dtRow(label,val,copy){
+  return '<div class="dt-kv"><span class="k">'+qe(label)+'</span><span class="v'+(copy?" mono":"")+'"'+(copy==="code"?' id="dtCode"':'')+'>'+qe(val)+'</span>'+
+    (copy?'<button class="dt-copy" data-dtcopy="'+copy+'">'+qe(dtt("copy"))+'</button>':'')+'</div>';
+}
+function dtSheet(){
+  dtCode();
+  openModal(d2sheetHead("pin","",dtt("howT"),dtt("howS"))+
+    '<ol class="dt-steps">'+
+      '<li><b>'+qe(dtt("s1"))+'</b><a class="q-btn sm" href="'+DT_STORE+'" target="_blank" rel="noopener">'+qe(dtt("store"))+'</a></li>'+
+      '<li><b>'+qe(dtt("s2"))+'</b><div class="dt-box">'+
+        dtRow(dtt("dev"),DT.code||"…","code")+dtRow(dtt("url"),DT_URL,"url")+
+        dtRow(dtt("acc"),dtt("accV"))+dtRow(dtt("intv"),"10")+dtRow(dtt("dist"),"0")+dtRow(dtt("hb"),"60")+dtRow(dtt("buf"),dtt("bufV"))+
+      '</div></li>'+
+      '<li><b>'+qe(dtt("s3"))+'</b><small>'+qe(dtt("s3b"))+'</small></li>'+
+      '<li><b>'+qe(dtt("s4"))+'</b><small>'+qe(dtt("note"))+'</small></li>'+
+    '</ol><button class="q-btn" data-close style="margin-top:6px">OK</button>');
+}
+function dtCopyText(t,btn){
+  var done=function(){if(btn){btn.textContent=dtt("copied");btn.classList.add("ok");setTimeout(function(){btn.textContent=dtt("copy");btn.classList.remove("ok");},1500);}};
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){dtFallback(t);done();});return;}}catch(e){}
+  dtFallback(t);done();
+}
+function dtFallback(t){try{var ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,t.length);document.execCommand("copy");ta.remove();}catch(e){}}
+/* warning on the home screen when on duty and Traccar is silent */
+function dtBanner(){
+  var el=document.getElementById("dtWarn");
+  var want=dtShow()&&state.screen==="driver"&&state.driverTab==="home"&&dtState()==="off";
+  if(!want){if(el)el.remove();return;}
+  if(el)return;
+  var hd=document.querySelector(".q-scr > :first-child");if(!hd)return;
+  hd.insertAdjacentHTML("afterend",'<div class="q-card dt-warn" id="dtWarn"><div class="q-row"><span class="dt-ic warn">'+qi("pin",20)+'</span><div style="flex:1;min-width:0"><h3>'+qe(dtt("warnT"))+'</h3><div class="q-sub">'+qe(dtt("warnS"))+'</div></div></div><button class="q-btn sm" data-dt="setup" style="margin-top:10px">'+qe(dtt("fix"))+'</button></div>');
+}
+var _dtSettings=d2settings;
+d2settings=function(){return dtCard()+_dtSettings();};
+var _dtPost=postRender;
+postRender=function(){_dtPost();try{dtBanner();}catch(e){}};
+setInterval(function(){try{dtBanner();var c=document.getElementById("dtCard");if(c&&!document.getElementById("overlay")){var t=document.createElement("div");t.innerHTML=dtCard();if(t.firstChild&&c.innerHTML!==t.firstChild.innerHTML)c.innerHTML=t.firstChild.innerHTML;}}catch(e){}},10000);
+document.addEventListener("click",function(e){
+  var s=e.target.closest("[data-dt]");if(s){e.preventDefault();dtSheet();return;}
+  var c=e.target.closest("[data-dtcopy]");if(c){e.preventDefault();var k=c.getAttribute("data-dtcopy");var v=k==="url"?DT_URL:(DT.code||(document.getElementById("dtCode")||{}).textContent||"");if(v&&v!=="…")dtCopyText(v,c);}
+});
 </script>
 </body>
 </html>
