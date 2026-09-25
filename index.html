@@ -904,6 +904,166 @@ body.d2on .zoom{z-index:5000}
 #qNet{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translateX(-50%);z-index:99999;width:max-content;max-width:min(320px,calc(100vw - 32px));padding:6px 14px;border-radius:999px;font-size:12px!important;background:#2b2320;color:#fff;font:600 13px/1.35 "Plus Jakarta Sans",system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:qNetIn .3s ease both;text-align:center}
 #qNet.ok{background:#1f8a5b}
 @keyframes qNetIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ===== driver login v2: animated ride scene + phone → PIN steps ===== */
+.dl{position:relative;height:100vh;height:100dvh;min-height:560px;overflow:hidden;background:var(--bg);
+  --lSky1:#2A1D17;--lSky2:#7A3A1E;--lSky3:#E8894A;--lSun:#FFC27A;--lCity:#3A2A20;--lDune:#9A5A32;--lRoad:#2B221B;--lLane:#F3D9B5;--lInk:#FBF3E4;--lAcc:#F08A4B;--lBox:#F08A4B;--lJacket:#C2410C}
+body.d2on[data-dskin="night"] .dl{--lSky1:#05070B;--lSky2:#101A2B;--lSky3:#1E3350;--lSun:#E9F2FF;--lCity:#0F1622;--lDune:#172031;--lRoad:#0B0F16;--lLane:#C6F432;--lInk:#EEF2F7;--lAcc:#C6F432;--lBox:#C6F432;--lJacket:#3B4A63}
+body.d2on[data-dskin="gulf"] .dl{--lSky1:#0F2A5C;--lSky2:#2F5FA8;--lSky3:#8FC3E8;--lSun:#FFE3B8;--lCity:#1B3B70;--lDune:#D8BC90;--lRoad:#20304A;--lLane:#FDBA74;--lInk:#FFFFFF;--lAcc:#FDBA74;--lBox:#FDBA74;--lJacket:#1D4ED8}
+.dl *{box-sizing:border-box}
+.dl :where(button,input){font:inherit;color:inherit}
+.dl.still *,.dl.still *::before{animation-delay:0s !important}
+.dl.still .dl-sheet,.dl.still .dl-clk,.dl.still .dl-logo,.dl.still .dl-step.on{animation:none !important}
+.dl-scene{position:absolute;inset:0 0 auto 0;height:44%;min-height:300px;overflow:hidden;background:linear-gradient(180deg,var(--lSky1),var(--lSky2) 60%,var(--lSky3));color:var(--lInk);transition:height .6s cubic-bezier(.2,.8,.2,1)}
+.dl.pin .dl-scene{height:34%;min-height:250px}
+.dl.win .dl-scene{height:100%}
+.dl-sun{position:absolute;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,var(--lSun) 0 45%,transparent 70%);right:30px;top:90px;animation:dlSun 6s ease-in-out infinite}
+.dl-stars{position:absolute;inset:0;opacity:0;transition:opacity .8s}
+body.d2on[data-dskin="night"] .dl-stars{opacity:1}
+.dl-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:dlTw 3s infinite}
+.dl-cloud{position:absolute;height:9px;border-radius:9px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);filter:blur(2px);animation:dlDrift linear infinite}
+body.d2on[data-dskin="night"] .dl-cloud{opacity:.2}
+.dl-strip{position:absolute;left:0;width:200%;display:flex}
+.dl-strip svg{width:50%;height:100%;flex:none}
+.dl-city{height:120px;bottom:104px;color:var(--lCity);animation:dlPan 60s linear infinite}
+.dl-dunes{height:70px;bottom:86px;color:var(--lDune);animation:dlPan 30s linear infinite}
+.dl-road{position:absolute;left:0;right:0;bottom:0;height:92px;background:var(--lRoad)}
+.dl-road::before{content:"";position:absolute;left:0;top:30px;width:200%;height:4px;background:repeating-linear-gradient(90deg,var(--lLane) 0 26px,transparent 26px 54px);opacity:.85;animation:dlLane .9s linear infinite}
+.dl-road::after{content:"";position:absolute;inset:0 0 auto;height:3px;background:color-mix(in srgb,var(--lLane) 45%,transparent)}
+.dl.go .dl-road::before{animation-duration:.22s}
+.dl.go .dl-city{animation-duration:12s}.dl.go .dl-dunes{animation-duration:6s}
+.dl-hero{position:absolute;left:50%;bottom:36px;width:170px;margin-left:-100px;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.dl-hero .dl-body{animation:dlBob .42s ease-in-out infinite alternate;transform-origin:50% 100%;position:relative}
+.dl-hero svg{width:100%;overflow:visible;display:block}
+.dl-wheel{transform-box:fill-box;transform-origin:center;animation:dlSpin .55s linear infinite}
+.dl.go .dl-wheel{animation-duration:.14s}
+.dl.go .dl-hero{transform:translateX(16px)}
+.dl.win .dl-hero{animation:dlZoom 1s cubic-bezier(.5,0,.7,.4) .15s forwards}
+.dl-arm{transform-origin:112px 44px}
+.dl-hero.wave .dl-arm{animation:dlWave .5s ease-in-out 3}
+.dl-hero.bonk .dl-body{animation:dlBonk .5s ease}
+.dl-puff{position:absolute;left:18px;bottom:26px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.55);opacity:0}
+.dl-puff.on{animation:dlPuff .7s ease-out forwards}
+.dl-speed{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s}
+.dl.go .dl-speed{opacity:1}
+.dl-speed i{position:absolute;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7));animation:dlStreak .45s linear infinite}
+.dl-dizzy{position:absolute;left:112px;top:-14px;width:44px;height:20px;opacity:0;pointer-events:none}
+.dl-hero.bonk .dl-dizzy{opacity:1;animation:dlDizzy .9s linear 2}
+.dl-dizzy b{position:absolute;font-size:14px;color:#FFD166}
+.dl-bar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:calc(16px + env(safe-area-inset-top)) 20px 0;z-index:5;color:var(--lInk)}
+.dl-logo{width:40px;height:40px;border-radius:13px;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;box-shadow:0 8px 20px color-mix(in srgb,var(--acc) 45%,transparent);animation:dlPop .6s .1s cubic-bezier(.2,.8,.2,1.5) backwards}
+.dl-logo svg{width:24px;height:24px}
+.dl-bar b{font:800 17px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;display:block}
+.dl-bar small{font:600 9.5px/1 "JetBrains Mono",monospace;letter-spacing:.16em;opacity:.75;text-transform:uppercase}
+.dl-bar .sp{flex:1}
+.dl-ib{height:38px;min-width:38px;padding:0 10px;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:inherit;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.dl-ib .sw{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.8)}
+.dl-clk{position:absolute;top:calc(70px + env(safe-area-inset-top));left:22px;right:22px;z-index:4;color:var(--lInk);text-shadow:0 2px 14px rgba(0,0,0,.25);animation:dlFadeUp .6s .2s backwards;transition:opacity .3s,transform .3s}
+.dl-clk .g{font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--lAcc)}
+.dl-clk h1{font:800 34px/1.02 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;margin:8px 0 0;max-width:260px;color:inherit}
+.dl[dir="rtl"] .dl-clk h1,.d2[dir="rtl"] .dl-clk h1{font-family:"Noto Sans Arabic","Plus Jakarta Sans",sans-serif}
+.dl-clk .t{direction:ltr;unicode-bidi:isolate;font:700 13px/1 "JetBrains Mono",monospace;opacity:.8;margin-top:10px}
+.dl.pin .dl-clk{opacity:0;transform:translateY(-10px);pointer-events:none}
+.dl.win .dl-clk,.dl.win .dl-bar{opacity:0;transition:.3s}
+.dl-sheet{position:absolute;left:0;right:0;bottom:0;top:calc(44% - 30px);background:var(--panel);border-radius:32px 32px 0 0;padding:26px 22px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -18px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transition:top .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.6,-.2,.7,.2);animation:dlSheetIn .7s .15s cubic-bezier(.2,.8,.2,1.05) backwards;z-index:6;overflow-y:auto}
+@media (max-height:700px){.dl-sheet{top:calc(44% - 50px)}}
+.dl.pin .dl-sheet{top:calc(34% - 30px)}
+.dl.win .dl-sheet{transform:translateY(110%)}
+.dl-grab{width:44px;height:5px;border-radius:9px;background:var(--line);margin:-12px auto 16px;flex:none}
+.dl-step{display:none;flex-direction:column;flex:1;min-height:0}
+.dl-step.on{display:flex;animation:dlStepIn .45s cubic-bezier(.2,.8,.2,1) backwards}
+.dl-step h2{font:800 25px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.025em;margin:0}
+.d2[dir="rtl"] .dl-step h2{font-family:"Noto Sans Arabic","Plus Jakarta Sans",sans-serif}
+.dl-sub{color:var(--muted);font-size:14px;font-weight:600;margin:6px 0 0}
+.dl-pf{direction:ltr;margin-top:20px;display:flex;align-items:center;gap:10px;height:66px;border-radius:20px;border:2px solid var(--line);background:var(--panel2);padding:0 8px;transition:border-color .2s,box-shadow .2s,background .2s}
+.dl-pf:focus-within{border-color:var(--acc);background:var(--panel);box-shadow:0 0 0 5px color-mix(in srgb,var(--acc) 16%,transparent)}
+.dl-pf.bad{border-color:var(--crit);background:var(--crit-bg);animation:dlShake .45s}
+.dl-cc{height:48px;padding:0 12px;border-radius:14px;background:var(--track);font:800 16px/48px "JetBrains Mono",monospace;display:flex;align-items:center;gap:7px;flex:none}
+.dl-cc i{width:18px;height:12px;border-radius:2px;background:linear-gradient(180deg,#007A3D 0 33%,#fff 33% 66%,#CE1126 66%);position:relative;overflow:hidden}
+.dl-cc i::before{content:"";position:absolute;left:0;top:0;border-left:6px solid #000;border-top:6px solid transparent;border-bottom:6px solid transparent}
+.dl-pf input{flex:1;min-width:0;height:100% !important;border:0 !important;outline:0 !important;background:transparent !important;box-shadow:none !important;border-radius:0 !important;font:800 24px/1 "JetBrains Mono",monospace;letter-spacing:.06em;text-align:left;padding:0;box-shadow:none}
+.dl-pf input::placeholder{color:var(--line)}
+.dl-ok{width:30px;height:30px;border-radius:50%;background:var(--good);color:#fff;display:grid;place-items:center;transform:scale(0);transition:transform .35s cubic-bezier(.3,1.8,.5,1);flex:none}
+.dl-ok svg{width:16px;height:16px}
+.dl-pf.full .dl-ok{transform:scale(1)}
+.dl-msg{display:none;margin-top:12px;border-radius:14px;padding:11px 13px;font-size:13px;font-weight:700;line-height:1.35;gap:9px;align-items:flex-start}
+.dl-msg.on{display:flex;animation:dlFadeUp .3s both}
+.dl-msg.err{background:var(--crit-bg);color:var(--crit)}
+.dl-msg.warn{background:var(--warn-bg);color:var(--warn)}
+.dl-msg svg{width:18px;height:18px;flex:none}
+.dl-cta{margin-top:auto;height:60px;flex:none;border:0;border-radius:18px;background:var(--acc);color:var(--acc-ink);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:0 14px 28px -12px color-mix(in srgb,var(--acc) 75%,transparent);transition:transform .15s,opacity .2s,filter .2s}
+.dl-cta svg{width:22px;height:22px}
+.d2[dir="rtl"] .dl-cta svg{transform:scaleX(-1)}
+.dl-cta:active{transform:scale(.97)}
+.dl-cta:disabled{filter:grayscale(.6);opacity:.45;box-shadow:none;cursor:default}
+.dl-langs{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap;flex:none}
+.dl-langs button{border:1.5px solid var(--line);background:transparent;border-radius:999px;height:34px;min-width:44px;padding:0 12px;font-weight:800;font-size:13px;color:var(--muted);cursor:pointer;transition:all .2s}
+.dl-langs button.on{background:var(--ink);color:var(--panel);border-color:var(--ink);transform:translateY(-2px)}
+.dl-help{margin-top:10px;text-align:center;font-size:12.5px;font-weight:700;color:var(--muted);flex:none}
+.dl-ver{text-align:center;font:600 10px/1 "JetBrains Mono",monospace;color:var(--muted);opacity:.6;margin-top:8px}
+.dl-who{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.dl-who .num{font:800 14px/1 "JetBrains Mono",monospace;color:var(--muted);direction:ltr;unicode-bidi:isolate}
+.dl-who button{border:0;background:var(--track);border-radius:10px;padding:7px 10px;font-weight:800;font-size:12px;color:var(--acc-text);cursor:pointer}
+.dl-pins{display:flex;justify-content:center;gap:16px;margin:20px 0 6px;direction:ltr;flex:none}
+.dl-pins.bad{animation:dlShake .45s}
+.dl-pins i{width:54px;height:62px;border-radius:18px;border:2px solid var(--line);background:var(--panel2);display:grid;place-items:center;position:relative;transition:border-color .2s,background .2s}
+.dl-pins i::after{content:"";width:16px;height:16px;border-radius:50%;background:var(--acc);transform:scale(0);transition:transform .3s cubic-bezier(.3,1.9,.5,1)}
+.dl-pins i.f{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--panel))}
+.dl-pins i.f::after{transform:scale(1)}
+.dl-pins i.cur{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent)}
+.dl-pins i.cur::before{content:"";position:absolute;bottom:12px;width:18px;height:3px;border-radius:3px;background:var(--acc);animation:dlCaret 1s steps(2) infinite}
+.dl-pins.bad i{border-color:var(--crit);background:var(--crit-bg)}
+.dl-pins.bad i::after{background:var(--crit)}
+.dl-pins.ok i{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--panel))}
+.dl-pins.ok i::after{background:var(--good)}
+.dl-pins.ok i:nth-child(2){animation-delay:.07s}.dl-pins.ok i:nth-child(3){animation-delay:.14s}.dl-pins.ok i:nth-child(4){animation-delay:.21s}
+.dl-pins.ok i{animation:dlJump .5s}
+.dl-hint{text-align:center;font-size:12.5px;font-weight:700;color:var(--muted);min-height:18px;flex:none}
+.dl-hint.chk{color:var(--acc-text)}
+.dl-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:auto;padding-top:12px;direction:ltr;flex:none}
+.dl-keys button{height:60px;border-radius:18px;border:0;background:var(--panel2);font:800 26px/1 "Bricolage Grotesque",sans-serif;cursor:pointer;position:relative;overflow:hidden;transition:transform .1s,background .2s;color:var(--ink)}
+@media (max-height:720px){.dl-keys button{height:52px}.dl-pins i{height:54px}}
+.dl-keys button:active,.dl-keys button.hit{transform:scale(.93);background:var(--track)}
+.dl-keys .rp{position:absolute;border-radius:50%;background:color-mix(in srgb,var(--acc) 30%,transparent);transform:scale(0);animation:dlRipple .5s ease-out forwards;pointer-events:none}
+.dl-keys .fn{background:transparent;color:var(--muted)}
+.dl-keys .fn svg{width:26px;height:26px}
+.dl-sheet.dis .dl-keys button{pointer-events:none;opacity:.5}
+.dl-yay{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--lInk);z-index:7;pointer-events:none;opacity:0}
+.dl.win .dl-yay{opacity:1;transition:opacity .4s .5s}
+.dl-yay .tk{width:92px;height:92px;border-radius:30px;background:var(--good);display:grid;place-items:center;margin:0 auto 18px;transform:scale(0) rotate(-30deg)}
+.dl.win .dl-yay .tk{animation:dlPopBig .6s .7s cubic-bezier(.2,.8,.2,1.6) forwards}
+.dl-yay .tk svg{width:50px;height:50px;stroke-dasharray:40;stroke-dashoffset:40}
+.dl.win .dl-yay .tk svg{animation:dlDraw .5s 1.1s forwards}
+.dl-yay h3{font:800 36px/1.05 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;margin:0;color:inherit}
+.d2[dir="rtl"] .dl-yay h3{font-family:"Noto Sans Arabic","Plus Jakarta Sans",sans-serif}
+.dl-yay p{font-weight:700;opacity:.85;margin:8px 0 0}
+.dl-conf{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:8}
+.dl-conf i{position:absolute;top:45%;left:50%;width:8px;height:12px;border-radius:2px;opacity:0;animation:dlBoom 1.3s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes dlFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes dlPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes dlSheetIn{from{transform:translateY(60%)}to{transform:none}}
+@keyframes dlStepIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes dlSun{50%{transform:scale(1.08)}}
+@keyframes dlTw{50%{opacity:.2}}
+@keyframes dlDrift{from{transform:translateX(-140px)}to{transform:translateX(560px)}}
+@keyframes dlPan{to{transform:translateX(-50%)}}
+@keyframes dlLane{to{transform:translateX(-54px)}}
+@keyframes dlBob{to{transform:translateY(-3px) rotate(-1.2deg)}}
+@keyframes dlSpin{to{transform:rotate(360deg)}}
+@keyframes dlWave{50%{transform:rotate(-38deg)}}
+@keyframes dlBonk{20%{transform:translateX(-10px) rotate(-6deg)}50%{transform:translateX(6px) rotate(4deg)}}
+@keyframes dlDizzy{to{transform:rotate(360deg)}}
+@keyframes dlPuff{0%{opacity:.8;transform:translate(0,0) scale(.6)}100%{opacity:0;transform:translate(-46px,-10px) scale(2.4)}}
+@keyframes dlStreak{from{transform:translateX(560px)}to{transform:translateX(-200px)}}
+@keyframes dlZoom{to{transform:translateX(560px) rotate(-6deg)}}
+@keyframes dlShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+@keyframes dlCaret{50%{opacity:0}}
+@keyframes dlJump{40%{transform:translateY(-12px)}}
+@keyframes dlRipple{to{transform:scale(4);opacity:0}}
+@keyframes dlPopBig{to{transform:none}}
+@keyframes dlDraw{to{stroke-dashoffset:0}}
+@keyframes dlBoom{0%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(var(--r))}}
+@media (prefers-reduced-motion:reduce){.dl *,.dl *::before,.dl *::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
 </style>
 </head>
 <body>
@@ -985,7 +1145,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.0";
+const APP_VERSION="4.1";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -2722,6 +2882,194 @@ if(state.ready)render();
   window.addEventListener("online",function(){net(true);});
   if(navigator.onLine===false&&state.screen==="driver")net(false);
 })();
+</script>
+<script id="dlogin">
+/* ===== driver login v2: animated scene, phone step → PIN step, 5 languages ===== */
+var DLX={
+ en:{gm:"Good morning",ga:"Good afternoon",ge:"Good evening",hero:"Ready to ride?",phoneT:"Your mobile number",phoneS:"The number the office registered for you",cont:"Continue",help:"Need help? Call the office",
+     pinT:"Enter your PIN",chg:"Change",pinH:"4-digit PIN from the office",chk:"Checking…",wrong:"Wrong PIN — {n} tries left",wrong1:"Wrong PIN — 1 try left",wrong0:"Wrong PIN — try again",
+     locked:"Too many tries. Try again in {t}",device:"This account is open on another phone. Ask the office to reset it.",noacc:"No driver account with this number",bad:"Enter your 8-digit number",
+     net:"No internet — check your connection and try again",loadf:"Signed in, but your data didn't load — try again",hi:"Yalla, {name}!",safe:"Ride safe today"},
+ ar:{gm:"صباح الخير",ga:"طاب يومك",ge:"مساء الخير",hero:"جاهز للانطلاق؟",phoneT:"رقم هاتفك",phoneS:"الرقم المسجّل لدى المكتب",cont:"متابعة",help:"تحتاج مساعدة؟ اتصل بالمكتب",
+     pinT:"أدخل الرمز السري",chg:"تغيير",pinH:"الرمز المكوّن من 4 أرقام من المكتب",chk:"جارٍ التحقق…",wrong:"رمز خاطئ — تبقّى {n} محاولات",wrong1:"رمز خاطئ — تبقّت محاولة واحدة",wrong0:"رمز خاطئ — حاول مرة أخرى",
+     locked:"محاولات كثيرة. حاول بعد {t}",device:"هذا الحساب مفتوح على هاتف آخر. اطلب من المكتب إعادة تعيينه.",noacc:"لا يوجد حساب سائق بهذا الرقم",bad:"أدخل رقمك المكوّن من 8 أرقام",
+     net:"لا يوجد إنترنت — تحقق من الاتصال وحاول مجددًا",loadf:"تم الدخول لكن لم تُحمَّل بياناتك — حاول مجددًا",hi:"يلا يا {name}!",safe:"قُد بأمان اليوم"},
+ hi:{gm:"सुप्रभात",ga:"नमस्ते",ge:"शुभ संध्या",hero:"चलने के लिए तैयार?",phoneT:"आपका मोबाइल नंबर",phoneS:"जो नंबर ऑफिस में रजिस्टर है",cont:"आगे बढ़ें",help:"मदद चाहिए? ऑफिस को कॉल करें",
+     pinT:"अपना PIN डालें",chg:"बदलें",pinH:"ऑफिस से मिला 4 अंकों का PIN",chk:"जाँच हो रही है…",wrong:"गलत PIN — {n} कोशिशें बाकी",wrong1:"गलत PIN — 1 कोशिश बाकी",wrong0:"गलत PIN — फिर से कोशिश करें",
+     locked:"बहुत ज़्यादा कोशिशें। {t} बाद फिर कोशिश करें",device:"यह अकाउंट दूसरे फोन पर खुला है। ऑफिस से रीसेट करवाएं।",noacc:"इस नंबर से कोई ड्राइवर अकाउंट नहीं है",bad:"अपना 8 अंकों का नंबर डालें",
+     net:"इंटरनेट नहीं है — कनेक्शन देखकर फिर कोशिश करें",loadf:"लॉगिन हो गया, पर डेटा नहीं आया — फिर कोशिश करें",hi:"यल्ला, {name}!",safe:"आज सुरक्षित चलाएं"},
+ bn:{gm:"শুভ সকাল",ga:"শুভ দুপুর",ge:"শুভ সন্ধ্যা",hero:"চালাতে প্রস্তুত?",phoneT:"আপনার মোবাইল নম্বর",phoneS:"অফিসে যে নম্বর রেজিস্টার করা আছে",cont:"এগিয়ে যান",help:"সাহায্য লাগবে? অফিসে ফোন করুন",
+     pinT:"আপনার PIN দিন",chg:"বদলান",pinH:"অফিস থেকে পাওয়া ৪ সংখ্যার PIN",chk:"যাচাই হচ্ছে…",wrong:"ভুল PIN — আর {n} বার চেষ্টা",wrong1:"ভুল PIN — আর ১ বার চেষ্টা",wrong0:"ভুল PIN — আবার চেষ্টা করুন",
+     locked:"অনেকবার চেষ্টা হয়েছে। {t} পরে আবার চেষ্টা করুন",device:"এই অ্যাকাউন্ট অন্য ফোনে খোলা আছে। অফিসকে রিসেট করতে বলুন।",noacc:"এই নম্বরে কোনো ড্রাইভার অ্যাকাউন্ট নেই",bad:"আপনার ৮ সংখ্যার নম্বর দিন",
+     net:"ইন্টারনেট নেই — সংযোগ দেখে আবার চেষ্টা করুন",loadf:"লগইন হয়েছে, কিন্তু ডেটা আসেনি — আবার চেষ্টা করুন",hi:"ইয়াল্লা, {name}!",safe:"আজ নিরাপদে চালান"},
+ ne:{gm:"शुभ प्रभात",ga:"शुभ दिन",ge:"शुभ साँझ",hero:"चलाउन तयार?",phoneT:"तपाईंको मोबाइल नम्बर",phoneS:"अफिसमा दर्ता भएको नम्बर",cont:"अगाडि बढ्नुहोस्",help:"सहयोग चाहियो? अफिसलाई फोन गर्नुहोस्",
+     pinT:"आफ्नो PIN हाल्नुहोस्",chg:"बदल्नुहोस्",pinH:"अफिसबाट पाएको ४ अंकको PIN",chk:"जाँच हुँदैछ…",wrong:"गलत PIN — {n} पटक बाँकी",wrong1:"गलत PIN — १ पटक बाँकी",wrong0:"गलत PIN — फेरि प्रयास गर्नुहोस्",
+     locked:"धेरै प्रयास भयो। {t} पछि फेरि प्रयास गर्नुहोस्",device:"यो खाता अर्को फोनमा खुला छ। अफिसलाई रिसेट गर्न भन्नुहोस्।",noacc:"यो नम्बरमा कुनै ड्राइभर खाता छैन",bad:"आफ्नो ८ अंकको नम्बर हाल्नुहोस्",
+     net:"इन्टरनेट छैन — जडान जाँचेर फेरि प्रयास गर्नुहोस्",loadf:"लगइन भयो, तर डाटा आएन — फेरि प्रयास गर्नुहोस्",hi:"यल्ला, {name}!",safe:"आज सुरक्षित चलाउनुहोस्"}
+};
+function dlt(k,v){var s=(DLX[D2.lang]||DLX.en)[k]||DLX.en[k]||k;if(v)for(var x in v)s=s.replace("{"+x+"}",v[x]);return s;}
+var DL={step:null,pin:"",busy:false,msg:null,lockUntil:0,resetT:null,city:null,stars:null,speed:null};
+(function(){try{var p=localStorage.getItem("d2-phone");if(p&&!D2.phone)D2.phone=p;}catch(e){}})();
+function dlDigits(v){return String(v||"").replace(/\D/g,"").replace(/^965(?=\d{8}$)/,"").slice(0,8);}
+function dlFmt(d){return d.length>4?d.slice(0,4)+" "+d.slice(4):d;}
+function dlKw(){var d=new Date(),f=function(o){o.timeZone="Asia/Kuwait";return new Intl.DateTimeFormat("en-GB",o).format(d);};
+  var h=parseInt(f({hour:"2-digit",hourCycle:"h23"}),10),h12=h%12||12;
+  return {g:dlt(h<5?"ge":h<12?"gm":h<17?"ga":"ge"),t:(h12<10?"0":"")+h12+":"+String(f({minute:"2-digit"})).padStart(2,"0")+" "+(h<12?"AM":"PM")+" · Kuwait"};}
+function dlScenery(){
+  if(!DL.city){var p="",x=0,seed=11;function r(){seed=(seed*9301+49297)%233280;return seed/233280;}
+    while(x<400){var w=12+r()*22,h=24+r()*80;p+='<rect x="'+x.toFixed(1)+'" y="'+(120-h).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2"/>';
+      if(r()>.8){var cx=x+w/2;p+='<rect x="'+(cx-1.5)+'" y="'+(120-h-32)+'" width="3" height="34"/><circle cx="'+cx+'" cy="'+(120-h-18)+'" r="'+(5+r()*4).toFixed(1)+'"/>';}
+      x+=w+2+r()*5;}
+    DL.city=p;var s="";for(var i=0;i<45;i++)s+='<i style="left:'+(Math.random()*100).toFixed(1)+'%;top:'+(Math.random()*50).toFixed(1)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s"></i>';DL.stars=s;
+    var sp="";for(var j=0;j<10;j++)sp+='<i style="top:'+(150+Math.random()*150).toFixed(0)+'px;width:'+(40+Math.random()*90).toFixed(0)+'px;animation-delay:'+(Math.random()*.45).toFixed(2)+'s"></i>';DL.speed=sp;}
+}
+var DL_ALERT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>';
+function landingDriver(){
+  dlScenery();
+  var ph=dlDigits(D2.phone||"");if(!DL.step)DL.step=ph.length===8?"pin":"phone";
+  var k=dlKw(),pinStep=DL.step==="pin",locked=DL.lockUntil>Date.now();
+  var dune='<path d="M0 70V40C60 18 120 14 190 32S320 58 400 36v34z"/>';
+  var pins="";for(var i=0;i<4;i++)pins+='<i class="'+(i<DL.pin.length?"f":"")+(i===DL.pin.length&&pinStep&&!DL.busy?" cur":"")+'"></i>';
+  var keys=["1","2","3","4","5","6","7","8","9","","0","del"].map(function(x){
+    if(x==="")return "<span></span>";
+    if(x==="del")return '<button class="fn" data-dlk="del" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="M17 9l-5 6M12 9l5 6"/></svg></button>';
+    return '<button data-dlk="'+x+'">'+x+'</button>';}).join("");
+  var msg=function(step){var m=DL.msg&&DL.msg.step===step?DL.msg:null;return '<div class="dl-msg '+(m?(m.kind||"err")+" on":"err")+'" id="dlMsg'+step+'">'+DL_ALERT+'<span>'+(m?qe(m.text):"")+'</span></div>';};
+  return d2wrap('<div class="dl'+(pinStep?" pin":"")+(D2.still?" still":"")+'" id="dl">'+
+    '<div class="dl-scene" aria-hidden="true"><div class="dl-stars">'+DL.stars+'</div>'+
+      '<div class="dl-cloud" style="top:120px;width:90px;animation-duration:40s"></div><div class="dl-cloud" style="top:170px;width:60px;animation-duration:55s;animation-delay:-25s"></div><div class="dl-sun"></div>'+
+      '<div class="dl-strip dl-city"><svg viewBox="0 0 400 120" preserveAspectRatio="none" fill="currentColor">'+DL.city+'</svg><svg viewBox="0 0 400 120" preserveAspectRatio="none" fill="currentColor">'+DL.city+'</svg></div>'+
+      '<div class="dl-strip dl-dunes"><svg viewBox="0 0 400 70" preserveAspectRatio="none" fill="currentColor">'+dune+'</svg><svg viewBox="0 0 400 70" preserveAspectRatio="none" fill="currentColor">'+dune+'</svg></div>'+
+      '<div class="dl-road"></div><div class="dl-speed">'+DL.speed+'</div>'+
+      '<div class="dl-hero" id="dlHero"><span class="dl-puff" id="dlPuff"></span><div class="dl-body"><svg viewBox="0 0 170 110">'+
+        '<g class="dl-wheel"><circle cx="34" cy="88" r="17" fill="#15110D"/><circle cx="34" cy="88" r="8" fill="#6b6b6b"/><path d="M34 74v28M20 88h28" stroke="#9a9a9a" stroke-width="2"/></g>'+
+        '<g class="dl-wheel"><circle cx="134" cy="88" r="17" fill="#15110D"/><circle cx="134" cy="88" r="8" fill="#6b6b6b"/><path d="M134 74v28M120 88h28" stroke="#9a9a9a" stroke-width="2"/></g>'+
+        '<path d="M34 88 C 40 66, 70 62, 96 66 L 120 66 L 134 88" fill="none" stroke="#2E2A26" stroke-width="7" stroke-linejoin="round"/><path d="M58 70 h46 a8 8 0 0 1 8 8 v4 H52 z" fill="var(--lJacket)"/>'+
+        '<path d="M118 66 L 128 34" stroke="#2E2A26" stroke-width="6" stroke-linecap="round"/><path d="M122 32 h14" stroke="#15110D" stroke-width="6" stroke-linecap="round"/><circle cx="140" cy="46" r="5" fill="#FFE8A3"/>'+
+        '<rect x="8" y="30" width="46" height="38" rx="8" fill="var(--lBox)"/><rect x="8" y="30" width="46" height="10" rx="5" fill="rgba(0,0,0,.14)"/><path d="M20 50 q11 8 22 0" stroke="rgba(0,0,0,.28)" stroke-width="3.5" fill="none" stroke-linecap="round"/>'+
+        '<path d="M70 70 L 92 72 L 104 88" stroke="#2A2F3A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M66 70 C 64 50, 72 36, 86 34 L 98 36 C 104 44, 102 58, 96 68 z" fill="var(--lJacket)"/>'+
+        '<g class="dl-arm"><path d="M96 44 L 112 44 L 124 34" stroke="var(--lJacket)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="125" cy="33" r="4.5" fill="#E9B48A"/></g>'+
+        '<circle cx="90" cy="20" r="15" fill="var(--acc)"/><path d="M90 5 a15 15 0 0 1 15 15 h-15z" fill="rgba(255,255,255,.18)"/><path d="M93 16 h13 a4 4 0 0 1 0 9 h-13z" fill="#15110D"/><path d="M96 18h6" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".6"/>'+
+        '</svg><div class="dl-dizzy"><b style="left:0;top:4px">✦</b><b style="left:18px;top:-4px">✦</b><b style="left:34px;top:6px">✦</b></div></div></div>'+
+    '</div>'+
+    '<div class="dl-bar"><span class="dl-logo">'+D2LOGO+'</span><span><b>SMOU Driver</b><small>Kuwait</small></span><span class="sp"></span>'+
+      '<button class="dl-ib" data-d2="menu" aria-label="'+qe(tt("theme"))+'"><span class="sw" style="background:'+d2sw(d2skinObj())+'"></span></button></div>'+
+    '<div class="dl-clk"><div class="g" id="dlGreet">'+qe(k.g)+'</div><h1>'+qe(dlt("hero"))+'</h1><div class="t" id="dlClock">'+k.t+'</div></div>'+
+    '<div class="dl-sheet'+(DL.busy||locked?" dis":"")+'" id="dlSheet"><div class="dl-grab"></div>'+
+      '<section class="dl-step'+(pinStep?"":" on")+'" id="dlS1"><h2>'+qe(dlt("phoneT"))+'</h2><p class="dl-sub">'+qe(dlt("phoneS"))+'</p>'+
+        '<label class="dl-pf'+(ph.length===8?" full":"")+'" id="dlPf"><span class="dl-cc"><i></i>+965</span><input id="dlPhone" inputmode="numeric" autocomplete="tel" placeholder="5xxx xxxx" maxlength="9" value="'+qe(dlFmt(ph))+'">'+
+          '<span class="dl-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></label>'+
+        msg("phone")+
+        '<button class="dl-cta" data-dl="next"'+(ph.length===8?"":" disabled")+'><span>'+qe(dlt("cont"))+'</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>'+
+        '<div class="dl-langs">'+D2LANGS.map(function(l){return '<button class="'+(D2.lang===l[0]?"on":"")+'" data-d2lang="'+l[0]+'" aria-label="'+l[2]+'">'+l[1]+'</button>';}).join("")+'</div>'+
+        '<div class="dl-help">'+qe(dlt("help"))+'</div><div class="dl-ver">v'+APP_VERSION+'</div></section>'+
+      '<section class="dl-step'+(pinStep?" on":"")+'" id="dlS2"><h2>'+qe(dlt("pinT"))+'</h2>'+
+        '<div class="dl-who"><span class="num" id="dlNum">+965 '+qe(dlFmt(ph))+'</span><button data-dl="chg">'+qe(dlt("chg"))+'</button></div>'+
+        '<div class="dl-pins" id="dlPins">'+pins+'</div><div class="dl-hint'+(DL.busy?" chk":"")+'" id="dlHint">'+qe(DL.busy?dlt("chk"):dlt("pinH"))+'</div>'+
+        msg("pin")+'<div class="dl-keys">'+keys+'</div></section>'+
+    '</div>'+
+    '<div class="dl-yay"><div><div class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3 id="dlYay"></h3><p>'+qe(dlt("safe"))+'</p></div></div><div class="dl-conf" id="dlConf"></div>'+
+  '</div>');
+}
+function dlEl(id){return document.getElementById(id);}
+function dlSetMsg(step,text,kind){DL.msg=text?{step:step,text:text,kind:kind||"err"}:null;
+  ["phone","pin"].forEach(function(s){var m=dlEl("dlMsg"+s);if(!m)return;var on=DL.msg&&DL.msg.step===s;m.className="dl-msg "+(on?DL.msg.kind+" on":"err");m.querySelector("span").textContent=on?DL.msg.text:"";});}
+function dlPaintPins(){var ps=document.querySelectorAll("#dlPins i");Array.prototype.forEach.call(ps,function(x,n){x.className=(n<DL.pin.length?"f":"")+(n===DL.pin.length&&DL.step==="pin"&&!DL.busy?" cur":"");});}
+function dlWave(){var h=dlEl("dlHero");if(!h)return;h.classList.remove("wave");void h.offsetWidth;h.classList.add("wave");}
+function dlGo(step){
+  DL.step=step;DL.pin="";dlSetMsg(null);var dl=dlEl("dl");if(!dl)return;
+  dl.classList.toggle("pin",step==="pin");dlEl("dlS1").classList.toggle("on",step==="phone");dlEl("dlS2").classList.toggle("on",step==="pin");
+  var n=dlEl("dlNum");if(n)n.textContent="+965 "+dlFmt(dlDigits(D2.phone));
+  dlPaintPins();
+  if(step==="phone")setTimeout(function(){var i=dlEl("dlPhone");if(i){i.focus();try{i.setSelectionRange(i.value.length,i.value.length);}catch(e){}}},350);
+}
+function dlBusy(on){DL.busy=on;var dl=dlEl("dl"),sh=dlEl("dlSheet"),hn=dlEl("dlHint");
+  if(dl)dl.classList.toggle("go",on);if(sh)sh.classList.toggle("dis",on||DL.lockUntil>Date.now());
+  if(hn){hn.classList.toggle("chk",on);hn.textContent=on?dlt("chk"):dlt("pinH");}dlPaintPins();}
+function dlPress(k,el){
+  if(DL.step!=="pin"||DL.busy||DL.lockUntil>Date.now())return;
+  if(el){var r=el.getBoundingClientRect(),rp=document.createElement("span");rp.className="rp";rp.style.width=rp.style.height=r.width/2+"px";rp.style.left=r.width/4+"px";rp.style.top=(r.height-r.width/2)/2+"px";el.appendChild(rp);setTimeout(function(){rp.remove();},500);}
+  if(DL.resetT){clearTimeout(DL.resetT);DL.resetT=null;DL.pin="";}
+  var ps=dlEl("dlPins");if(ps)ps.classList.remove("bad");var h=dlEl("dlHero");if(h)h.classList.remove("bonk");
+  if(DL.msg&&DL.msg.kind==="err")dlSetMsg(null);
+  if(k==="del"){DL.pin=DL.pin.slice(0,-1);dlPaintPins();return;}
+  if(DL.pin.length>=4)return;DL.pin+=k;dlPaintPins();
+  var pf=dlEl("dlPuff");if(pf){pf.classList.remove("on");void pf.offsetWidth;pf.classList.add("on");}
+  try{if(navigator.vibrate)navigator.vibrate(12);}catch(e){}
+  if(DL.pin.length===4)setTimeout(dlSubmit,180);
+}
+d2pinKey=function(k){dlPress(k,k==="del"?null:document.querySelector('[data-dlk="'+k+'"]'));};
+function dlLockTick(){
+  if(DL.lockTimer)clearInterval(DL.lockTimer);
+  DL.lockTimer=setInterval(function(){
+    var left=Math.ceil((DL.lockUntil-Date.now())/1000);
+    if(left<=0){clearInterval(DL.lockTimer);DL.lockTimer=null;DL.lockUntil=0;dlSetMsg(null);var sh=dlEl("dlSheet");if(sh)sh.classList.remove("dis");dlPaintPins();return;}
+    var m=Math.floor(left/60),s=left%60,txt=dlt("locked",{t:m+":"+String(s).padStart(2,"0")});
+    DL.msg={step:"pin",text:txt,kind:"warn"};var sp=document.querySelector("#dlMsgpin span");if(sp)sp.textContent=txt;
+  },1000);
+}
+async function dlSubmit(){
+  if(DL.busy||DL.pin.length!==4)return;
+  var ph=dlDigits(D2.phone),pin=DL.pin;
+  dlBusy(true);
+  var res;
+  try{res=await sb.rpc("driver_login",{p_phone:ph,p_pin:pin,p_device:deviceId()});}catch(e){res={error:{message:String(e&&e.message||e)}};}
+  var data=res&&res.data,err=res&&res.error;
+  if(err||!data){dlBusy(false);DL.pin="";dlPaintPins();dlSetMsg("pin",navigator.onLine===false||/fetch|network/i.test((err&&err.message)||"")?dlt("net"):((err&&err.message)||dlt("net")));return;}
+  if(data.error){
+    dlBusy(false);var code=data.error;
+    if(code==="NO_ACCOUNT"||code==="BAD_PHONE"){dlGo("phone");dlSetMsg("phone",dlt(code==="NO_ACCOUNT"?"noacc":"bad"));var pf=dlEl("dlPf");if(pf){pf.classList.remove("bad");void pf.offsetWidth;pf.classList.add("bad");}return;}
+    if(code==="LOCKED"){DL.pin="";dlPaintPins();DL.lockUntil=Date.now()+1000*(+data.wait>0?+data.wait:900);var sh=dlEl("dlSheet");if(sh)sh.classList.add("dis");
+      var w0=Math.ceil((DL.lockUntil-Date.now())/1000);dlSetMsg("pin",dlt("locked",{t:Math.floor(w0/60)+":"+String(w0%60).padStart(2,"0")}),"warn");dlLockTick();return;}
+    if(code==="DEVICE_LOCKED"){DL.pin="";dlPaintPins();dlSetMsg("pin",dlt("device"),"warn");return;}
+    /* BAD_PIN */
+    var ps=dlEl("dlPins");if(ps){ps.classList.remove("bad");void ps.offsetWidth;ps.classList.add("bad");}
+    var h=dlEl("dlHero");if(h){h.classList.remove("bonk");void h.offsetWidth;h.classList.add("bonk");}
+    try{if(navigator.vibrate)navigator.vibrate([40,60,40]);}catch(e){}
+    var left=data.left!=null?+data.left:null;
+    dlSetMsg("pin",left==null?dlt("wrong0"):left===1?dlt("wrong1"):dlt("wrong",{n:left}));
+    DL.resetT=setTimeout(function(){DL.resetT=null;DL.pin="";dlPaintPins();var p=dlEl("dlPins");if(p)p.classList.remove("bad");},700);
+    return;
+  }
+  /* signed in */
+  state.token=data.token;
+  try{await loadDriver();}catch(e){state.token=null;dlBusy(false);DL.pin="";dlPaintPins();dlSetMsg("pin",dlt("loadf"));return;}
+  try{localStorage.setItem("d2-phone",ph);}catch(e){}
+  var d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=(d&&d.platforms&&d.platforms[0])||null;
+  saveSession({role:"driver",token:data.token,dev:deviceId()});
+  var ps2=dlEl("dlPins");if(ps2)ps2.className="dl-pins ok";
+  var y=dlEl("dlYay");if(y)y.textContent=dlt("hi",{name:String((d&&d.name)||"").trim().split(/\s+/)[0]||"Driver"});
+  setTimeout(function(){var dl=dlEl("dl");if(dl){dl.classList.remove("go");dl.classList.add("win");}
+    var cs=getComputedStyle(dl||document.body),cols=[cs.getPropertyValue("--acc"),cs.getPropertyValue("--lBox"),cs.getPropertyValue("--good"),"#FFD166","#fff"],hh="";
+    for(var i=0;i<50;i++){var a=Math.random()*Math.PI*2,dd=110+Math.random()*190;hh+='<i style="background:'+cols[i%5]+';--x:'+(Math.cos(a)*dd).toFixed(0)+'px;--y:'+(Math.sin(a)*dd-50).toFixed(0)+'px;--r:'+(Math.random()*720-360).toFixed(0)+'deg;animation-delay:'+(.9+Math.random()*.2).toFixed(2)+'s"></i>';}
+    var cf=dlEl("dlConf");if(cf)cf.innerHTML=hh;},350);
+  setTimeout(function(){DL.busy=false;DL.pin="";DL.msg=null;DL.step=null;state.screen="driver";render();},2300);
+}
+document.addEventListener("input",function(e){
+  if(e.target.id!=="dlPhone"||!dlEl("dl"))return;
+  var d=dlDigits(e.target.value);e.target.value=dlFmt(d);D2.phone=d;
+  var pf=dlEl("dlPf");if(pf){pf.classList.toggle("full",d.length===8);pf.classList.remove("bad");}
+  if(DL.msg&&DL.msg.step==="phone")dlSetMsg(null);
+  var b=document.querySelector('[data-dl="next"]');if(b)b.disabled=d.length!==8;
+  if(d.length===8)dlWave();
+});
+document.addEventListener("keydown",function(e){
+  if(!dlEl("dl"))return;
+  if(e.target&&e.target.id==="dlPhone"&&e.key==="Enter"){e.preventDefault();e.stopPropagation();var b=document.querySelector('[data-dl="next"]');if(b&&!b.disabled)b.click();}
+},true);
+document.addEventListener("click",function(e){
+  if(!dlEl("dl"))return;
+  var k=e.target.closest("[data-dlk]");if(k){dlPress(k.getAttribute("data-dlk"),k);return;}
+  var a=e.target.closest("[data-dl]");if(!a)return;var act=a.getAttribute("data-dl");
+  if(act==="next"){var d=dlDigits(D2.phone);if(d.length!==8){dlSetMsg("phone",dlt("bad"));var pf=dlEl("dlPf");if(pf)pf.classList.add("bad");return;}
+    try{var i=dlEl("dlPhone");if(i)i.blur();}catch(_){}dlGo("pin");dlWave();return;}
+  if(act==="chg"){DL.lockUntil=0;if(DL.lockTimer){clearInterval(DL.lockTimer);DL.lockTimer=null;}var sh=dlEl("dlSheet");if(sh)sh.classList.remove("dis");dlGo("phone");return;}
+});
+setInterval(function(){var c=dlEl("dlClock");if(!c)return;var k=dlKw();c.textContent=k.t;var g=dlEl("dlGreet");if(g)g.textContent=k.g;},1000);
+/* after a logout, start again from the PIN step with the remembered number */
+var _dlForceOut=forceDriverLogout;
+forceDriverLogout=function(msg){DL.step=null;DL.pin="";DL.busy=false;DL.msg=null;return _dlForceOut(msg);};
+if(state.ready&&state.screen==="landing")render();
 </script>
 </body>
 </html>
