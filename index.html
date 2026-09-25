@@ -900,6 +900,10 @@ button.q-li{width:100%;background:none;border:0;border-bottom:1px solid var(--li
 body.d2on .toast{background:var(--ink) !important;color:var(--panel) !important;border:0 !important;font-family:"Plus Jakarta Sans",sans-serif !important;font-size:13.5px !important;border-radius:16px !important;padding:13px 18px !important;bottom:calc(96px + env(safe-area-inset-bottom)) !important;box-shadow:0 14px 34px rgba(0,0,0,.3) !important}
 body.d2on .zoom{z-index:5000}
 @media (prefers-reduced-motion:reduce){.d2 *,.overlay.d2sheet *{animation:none !important;transition:none !important}}
+/* offline banner */
+#qNet{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translateX(-50%);z-index:99999;width:max-content;max-width:min(320px,calc(100vw - 32px));padding:6px 14px;border-radius:999px;font-size:12px!important;background:#2b2320;color:#fff;font:600 13px/1.35 "Plus Jakarta Sans",system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:qNetIn .3s ease both;text-align:center}
+#qNet.ok{background:#1f8a5b}
+@keyframes qNetIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
 </style>
 </head>
 <body>
@@ -2051,6 +2055,13 @@ ne:{signin_sub:"सिफ्ट सुरु गर्न साइन इन �
  doc_lic:"सवारी चालक अनुमतिपत्र",doc_cid:"सिभिल आईडी",doc_pass:"राहदानी",doc_health:"हेल्थ कार्ड",doc_pcc:"प्रहरी रिपोर्ट",expires:"म्याद",break_log:"ब्रेक",synced:"अफिससँग सिंक भयो",tyres:"टायर",brakes:"ब्रेक",lights:"बत्ती र इन्डिकेटर",
  horn:"हर्न",mirrors:"ऐना",oil:"इन्जिन र तेल",box:"डेलिभरी बक्स / हेलमेट",new_badge:"नयाँ"}
 };
+
+/* sync messages */
+Object.assign(D2L.en,{sync_ended:"Your shift was ended by the office",sync_off:"Offline — your data will sync when you are back online",sync_on:"Back online — synced ✓",sync_removed:"Your account was changed by the office — please sign in again"});
+Object.assign(D2L.ar,{sync_ended:"أنهى المكتب مناوبتك",sync_off:"غير متصل — ستتم مزامنة بياناتك عند عودة الاتصال",sync_on:"عاد الاتصال — تمت المزامنة ✓",sync_removed:"قام المكتب بتغيير حسابك — يرجى تسجيل الدخول مرة أخرى"});
+Object.assign(D2L.hi,{sync_ended:"ऑफिस ने आपकी शिफ्ट खत्म कर दी",sync_off:"ऑफलाइन — इंटरनेट आते ही डेटा सिंक हो जाएगा",sync_on:"वापस ऑनलाइन — सिंक हो गया ✓",sync_removed:"ऑफिस ने आपका अकाउंट बदला है — फिर से साइन इन करें"});
+Object.assign(D2L.bn,{sync_ended:"অফিস আপনার শিফট শেষ করেছে",sync_off:"অফলাইন — ইন্টারনেট ফিরলে ডেটা সিঙ্ক হবে",sync_on:"আবার অনলাইন — সিঙ্ক হয়েছে ✓",sync_removed:"অফিস আপনার অ্যাকাউন্ট বদলেছে — আবার সাইন ইন করুন"});
+Object.assign(D2L.ne,{sync_ended:"अफिसले तपाईंको सिफ्ट सक्यो",sync_off:"अफलाइन — इन्टरनेट आएपछि डाटा सिंक हुन्छ",sync_on:"फेरि अनलाइन — सिंक भयो ✓",sync_removed:"अफिसले तपाईंको खाता परिवर्तन गर्‍यो — फेरि साइन इन गर्नुहोस्"});
 </script>
 <script id="d2">
 /* ================================================================
@@ -2658,6 +2669,59 @@ document.addEventListener("click",function(e){
 document.addEventListener("keydown",function(e){if(!d2mode()||state.screen!=="landing")return;if(document.activeElement&&document.activeElement.id==="dlPhone")return;if(/^[0-9]$/.test(e.key))d2pinKey(e.key);else if(e.key==="Backspace")d2pinKey("del");});
 /* re-draw once with the new screens if the app already painted the old ones */
 if(state.ready)render();
+
+/* ================= background sync: keeps the phone and the office ERP in step ================= */
+(function(){
+  var SYNC_MS=30000,busy=false,dirty=false,lastSync=0;
+  function sig(){
+    try{return JSON.stringify([state.drivers.map(function(d){return [d.id,d.name,d.phone,d.plate,d.model,d.platforms,d.activeDevice];}),
+      state.shifts.map(function(s){return [s.id,s.status,s.platform,s.ordersDone,s.ordersCancelled,s.breakAt,s.breakSec,s.endOdo,s.distance,s.duration];}),
+      state.fuelRecords.map(function(f){return f.id;})]);}catch(e){return "";}
+  }
+  function canPaint(){return state.screen==="driver"&&!document.getElementById("overlay")&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));}
+  function paint(){if(canPaint()){dirty=false;d2soft();}else dirty=true;}
+  ["doStartDuty","doEndDuty"].forEach(function(n){var f=window[n];if(typeof f!=="function")return;
+    window[n]=async function(){D2.dutyBusy=(D2.dutyBusy||0)+1;try{return await f.apply(this,arguments);}finally{D2.dutyBusy--;lastSync=Date.now();}};});
+  window.d2sync=function(why){
+    if(busy||D2.dutyBusy||!state.token||state.screen!=="driver")return Promise.resolve();
+    if(navigator.onLine===false)return Promise.resolve();
+    busy=true;
+    var before=sig(),wasOn=activeShift(state.driverId);
+    return loadDriver().then(function(){
+      lastSync=Date.now();
+      if(D2.dutyBusy)return;                       /* driver is clocking in/out right now — that flow re-renders itself */
+      if(!state.drivers.length){forceDriverLogout(tt("sync_removed"));return;}
+      var nowOn=activeShift(state.driverId);
+      if(wasOn&&!nowOn){                         /* office ended the shift in the ERP */
+        stopLiveWatch();try{closeModal();}catch(e){}toast(tt("sync_ended"));dirty=false;render();return;
+      }
+      if(!wasOn&&nowOn){startLiveWatch(nowOn.id);}  /* shift opened on another session */
+      if(sig()!==before)paint();
+      if(live.queue&&live.queue.length&&!live.native)flushQueue();
+      d2loadHome(why==="focus"||why==="online");
+    }).catch(function(e){
+      var m=(e&&e.message)||"";
+      if(/SESSION_EXPIRED/.test(m))forceDriverLogout(tt("sync_removed"));
+    }).then(function(){busy=false;});
+  };
+  setInterval(function(){
+    if(document.visibilityState!=="visible")return;
+    if(dirty&&canPaint()){dirty=false;d2soft();}
+    if(Date.now()-lastSync>=SYNC_MS)d2sync("timer");
+  },5000);
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")setTimeout(function(){d2sync("focus");},300);});
+  /* offline / online banner */
+  function net(on){
+    var el=document.getElementById("qNet");
+    if(on){if(el){el.classList.add("ok");el.textContent=tt("sync_on");setTimeout(function(){var x=document.getElementById("qNet");if(x&&x.classList.contains("ok"))x.remove();},2500);}
+      if(live.last&&!live.native)pushLive(true);d2sync("online");return;}
+    if(!el){el=document.createElement("div");el.id="qNet";document.body.appendChild(el);}
+    el.classList.remove("ok");el.textContent=tt("sync_off");
+  }
+  window.addEventListener("offline",function(){if(state.screen==="driver")net(false);});
+  window.addEventListener("online",function(){net(true);});
+  if(navigator.onLine===false&&state.screen==="driver")net(false);
+})();
 </script>
 </body>
 </html>
