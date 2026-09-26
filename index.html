@@ -1124,6 +1124,238 @@ body.d2on[data-dskin="night"] .dl-cloud{opacity:.2}
 .dt-copy.ok{background:var(--good);color:#fff}
 @keyframes dtPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 45%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
 @keyframes dtIn{from{opacity:0;transform:translateY(-6px)}}
+
+/* ===== driver home v3: living scene, race-track timer, parcel stack ===== */
+.q-scr>.dh-hero{animation:dhFade .6s ease both}
+.q-still>.dh-hero{animation:none !important}
+.dh-cardrow{display:flex;align-items:center;gap:8px}
+.dh-cardrow h3{margin:0}
+.dh-sub{font-size:12px;color:var(--muted);font-weight:700}
+.dh-mono{font-family:"JetBrains Mono",monospace}
+.d2[dir="rtl"] .q-slide.dh-road-s .thumb svg{transform:scaleX(-1)}
+.dh-brkchip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font:800 11px/1 "JetBrains Mono",monospace;padding:5px 9px;border-radius:99px;background:var(--warn-bg);color:var(--warn)}
+.dh-brkchip svg{width:14px;height:14px}
+.dh-ib svg.q{width:20px;height:20px}
+@keyframes dhFade{from{opacity:0}}
+.dh-hero{position:relative;height:330px;margin:calc(-12px - env(safe-area-inset-top)) -16px 0;border-radius:0 0 38px 38px;overflow:hidden;color:#fff;isolation:isolate;flex:none;
+  background:linear-gradient(180deg,var(--s1),var(--s2) 58%,var(--s3));transition:background 1s}
+.dh-hero[data-time="morning"]{--s1:#6FB6F0;--s2:#B9DDF6;--s3:#FCE3B8;--sun:#FFE08A;--city:#8FA6BF;--city2:#6B829C;--dune:#E7C08A;--dune2:#D9A866;--roadc:#3B342E;--lane:#FFF3D6;--skyInk:#12324F}
+.dh-hero[data-time="evening"]{--s1:#2A1D3F;--s2:#B14E3A;--s3:#F2A65A;--sun:#FFB86B;--city:#3A2433;--city2:#261823;--dune:#9A5A32;--dune2:#7A4526;--roadc:#2B221B;--lane:#F3D9B5;--skyInk:#FFF4E6}
+.dh-hero[data-time="night"]{--s1:#05070B;--s2:#101A2B;--s3:#1E3350;--sun:#EEF3FF;--city:#132034;--city2:#0C1523;--dune:#172031;--dune2:#111827;--roadc:#0B0F16;--lane:#C6F432;--skyInk:#EEF2F7}
+.dh-sun{position:absolute;width:110px;height:110px;border-radius:50%;right:26px;top:74px;background:radial-gradient(circle,var(--sun) 0 38%,transparent 70%);animation:dhGlow 5s ease-in-out infinite;z-index:0}
+.dh-hero[data-time="night"] .dh-sun{background:radial-gradient(circle at 60% 40%,#fff 0 30%,#DDE6FF 31% 36%,transparent 70%)}
+.dh-stars{position:absolute;inset:0;opacity:0;transition:opacity 1s;z-index:0}
+.dh-hero[data-time="night"] .dh-stars{opacity:1}
+.dh-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:dhTw 3s infinite}
+.dh-shoot{position:absolute;top:40px;left:-80px;width:80px;height:2px;background:linear-gradient(90deg,transparent,#fff);border-radius:2px;opacity:0;transform:rotate(-18deg)}
+.dh-hero[data-time="night"] .dh-shoot{animation:dhShoot 7s linear infinite 2s}
+.dh-birds{position:absolute;top:80px;left:-60px;opacity:0;z-index:1}
+.dh-hero[data-time="morning"] .dh-birds{opacity:1;animation:dhFly 16s linear infinite}
+.dh-birds svg{width:46px;height:20px;stroke:#23415E;fill:none;stroke-width:2;stroke-linecap:round}
+.dh-birds svg path{animation:dhFlap .5s ease-in-out infinite alternate;transform-origin:center}
+.dh-cloud{position:absolute;height:16px;border-radius:16px;background:rgba(255,255,255,.55);filter:blur(1px);animation:dhDrift linear infinite;z-index:1}
+.dh-cloud::before,.dh-cloud::after{content:"";position:absolute;background:inherit;border-radius:50%}
+.dh-cloud::before{width:22px;height:22px;left:12px;top:-10px}.dh-cloud::after{width:30px;height:30px;left:28px;top:-15px}
+.dh-hero[data-time="night"] .dh-cloud{opacity:.12}
+.dh-layer{position:absolute;left:0;width:200%;display:flex;z-index:1}
+.dh-layer svg{width:50%;height:100%;flex:none}
+.dh-city2{height:120px;bottom:118px;color:var(--city2);animation:dhPan 120s linear infinite}
+.dh-city{height:96px;bottom:104px;color:var(--city);animation:dhPan 70s linear infinite}
+.dh-dune{height:70px;bottom:78px;color:var(--dune);animation:dhPan 40s linear infinite}
+.dh-palms{height:110px;bottom:70px;animation:dhPan 14s linear infinite;z-index:2;color:var(--dune2)}
+.dh-road{position:absolute;left:0;right:0;bottom:0;height:88px;background:var(--roadc);z-index:2}
+.dh-road::before{content:"";position:absolute;left:0;top:34px;width:200%;height:4px;background:repeating-linear-gradient(90deg,var(--lane) 0 30px,transparent 30px 64px);opacity:.85;animation:dhLane .7s linear infinite}
+.dh-road::after{content:"";position:absolute;inset:0 0 auto;height:3px;background:color-mix(in srgb,var(--lane) 45%,transparent)}
+.dh-hero:not(.moving) .dh-layer,.dh-hero:not(.moving) .dh-road::before{animation-play-state:paused}
+.dh-speedl{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .4s}
+.dh-hero.moving .dh-speedl{opacity:1}
+.dh-speedl i{position:absolute;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7));animation:dhStreak .5s linear infinite}
+.dh-bike{position:absolute;left:50%;bottom:30px;width:176px;margin-left:-104px;z-index:4}
+.d2[dir="rtl"] .dh-bike{transform:scaleX(-1)}
+.dh-bike .bd{position:relative;transform-origin:50% 100%}
+.dh-hero.moving .dh-bike .bd{animation:dhBob .38s ease-in-out infinite alternate}
+.dh-bike svg{width:100%;display:block;overflow:visible}
+.dh-wheel{transform-box:fill-box;transform-origin:center}
+.dh-hero.moving .dh-wheel{animation:dhSpin .45s linear infinite}
+.dh-beam{position:absolute;right:-120px;bottom:30px;width:150px;height:60px;background:radial-gradient(ellipse at 0 50%,rgba(255,240,180,.55),transparent 70%);opacity:0;transition:opacity .6s;pointer-events:none;clip-path:polygon(0 40%,100% 0,100% 100%,0 60%)}
+.dh-hero[data-time="night"].moving .dh-beam{opacity:1}
+.dh-dust{position:absolute;left:4px;bottom:4px;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.5);opacity:0}
+.dh-hero.moving .dh-dust{animation:dhDust .6s ease-out infinite}.dh-hero.moving .dh-dust.d2{animation-delay:.3s}
+.dh-zz{position:absolute;left:110px;top:-18px;font:800 14px/1 "Bricolage Grotesque",sans-serif;color:#fff;opacity:0}
+.dh-hero:not(.moving) .dh-zz{animation:dhZz 2.8s ease-in-out infinite}.dh-hero:not(.moving) .dh-zz.z2{animation-delay:1.4s;left:124px}
+.dh-hero.brk .dh-bike .bd{animation:none}
+.dh-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 18px 0;z-index:6}
+.dh-ava{width:48px;height:48px;border-radius:50%;padding:2px;background:conic-gradient(var(--acc),#F5B82E,var(--acc));flex:none;position:relative}
+.dh-ava>span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#E9B48A;color:#3A2A20;font-weight:800;overflow:hidden;position:relative;border:2px solid rgba(0,0,0,.2)}
+.dh-ava img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:center top;border-radius:50%}
+.dh-ava i{position:absolute;right:0;bottom:0;width:13px;height:13px;border-radius:50%;background:#9a8f7f;border:2px solid #fff}
+.dh-ava i.on{background:#22C55E}
+.dh-who{flex:1;min-width:0;color:var(--skyInk);text-shadow:0 1px 10px rgba(0,0,0,.15)}
+.dh-who small{display:block;font:700 10px/1 "JetBrains Mono",monospace;letter-spacing:.14em;opacity:.85;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh-who b{display:block;font:800 18px/1.1 "Bricolage Grotesque",sans-serif;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh-ib{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;color:var(--skyInk);position:relative;border:0;flex:none}
+.dh-ib .sw{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.85)}
+.dh-ib svg{width:20px;height:20px}
+.dh-ib .bdg{position:absolute;top:-4px;right:-4px;font:800 10px/1 "JetBrains Mono",monospace;background:#D9463A;color:#fff;border-radius:99px;padding:3px 5px}
+.dh-msg{position:absolute;left:18px;right:18px;top:calc(76px + env(safe-area-inset-top));z-index:6;color:var(--skyInk);text-shadow:0 2px 14px rgba(0,0,0,.18)}
+.dh-msg h1{font:800 32px/1.02 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;max-width:250px;margin:0;color:inherit}
+.d2[dir="rtl"] .dh-msg h1{font-family:"Noto Sans Arabic","Plus Jakarta Sans",sans-serif}
+.dh-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 10px;border-radius:99px;background:rgba(0,0,0,.25);backdrop-filter:blur(6px);color:#fff;font:700 11px/1 "JetBrains Mono",monospace;direction:ltr}
+.dh-chip i{width:7px;height:7px;border-radius:50%;background:#4ADE9A;animation:dhPing 1.6s infinite}
+.dh-chip.off i{background:#cbbfae;animation:none}
+.dh-speedo{position:absolute;right:16px;bottom:100px;z-index:6;width:86px;height:86px;border-radius:50%;background:rgba(0,0,0,.38);backdrop-filter:blur(8px);display:grid;place-items:center;color:#fff;text-align:center}
+.dh-speedo svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(135deg)}
+.dh-speedo b{font:800 24px/1 "JetBrains Mono",monospace;display:block}
+.dh-speedo small{display:block;font:700 8.5px/1 "JetBrains Mono",monospace;letter-spacing:.12em;opacity:.8;margin-top:2px}
+/* cards */
+.dh-pop{animation:dhPopIn .55s cubic-bezier(.3,1.6,.5,1) both}
+.q-still .dh-pop{animation:none}
+.dh-plats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;perspective:600px}
+.dh-plat{border-radius:20px;padding:14px;background:var(--panel2);border:2px solid var(--line);text-align:start;transition:transform .45s cubic-bezier(.3,1.6,.5,1),box-shadow .3s,border-color .3s;position:relative;overflow:hidden;color:var(--ink)}
+.dh-plat b{display:block;font:800 17px/1 "Bricolage Grotesque",sans-serif}
+.dh-plat small{display:block;font-size:11.5px;color:var(--muted);font-weight:700;margin-top:4px}
+.dh-plat .dot{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;margin-bottom:10px;color:#fff;background:var(--pc)}
+.dh-plat .dot svg{width:18px;height:18px}
+.dh-plat.on{border-color:var(--pc);transform:translateY(-4px) rotateX(8deg);box-shadow:0 18px 30px -16px var(--pc)}
+.dh-plat.on::after{content:"✓";position:absolute;top:10px;inset-inline-end:12px;width:22px;height:22px;border-radius:50%;background:var(--pc);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;animation:dhPopIn .4s cubic-bezier(.3,1.8,.5,1)}
+.dh-plat .shine{position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.55) 50%,transparent 60%);transform:translateX(-120%);pointer-events:none}
+.dh-plat.on .shine{animation:dhShine 1.2s .1s}
+/* road slider (keeps the app's slider logic, new look) */
+.q-slide.dh-road-s{background:#221D18;height:74px;border-radius:24px;overflow:hidden;--sl:#FBF3E4;box-shadow:0 12px 28px -10px rgba(0,0,0,.45)}
+.q-slide.dh-road-s .thumb{color:var(--acc-ink)}
+.q-slide.dh-road-s.red .thumb{color:var(--on-crit)}
+.q-slide.dh-road-s.red{--sl:var(--crit)}
+.q-slide.dh-road-s .fill{background:color-mix(in srgb,var(--acc) 30%,transparent)}
+.q-slide.dh-road-s::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 18px,transparent 18px 34px)}
+.q-slide.dh-road-s .thumb{width:84px;height:62px;border-radius:19px;top:6px;background:var(--acc);box-shadow:0 8px 20px -6px var(--acc)}
+.q-slide.dh-road-s .thumb svg{width:66px;height:auto}
+.q-slide.dh-road-s.drag .thumb .dh-wheel{animation:dhSpin .3s linear infinite}
+.q-slide.dh-road-s .txt{padding-inline-start:70px}
+.q-slide.dh-road-s.red{background:var(--crit-bg);box-shadow:none}
+.q-slide.dh-road-s.red .fill{background:color-mix(in srgb,var(--crit) 18%,transparent)}
+.q-slide.dh-road-s.red::before{background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--crit) 40%,transparent) 0 18px,transparent 18px 34px)}
+.q-slide.dh-road-s.red .thumb{background:var(--crit);box-shadow:0 8px 20px -6px var(--crit)}
+.q-slide.dh-road-s.red .thumb svg{width:30px}
+/* streak + level */
+.dh-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.dh-day{text-align:center}
+.dh-day .f{height:44px;border-radius:14px;background:var(--track);display:grid;place-items:center}
+.dh-day.done .f{background:linear-gradient(180deg,color-mix(in srgb,#F5B82E 30%,var(--panel)),color-mix(in srgb,var(--acc) 35%,var(--panel)))}
+.dh-day .f svg{width:22px;height:22px}
+.dh-day.done .f svg{animation:dhFlick 1.2s ease-in-out infinite alternate;transform-origin:50% 100%}
+.dh-day.today .f{outline:2px dashed var(--acc);outline-offset:2px}
+.dh-day small{display:block;font:700 10px/1 "JetBrains Mono",monospace;color:var(--muted);margin-top:6px}
+.dh-lvl{display:flex;align-items:center;gap:10px;margin-top:14px}
+.dh-lvl .badge{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:conic-gradient(from 200deg,#F5B82E,var(--acc),#F5B82E);color:#fff;font:800 16px/1 "Bricolage Grotesque",sans-serif;box-shadow:0 8px 18px -8px var(--acc);animation:dhTilt 4s ease-in-out infinite;flex:none}
+.dh-xp{flex:1;min-width:0}
+.dh-xp .bar{height:10px;border-radius:10px;background:var(--track);overflow:hidden;margin-top:6px}
+.dh-xp .bar i{display:block;height:100%;width:0;border-radius:10px;background:linear-gradient(90deg,#F5B82E,var(--acc));transition:width 1.4s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+.dh-xp .bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:dhShim 1.8s linear infinite}
+/* race-track timer */
+.dh-race{display:flex;justify-content:center;margin-top:8px}
+.dh-race .dh-track{flex:none}
+@media (max-width:374px){.dh-race .dh-track{transform:scale(.88);margin:-10px -19px}}
+@media (max-width:340px){.dh-race .dh-track{transform:scale(.76);margin:-21px -38px}}
+.dh-track{position:relative;width:320px;height:176px}
+.dh-track svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.dh-track .base{fill:none;stroke:var(--track);stroke-width:16}
+.dh-track .lanes{fill:none;stroke:var(--panel);stroke-width:2;stroke-dasharray:8 10;opacity:.9}
+.dh-track .prog{fill:none;stroke:url(#dhTg);stroke-width:16;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.dh-track .rider{position:absolute;left:0;top:0;width:34px;height:22px;offset-path:path("M88 8 H232 A80 80 0 0 1 232 168 H88 A80 80 0 0 1 88 8 Z");offset-rotate:auto;offset-distance:0%;animation:dhLap 8s linear infinite;margin:-11px 0 0 -17px}
+.dh-track.brk .rider{animation-play-state:paused}
+.dh-track .rider svg{width:100%;height:100%}
+.dh-track .mid{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.dh-clock{font:800 44px/1 "JetBrains Mono",monospace;letter-spacing:-.02em;display:flex;align-items:flex-end;justify-content:center;direction:ltr;color:var(--ink)}
+.dh-clock .sec{font-size:22px;color:var(--acc);margin-inline-start:2px;padding-bottom:4px;display:flex}
+.dh-clock .col{display:inline-block;height:1em;overflow:hidden;line-height:1}
+.dh-clock .col span{display:block;transition:transform .5s cubic-bezier(.3,1.4,.5,1)}
+.dh-track .mid small{display:block;font:700 10px/1 "JetBrains Mono",monospace;letter-spacing:.14em;color:var(--muted);margin-top:8px;text-transform:uppercase}
+.dh-goal{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font:800 11px/1 "JetBrains Mono",monospace;padding:5px 9px;border-radius:99px;background:var(--good-bg);color:var(--good)}
+.dh-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dh-tl{font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.dh-tl svg{width:14px;height:14px}
+.dh-odo{display:flex;gap:3px;margin-top:10px;direction:ltr}
+.dh-odo .d{width:24px;height:38px;border-radius:8px;background:var(--hero);color:var(--hero-ink);overflow:hidden;position:relative;box-shadow:inset 0 -8px 12px rgba(0,0,0,.35),inset 0 8px 12px rgba(0,0,0,.35)}
+.dh-odo .d.dec{background:var(--acc);color:var(--acc-ink)}
+.dh-odo .d span{display:block;font:800 21px/38px "JetBrains Mono",monospace;text-align:center;transition:transform .6s cubic-bezier(.3,1.3,.5,1)}
+.dh-odo .d::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.3)}
+.dh-spd{font:800 34px/1 "Bricolage Grotesque",sans-serif;margin-top:10px}
+.dh-spd small{font-size:13px;color:var(--muted);margin-inline-start:3px}
+.dh-spark{height:30px;margin-top:6px}
+.dh-spark svg{width:100%;height:100%}
+/* parcels */
+.dh-parcels{display:grid;grid-template-columns:1fr 132px;gap:8px;align-items:center}
+.dh-pc{font:800 56px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.04em;display:block}
+.dh-pbtns{display:flex;gap:8px;margin-top:10px}
+.dh-pbtns button{height:48px;border-radius:16px;font-weight:800;display:grid;place-items:center;border:0}
+.dh-pbtns .plus{flex:1;white-space:nowrap;padding:0 10px;background:var(--acc);color:var(--acc-ink);font-size:15px;box-shadow:0 10px 20px -10px var(--acc)}
+.dh-pbtns .plus:active{transform:scale(.95)}
+.dh-pbtns .minus{width:48px;background:var(--track);color:var(--ink);font-size:22px}
+.dh-stackbox{position:relative;height:150px;perspective:500px}
+.dh-stack{position:absolute;left:50%;bottom:26px;width:0;height:0;transform:rotateX(62deg) rotateZ(45deg);transform-style:preserve-3d}
+.dh-stack .pad{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:16px;background:var(--track)}
+.dh-bx{position:absolute;width:34px;height:34px;transform-style:preserve-3d;transform:translateZ(var(--z));animation:dhDrop .6s cubic-bezier(.4,0,.3,1.4) both}
+.dh-bx.still{animation:none}
+.dh-bx i{position:absolute;inset:0}
+.dh-bx .t{background:var(--pcol);transform:translateZ(17px);box-shadow:inset 0 0 0 2px rgba(255,255,255,.2)}
+.dh-bx .t::after{content:"";position:absolute;left:42%;top:0;bottom:0;width:16%;background:rgba(0,0,0,.18)}
+.dh-bx .a{background:color-mix(in srgb,var(--pcol) 72%,#000);transform:rotateX(-90deg) translateZ(17px)}
+.dh-bx .b{background:color-mix(in srgb,var(--pcol) 56%,#000);transform:rotateY(90deg) translateZ(17px)}
+.dh-bx .c{background:color-mix(in srgb,var(--pcol) 72%,#000);transform:rotateX(90deg) translateZ(17px)}
+.dh-bx .e{background:color-mix(in srgb,var(--pcol) 56%,#000);transform:rotateY(-90deg) translateZ(17px)}
+.dh-more{position:absolute;inset-inline-end:4px;top:6px;font:800 11px/1 "JetBrains Mono",monospace;background:var(--ink);color:var(--panel);border-radius:99px;padding:4px 7px}
+.dh-toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:3000;background:var(--ink);color:var(--panel);padding:10px 14px;border-radius:16px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:0 14px 30px -10px rgba(0,0,0,.5);animation:dhToast 2.4s cubic-bezier(.3,1.5,.5,1) forwards;white-space:nowrap}
+.dh-toast .m{font-size:18px}
+/* quick actions */
+.dh-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dh-act{border-radius:22px;padding:14px 6px 12px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:800;font-size:12.5px;color:var(--ink);position:relative;text-align:center}
+.dh-act .ic{width:48px;height:48px;border-radius:17px;display:grid;place-items:center;position:relative}
+.dh-act .ic svg{width:26px;height:26px}
+.dh-act.brk .ic{background:#F4E7D8;color:#8A5A2B}
+.dh-act.brk.on .ic{background:var(--acc);color:var(--acc-ink)}
+.dh-act.brk .steam{position:absolute;top:-6px;left:50%;width:4px;height:10px;border-radius:4px;background:#b9a18a;opacity:0;animation:dhSteam 1.8s ease-out infinite}
+.dh-act.brk .steam.s2{margin-left:-7px;animation-delay:.5s}.dh-act.brk .steam.s3{margin-left:7px;animation-delay:1s}
+.dh-act.fuel .ic{background:#FDF1D8;color:#B7791F}
+.dh-act.fuel .drop{position:absolute;right:9px;top:26px;width:6px;height:8px;border-radius:50%;background:#B7791F;animation:dhDrip 1.6s ease-in infinite}
+.dh-act.sos .ic{background:var(--crit);color:#fff}
+.dh-act.sos .ic::before,.dh-act.sos .ic::after{content:"";position:absolute;inset:0;border-radius:17px;border:2px solid var(--crit);animation:dhRing 1.8s ease-out infinite}
+.dh-act.sos .ic::after{animation-delay:.9s}
+/* shift-done sheet: medal + badges */
+.dh-medal{width:120px;height:120px;perspective:600px;margin:4px auto 12px}
+.dh-medal .m{width:100%;height:100%;border-radius:50%;background:conic-gradient(from 0deg,#F5B82E,#FFF3C4,#F5B82E,#C98A12,#F5B82E);display:grid;place-items:center;box-shadow:0 20px 50px -10px rgba(245,184,46,.6),inset 0 0 0 7px rgba(255,255,255,.35);animation:dhMedal 3s ease-in-out infinite}
+.dh-medal .m svg{width:48px;height:48px;color:#7A4A06}
+.dh-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.dh-bdg{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:99px;background:var(--acc-soft);color:var(--acc-text);font-weight:800;font-size:12.5px;opacity:0;animation:dhBadge .6s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes dhGlow{50%{transform:scale(1.08)}}
+@keyframes dhTw{50%{opacity:.2}}
+@keyframes dhShoot{0%{opacity:0;transform:translate(0,0) rotate(-18deg)}3%{opacity:1}12%{opacity:0;transform:translate(520px,170px) rotate(-18deg)}100%{opacity:0}}
+@keyframes dhFly{from{transform:translateX(0)}to{transform:translateX(560px)}}
+@keyframes dhFlap{to{transform:scaleY(.4)}}
+@keyframes dhDrift{from{transform:translateX(-120px)}to{transform:translateX(560px)}}
+@keyframes dhPan{to{transform:translateX(-50%)}}
+@keyframes dhLane{to{transform:translateX(-64px)}}
+@keyframes dhStreak{from{transform:translateX(460px)}to{transform:translateX(-200px)}}
+@keyframes dhBob{to{transform:translateY(-3px) rotate(-1.2deg)}}
+@keyframes dhSpin{to{transform:rotate(360deg)}}
+@keyframes dhDust{0%{opacity:.8;transform:scale(.4)}100%{opacity:0;transform:translate(-40px,-8px) scale(2.2)}}
+@keyframes dhZz{0%{opacity:0;transform:translate(0,0) scale(.6)}30%{opacity:1}100%{opacity:0;transform:translate(16px,-26px) scale(1.2)}}
+@keyframes dhPing{0%{box-shadow:0 0 0 0 rgba(74,222,154,.6)}100%{box-shadow:0 0 0 8px transparent}}
+@keyframes dhPopIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes dhShine{to{transform:translateX(120%)}}
+@keyframes dhShim{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@keyframes dhFlick{from{transform:scaleY(1) rotate(-3deg)}to{transform:scaleY(1.12) rotate(3deg)}}
+@keyframes dhTilt{50%{transform:rotate(-6deg) scale(1.05)}}
+@keyframes dhLap{to{offset-distance:100%}}
+@keyframes dhDrop{from{transform:translateZ(calc(var(--z) + 260px))}to{transform:translateZ(var(--z))}}
+@keyframes dhToast{0%{opacity:0;transform:translate(-50%,-20px) scale(.9)}12%{opacity:1;transform:translate(-50%,0) scale(1)}85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-10px)}}
+@keyframes dhSteam{0%{opacity:0;transform:translateY(0) scaleY(.6)}30%{opacity:.7}100%{opacity:0;transform:translateY(-16px) scaleY(1.3)}}
+@keyframes dhDrip{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(16px);opacity:0}}
+@keyframes dhRing{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+@keyframes dhMedal{0%,100%{transform:rotateY(-25deg) rotateX(8deg)}50%{transform:rotateY(25deg) rotateX(-4deg)}}
+@keyframes dhBadge{from{opacity:0;transform:translateY(12px) scale(.7)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dh-hero *,.dh-hero,.dh-pop,.dh-bx,.dh-track .rider,.dh-act *{animation:none !important}}
+.q-slide.dh-road-s::before{opacity:.55}
+@media (max-width:374px){.dh-parcels{grid-template-columns:1fr 104px}.dh-stackbox{height:124px}.dh-stack{transform:rotateX(62deg) rotateZ(45deg) scale(.7)}.dh-pbtns .plus{font-size:13.5px}.dh-pc{font-size:48px}.dh-tl{letter-spacing:.06em}}
 </style>
 </head>
 <body>
@@ -1205,7 +1437,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.3";
+const APP_VERSION="4.4";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -3232,6 +3464,269 @@ document.addEventListener("click",function(e){
   var s=e.target.closest("[data-dt]");if(s){e.preventDefault();dtSheet();return;}
   var c=e.target.closest("[data-dtcopy]");if(c){e.preventDefault();var k=c.getAttribute("data-dtcopy");var v=k==="url"?DT_URL:(DT.code||(document.getElementById("dtCode")||{}).textContent||"");if(v&&v!=="…")dtCopyText(v,c);}
 });
+</script>
+<script id="dhome">
+/* ================================================================
+   Driver home v3 — a living street scene (morning / evening / night by
+   Kuwait time), race-track shift timer, 3D parcel stack, streak + levels.
+   Only the HOME screen's look changes. Every button still calls the
+   same tested actions (clock in/out sliders, +1 order, break, fuel, SOS).
+   ================================================================ */
+var DHX={
+ en:{tap_one:"tap one",last:"Last ride",first:"First ride here!",go:"Let’s roll!",brk:"Coffee time ☕",kw:"Kuwait",prog:"Shift in progress",of_goal:"of 12h goal",deliv:"+1 Delivered",keep:"orders! Keep rolling",early:"Early bird",o10:"10+ orders",k100:"100 km club",done_t:"Shift complete!",safe:"Ride home safe.",to_next:"{n} XP to Level {l}",top:"Top level!"},
+ ar:{tap_one:"اختر واحدة",last:"آخر رحلة",first:"أول رحلة هنا!",go:"يلا ننطلق!",brk:"وقت القهوة ☕",kw:"الكويت",prog:"الوردية جارية",of_goal:"من هدف 12 ساعة",deliv:"+1 تم التوصيل",keep:"طلبات! استمر",early:"الطائر المبكر",o10:"+10 طلبات",k100:"نادي 100 كم",done_t:"انتهت الوردية!",safe:"عُد إلى البيت بأمان.",to_next:"{n} نقطة للمستوى {l}",top:"أعلى مستوى!"},
+ hi:{tap_one:"एक चुनें",last:"पिछली राइड",first:"यहाँ पहली राइड!",go:"चलो चलें!",brk:"चाय का समय ☕",kw:"कुवैत",prog:"शिफ्ट चालू है",of_goal:"12 घंटे के लक्ष्य का",deliv:"+1 डिलीवर",keep:"ऑर्डर! ऐसे ही चलते रहो",early:"जल्दी शुरुआत",o10:"10+ ऑर्डर",k100:"100 किमी क्लब",done_t:"शिफ्ट पूरी!",safe:"सुरक्षित घर जाएँ।",to_next:"लेवल {l} तक {n} XP",top:"टॉप लेवल!"},
+ bn:{tap_one:"একটি বাছুন",last:"শেষ রাইড",first:"এখানে প্রথম রাইড!",go:"চলো শুরু করি!",brk:"চায়ের সময় ☕",kw:"কুয়েত",prog:"শিফট চলছে",of_goal:"১২ ঘণ্টা লক্ষ্যের",deliv:"+1 ডেলিভারি",keep:"অর্ডার! চালিয়ে যাও",early:"ভোরের পাখি",o10:"10+ অর্ডার",k100:"100 কিমি ক্লাব",done_t:"শিফট শেষ!",safe:"নিরাপদে বাড়ি যান।",to_next:"লেভেল {l} পর্যন্ত {n} XP",top:"সর্বোচ্চ লেভেল!"},
+ ne:{tap_one:"एउटा छान्नुहोस्",last:"अन्तिम राइड",first:"यहाँ पहिलो राइड!",go:"जाऔं!",brk:"चिया समय ☕",kw:"कुवेत",prog:"सिफ्ट चलिरहेको छ",of_goal:"१२ घण्टा लक्ष्यको",deliv:"+1 डेलिभर",keep:"अर्डर! यसरी नै जारी राख्नुहोस्",early:"बिहानको चरा",o10:"10+ अर्डर",k100:"100 किमी क्लब",done_t:"सिफ्ट सकियो!",safe:"सुरक्षित घर जानुहोस्।",to_next:"लेभल {l} सम्म {n} XP",top:"टप लेभल!"}
+};
+function dhT(k){var l=DHX[D2.lang]||DHX.en;return l[k]!=null?l[k]:(DHX.en[k]!=null?DHX.en[k]:k);}
+var D2H={iv:null,hist:[],histSid:null,lastSpd:-1,stars:null,cities:null,lastOrd:null};
+var DH_PATH="M88 8 H232 A80 80 0 0 1 232 168 H88 A80 80 0 0 1 88 8 Z";
+var DH_BOXC=["var(--acc)","#E8B04B","#4F9D8B","#8B6FD6","#D9624F"];
+var DH_LEVELS=["Rookie","Rider","Road Runner","Street Pro","Desert Hawk","Fleet Star","Legend"];
+
+/* ---------- helpers ---------- */
+function dhHour(){try{return parseInt(new Intl.DateTimeFormat("en-GB",{hour:"2-digit",hourCycle:"h23",timeZone:"Asia/Kuwait"}).format(new Date()),10);}catch(e){return new Date().getHours();}}
+function dhPhase(){var h=dhHour();return h>=5&&h<15?"morning":h>=15&&h<19?"evening":"night";}
+function dhPlatCol(p){return /keeta/i.test(p||"")?"#6D5BD0":"#E8622A";}
+function dhLvlName(L){return DH_LEVELS[L<=1?0:L<=3?1:L<=5?2:L<=8?3:L<=11?4:L<=15?5:6];}
+function dhXP(d){
+  var mine=driverShifts(d.id),xp=0;
+  mine.forEach(function(s){if(s.status==="COMPLETED")xp+=d2num(s.distance);xp+=5*(s.ordersDone||0);});
+  xp=Math.round(xp);var L=Math.floor(Math.sqrt(xp/50))+1,lo=50*(L-1)*(L-1),hi=50*L*L;
+  return {xp:xp,lvl:L,lo:lo,hi:hi,pct:Math.max(0,Math.min(1,(xp-lo)/(hi-lo))),name:dhLvlName(L),next:dhLvlName(L+1)};
+}
+function dhCity(w,h,seed,dome){var p="",x=0;function r(){seed=(seed*9301+49297)%233280;return seed/233280;}
+  while(x<w){var bw=10+r()*22,bh=h*.25+r()*h*.7;p+='<rect x="'+x.toFixed(1)+'" y="'+(h-bh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="1.5"/>';
+    if(dome&&r()>.82){var cx=x+bw/2;p+='<rect x="'+(cx-1.3).toFixed(1)+'" y="'+(h-bh-26).toFixed(1)+'" width="2.6" height="28"/><circle cx="'+cx.toFixed(1)+'" cy="'+(h-bh-14).toFixed(1)+'" r="'+(4+r()*3).toFixed(1)+'"/>';}
+    x+=bw+1+r()*5;}return p;}
+function dhScenery(){
+  if(D2H.cities)return D2H.cities;
+  var c1=dhCity(400,96,11,true),c2=dhCity(400,120,5,false);
+  var palm='<svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMax meet" fill="currentColor">'+[40,210,330].map(function(x,i){var h=70+i*8,dx=i%2?-6:6;return '<path d="M'+x+' 110 q4 -'+(h/2)+' '+dx+' -'+h+'" stroke="currentColor" stroke-width="5" fill="none"/><g transform="translate('+(x+dx)+' '+(110-h)+')"><path d="M0 0q-22 -6 -34 8q16 -4 34 -8"/><path d="M0 0q22 -6 34 8q-16 -4 -34 -8"/><path d="M0 0q-8 -20 -26 -22q14 8 26 22"/><path d="M0 0q8 -20 26 -22q-14 8 -26 22"/></g>';}).join("")+'</svg>';
+  var st="";for(var i=0;i<46;i++)st+='<i style="left:'+(Math.random()*100).toFixed(1)+'%;top:'+(Math.random()*55).toFixed(1)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s"></i>';
+  var sl="";for(var j=0;j<10;j++)sl+='<i style="top:'+(130+Math.random()*160).toFixed(0)+'px;width:'+(40+Math.random()*90).toFixed(0)+'px;animation-delay:'+(Math.random()*.5).toFixed(2)+'s"></i>';
+  var dune='<svg viewBox="0 0 400 70" preserveAspectRatio="none" fill="currentColor"><path d="M0 70V40C60 18 120 14 190 32S320 58 400 36v34z"/></svg>';
+  D2H.cities={c1:'<svg viewBox="0 0 400 96" preserveAspectRatio="none" fill="currentColor">'+c1+'</svg>',c2:'<svg viewBox="0 0 400 120" preserveAspectRatio="none" fill="currentColor">'+c2+'</svg>',palm:palm,stars:st,speed:sl,dune:dune};
+  return D2H.cities;
+}
+var DH_BIKE='<svg viewBox="0 0 170 110" aria-hidden="true">'+
+  '<g class="dh-wheel"><circle cx="34" cy="88" r="17" fill="#15110D"/><circle cx="34" cy="88" r="8" fill="#6b6b6b"/><path d="M34 74v28M20 88h28" stroke="#9a9a9a" stroke-width="2"/></g>'+
+  '<g class="dh-wheel"><circle cx="134" cy="88" r="17" fill="#15110D"/><circle cx="134" cy="88" r="8" fill="#6b6b6b"/><path d="M134 74v28M120 88h28" stroke="#9a9a9a" stroke-width="2"/></g>'+
+  '<path d="M34 88 C 40 66, 70 62, 96 66 L 120 66 L 134 88" fill="none" stroke="#2E2A26" stroke-width="7" stroke-linejoin="round"/>'+
+  '<path d="M58 70 h46 a8 8 0 0 1 8 8 v4 H52 z" fill="var(--acc)"/>'+
+  '<path d="M118 66 L 128 34" stroke="#2E2A26" stroke-width="6" stroke-linecap="round"/><path d="M122 32 h14" stroke="#15110D" stroke-width="6" stroke-linecap="round"/><circle cx="140" cy="46" r="5" fill="#FFE8A3"/>'+
+  '<rect x="8" y="30" width="46" height="38" rx="8" style="fill:var(--pcol,#E8622A)"/><rect x="8" y="30" width="46" height="10" rx="5" fill="rgba(0,0,0,.14)"/><path d="M20 50 q11 8 22 0" stroke="rgba(0,0,0,.28)" stroke-width="3.5" fill="none" stroke-linecap="round"/>'+
+  '<path d="M70 70 L 92 72 L 104 88" stroke="#2A2F3A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'+
+  '<path d="M66 70 C 64 50, 72 36, 86 34 L 98 36 C 104 44, 102 58, 96 68 z" fill="var(--acc)"/>'+
+  '<path d="M96 44 L 112 44 L 124 34" stroke="var(--acc)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="125" cy="33" r="4.5" fill="#E9B48A"/>'+
+  '<circle cx="90" cy="20" r="15" fill="#15110D"/><path d="M90 5 a15 15 0 0 1 15 15 h-15z" fill="rgba(255,255,255,.18)"/><path d="M93 16 h13 a4 4 0 0 1 0 9 h-13z" fill="#FFB86B" opacity=".85"/></svg>';
+var DH_SCOOT='<svg viewBox="0 0 44 28" aria-hidden="true"><g class="dh-wheel"><circle cx="9" cy="22" r="5.2" fill="currentColor"/><circle cx="9" cy="22" r="2" fill="var(--acc)"/></g><g class="dh-wheel"><circle cx="35" cy="22" r="5.2" fill="currentColor"/><circle cx="35" cy="22" r="2" fill="var(--acc)"/></g><path d="M9 22c2-7 11-8 18-7h5l3 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><rect x="1" y="5" width="13" height="11" rx="2.5" fill="currentColor"/><circle cx="23" cy="4.5" r="4" fill="currentColor"/><path d="M31 15l2-7h3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+var DH_FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/></svg>';
+var DH_BAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>';
+var DH_FLAME='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-4-1-6 1-9z" fill="var(--acc)"/><path d="M12 13c1 1 2 2 2 3.5a2 2 0 0 1-4 0c0-1 .8-1.8 2-3.5z" fill="#F5B82E"/></svg>';
+var DH_COLD='<svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></svg>';
+function dhSlider(label,red,act){return '<div class="q-slide dh-road-s'+(red?" red":"")+'" data-q-slide="'+act+'"><div class="fill"></div><div class="txt">'+qe(label)+'</div><div class="thumb">'+(red?DH_FLAG:DH_SCOOT)+'</div></div>';}
+
+/* ---------- the hero scene ---------- */
+function dhHero(d,sh,pcol){
+  var k=d2kw(),sc=dhScenery(),brk=!!(sh&&sh.breakAt),mv=!!(sh&&!brk),t=Date.now()/1000;
+  var photo=D2.prof&&D2.prof.employee&&D2.prof.employee.photo,al=d2alerts();
+  function dl(dur,off){return 'animation-delay:-'+(((t+(off||0))%dur)).toFixed(2)+'s';}   /* keeps the scenery moving smoothly across re-draws */
+  var eyebrow=sh?'<small>'+qe(sh.platform+" · "+(d.plate||""))+'</small>':'<small data-q-clk="greet">'+qe(k.greet)+'</small>';
+  var title=sh?(brk?dhT("brk"):dhT("go")):tt("ready");
+  return '<section class="dh-hero'+(mv?" moving":"")+(brk?" brk":"")+'" id="dhHero" data-time="'+dhPhase()+'" style="--pcol:'+pcol+'">'+
+    '<div class="dh-stars">'+sc.stars+'</div><span class="dh-shoot"></span>'+
+    '<div class="dh-birds"><svg viewBox="0 0 46 20"><path d="M2 10q5-7 10 0q5-7 10 0"/><path d="M26 6q4-5 8 0q4-5 8 0"/></svg></div>'+
+    '<div class="dh-cloud" style="top:92px;width:70px;animation-duration:38s;'+dl(38)+'"></div><div class="dh-cloud" style="top:150px;width:50px;animation-duration:52s;'+dl(52,24)+'"></div>'+
+    '<div class="dh-sun"></div>'+
+    '<div class="dh-layer dh-city2" style="'+dl(120)+'">'+sc.c2+sc.c2+'</div>'+
+    '<div class="dh-layer dh-city" style="'+dl(70)+'">'+sc.c1+sc.c1+'</div>'+
+    '<div class="dh-layer dh-dune" style="'+dl(40)+'">'+sc.dune+sc.dune+'</div>'+
+    '<div class="dh-layer dh-palms" style="'+dl(14)+'">'+sc.palm+sc.palm+'</div>'+
+    '<div class="dh-road"></div><div class="dh-speedl">'+sc.speed+'</div>'+
+    '<div class="dh-bike"><div class="bd"><span class="dh-beam"></span><span class="dh-dust"></span><span class="dh-dust d2"></span><span class="dh-zz">z</span><span class="dh-zz z2">z</span>'+DH_BIKE+'</div></div>'+
+    '<div class="dh-top"><div class="dh-ava"><span>'+(photo?'<img src="'+qe(photo)+'" alt="">':qe(initials(d.name)))+'</span><i class="'+(sh?"on":"")+'"></i></div>'+
+      '<div class="dh-who">'+eyebrow+'<b>'+qe(d.name||"")+'</b></div>'+
+      '<button class="dh-ib" data-d2="menu" aria-label="'+qe(tt("theme"))+'"><span class="sw" style="background:'+d2sw(d2skinObj())+'"></span></button>'+
+      '<button class="dh-ib" data-d2="notif" aria-label="'+qe(tt("notifications"))+'">'+qi("bell",20)+(al?'<span class="bdg">'+al+'</span>':"")+'</button></div>'+
+    '<div class="dh-msg"><h1>'+qe(title)+'</h1><span class="dh-chip'+(sh&&!brk?"":" off")+'"><i></i><span data-q-clk="hm">'+k.hm+'</span>&nbsp;<span data-q-clk="ap">'+k.ap+'</span>&nbsp;· '+qe(sh?(brk?tt("on_break"):tt("live_gps")):dhT("kw"))+'</span></div>'+
+    (sh?'<div class="dh-speedo"><svg viewBox="0 0 86 86"><circle cx="43" cy="43" r="37" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="6" stroke-dasharray="174 233" stroke-linecap="round"/><circle id="dhSpArc" cx="43" cy="43" r="37" fill="none" stroke="#4ADE9A" stroke-width="6" stroke-dasharray="0 233" stroke-linecap="round" style="transition:stroke-dasharray .8s"/></svg><div><b id="dhSpd">0</b><small>KM/H</small></div></div>':"")+
+  '</section>';
+}
+
+/* ---------- the home screen ---------- */
+driverHome=function(d,sh){
+  d2loadHome();if(!D2.prof)d2loadProf();
+  var h=D2.home||{},plats=(d.platforms&&d.platforms.length?d.platforms:PLATFORMS);
+  var selPlat=sh?sh.platform:(state.selectedPlatform||plats[0]);
+  var ann=(h.announcements||[])[0];
+  var annHTML=ann?'<div class="q-ann"><span class="spark">'+qi("sparkle",22)+'</span><span class="q-lbl">'+qe(tt("from_office"))+' · '+d2ago(ann.created_at)+'</span><div style="margin-top:6px;font-weight:800;font-size:15px">'+qe(ann.title)+'</div>'+(ann.body?'<div style="font-size:12.5px;color:var(--ink2);margin-top:2px">'+qe(ann.body)+'</div>':"")+'</div>':"";
+  var hero=dhHero(d,sh,dhPlatCol(selPlat));
+  if(!sh){
+    var mine=driverShifts(d.id),tS=mine.filter(function(s){return s.date===today();});
+    var tKm=tS.filter(function(s){return s.status==="COMPLETED";}).reduce(function(a,s){return a+(s.distance||0);},0);
+    var tOrd=tS.reduce(function(a,s){return a+(s.ordersDone||0);},0);
+    var hrs=tS.reduce(function(a,s){var m=/(\d+)h\s*(\d+)m/.exec(s.duration||"");return a+(m?(+m[1]+m[2]/60):0);},0);
+    var wk=d2week(),chk=h.check_today,xp=dhXP(d);
+    var chkRow=chk?'<button class="q-li" data-d2="check" style="border:0;padding:6px 0 12px"><span class="ic" style="background:'+(chk.ok?"var(--good-bg)":"var(--crit-bg)")+';color:'+(chk.ok?"var(--good)":"var(--crit)")+'">'+qi("wrench")+'</span><span class="t"><b>'+qe(tt("vcheck"))+'</b><span>'+qe(chk.ok?tt("vcheck_ok"):tt("vcheck_bad"))+'</span></span><span class="q-chip '+(chk.ok?"q-g":"q-c")+'">'+qi(chk.ok?"check":"sos",14)+(chk.ok?tt("ok"):tt("problem"))+'</span></button>'
+      :'<button class="q-li" data-d2="check" style="border:0;padding:6px 0 12px"><span class="ic" style="background:var(--warn-bg);color:var(--warn)">'+qi("wrench")+'</span><span class="t"><b>'+qe(tt("vcheck"))+' <span class="q-new">'+qe(tt("new_badge"))+'</span></b><span>'+qe(tt("vcheck_do"))+'</span></span>'+qi("arrow",18)+'</button>';
+    var cards=plats.map(function(p){
+      var last=mine.filter(function(s){return s.platform===p;}).sort(function(a,b){return b.startedAt-a.startedAt;})[0];
+      var sub=last?dhT("last")+" · "+d2ago(new Date(last.startedAt).toISOString()):dhT("first");
+      return '<button class="dh-plat'+(selPlat===p?" on":"")+'" data-plat="'+qe(p)+'" style="--pc:'+dhPlatCol(p)+'"><span class="shine"></span><span class="dot">'+DH_BAG+'</span><b>'+qe(p)+'</b><small>'+qe(sub)+'</small></button>';
+    }).join("");
+    return d2scr(hero+annHTML+
+      '<div class="q-card"><div class="dh-cardrow"><h3>'+qe(tt("platform"))+'</h3><span class="q-sp"></span><span class="dh-sub">'+qe(dhT("tap_one"))+'</span></div>'+
+        '<div class="dh-plats">'+cards+'</div><div style="height:12px"></div>'+chkRow+dhSlider(tt("slide_in"),false,"start")+'</div>'+
+      '<div class="q-tiles"><div class="q-tile"><div class="k">'+qi("gauge")+qe(tt("km"))+'</div><div class="v">'+km(tKm)+'</div></div><div class="q-tile"><div class="k">'+qi("clock")+qe(tt("hours"))+'</div><div class="v">'+hrs.toFixed(1)+'<small>h</small></div></div><div class="q-tile"><div class="k">'+qi("box")+qe(tt("orders"))+'</div><div class="v">'+tOrd+'</div></div></div>'+
+      '<div class="q-card"><div class="dh-cardrow"><h3>'+qe(tt("your_week"))+'</h3><span class="q-sp"></span>'+(wk.streak?'<span class="q-chip q-a">'+qi("fire",14)+wk.streak+qe(tt("streak"))+'</span>':"")+'</div>'+
+        '<div class="dh-week">'+wk.days.map(function(x){return '<div class="dh-day'+(x.done?" done":"")+(x.today?" today":"")+'"><div class="f">'+(x.done?DH_FLAME:DH_COLD)+'</div><small>'+qe(x.lab)+'</small></div>';}).join("")+'</div>'+
+        '<div class="dh-lvl"><span class="badge">'+xp.lvl+'</span><div class="dh-xp"><div class="dh-cardrow"><b style="font-size:13.5px">'+qe(xp.name)+'</b><span class="q-sp"></span><span class="dh-sub dh-mono">'+xp.xp+' / '+xp.hi+' XP</span></div>'+
+          '<div class="bar"><i id="dhXp" data-w="'+(xp.pct*100).toFixed(1)+'"'+(D2.still?' style="width:'+(xp.pct*100).toFixed(1)+'%;transition:none"':"")+'></i></div>'+
+          '<div class="dh-sub" style="margin-top:6px">'+qe(dhT("to_next").replace("{n}",xp.hi-xp.xp).replace("{l}",xp.lvl+1))+' · <b style="color:var(--ink)">'+qe(xp.next)+'</b></div></div></div></div>');
+  }
+  /* ---- on duty ---- */
+  var brk=!!sh.breakAt,el=Date.now()-sh.startedAt,pct=Math.min(1,el/(12*3600e3));
+  var fuelT=state.fuelRecords.filter(function(f){return String(f.shiftId)===String(sh.id);}).reduce(function(a,f){return a+(f.cost||0);},0);
+  var spd=(live.last&&Date.now()-live.last.t<30000)?live.last.kmh:(sh.speed||0);
+  return d2scr(hero+
+    '<div class="q-card"><div class="dh-cardrow"><h3>'+qe(dhT("prog"))+'</h3><span class="q-sp"></span>'+(brk?'<span class="q-pill brk"><i></i>'+qe(tt("on_break"))+'</span>':'<span class="q-pill on"><i></i>'+qe(tt("live_gps"))+'</span>')+'</div>'+
+      '<div class="dh-race"><div class="dh-track'+(brk?" brk":"")+'" id="dhTrack"><svg viewBox="0 0 320 176" aria-hidden="true"><defs><linearGradient id="dhTg" x1="0" x2="1"><stop offset="0" style="stop-color:var(--good)"/><stop offset="1" style="stop-color:var(--acc)"/></linearGradient></defs>'+
+        '<path class="base" d="'+DH_PATH+'"/><path class="lanes" d="'+DH_PATH+'"/><path class="prog" id="dhProg" d="'+DH_PATH+'" style="stroke-dasharray:791;stroke-dashoffset:'+(D2.still?(791*(1-pct)).toFixed(1):791)+'"/></svg>'+
+        '<span class="rider"><svg viewBox="0 0 44 28"><circle cx="9" cy="22" r="5.2" fill="#15110D"/><circle cx="35" cy="22" r="5.2" fill="#15110D"/><path d="M9 22c2-7 11-8 18-7h5l3 7" fill="none" stroke="var(--ink)" stroke-width="3"/><rect x="1" y="5" width="13" height="11" rx="2.5" style="fill:var(--pcol,var(--acc))"/><circle cx="23" cy="4.5" r="4" fill="var(--acc)"/></svg></span>'+
+        '<div class="mid"><div><div class="dh-clock" id="dhClock" aria-label="'+qe(tt("shift_time"))+'"></div><small>'+qe(tt("in_at"))+' '+'<bdi>'+qe(sh.loginTime||"")+'</bdi>'+(sh.loginPlace?' · <bdi>'+qe(sh.loginPlace)+'</bdi>':"")+'</small>'+
+          '<span class="dh-goal" id="dhGoal">'+Math.round(pct*100)+'% '+qe(dhT("of_goal"))+'</span>'+
+          (brk?'<div><span class="dh-brkchip">'+qi("coffee",14)+qe(tt("on_break"))+' <b id="qBrk">00:00</b></span></div>':"")+'</div></div>'+
+      '</div></div></div>'+
+    '<div class="dh-tiles"><div class="q-card"><div class="dh-tl">'+qi("radar")+qe(tt("gps_km"))+'</div><div class="dh-odo" id="dhOdo"></div></div>'+
+      '<div class="q-card"><div class="dh-tl">'+qi("gauge")+qe(tt("speed"))+'</div><div class="dh-spd"><span id="dialSpeed">'+spd+'</span><small>km/h</small></div><div class="dh-spark"><svg viewBox="0 0 150 30" preserveAspectRatio="none"><path id="dhSpk" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div></div>'+
+    '<div class="q-card"><div class="dh-parcels"><div><div class="dh-tl">'+qi("box")+qe(tt("orders_delivered"))+'</div><b class="dh-pc" id="qOrd">'+(sh.ordersDone||0)+'</b>'+
+        '<div class="dh-sub"><span id="qCanc">'+(sh.ordersCancelled||0)+'</span> '+qe(tt("cancelled"))+'</div>'+
+        '<div class="dh-pbtns"><button class="minus" data-d2="ordMinus" aria-label="-1">−</button><button class="plus" data-d2="ordPlus">'+qe(dhT("deliv"))+'</button></div></div>'+
+      '<div class="dh-stackbox"><div class="dh-stack" id="dhStack"><div class="pad"></div></div><span class="dh-more" id="dhMore" style="display:none"></span></div></div></div>'+
+    '<div class="dh-acts">'+
+      '<button class="dh-act fuel" data-act="openFuel"><span class="ic"><span class="drop"></span>'+qi("fuel")+'</span>'+qe(tt("log_fuel"))+(fuelT?'<span class="dh-sub dh-mono">'+fuelT.toFixed(1)+' KWD</span>':"")+'</button>'+
+      '<button class="dh-act brk'+(brk?" on":"")+'" data-d2="break"><span class="ic"><span class="steam"></span><span class="steam s2"></span><span class="steam s3"></span>'+qi("coffee")+'</span>'+qe(brk?tt("end_break"):tt("take_break"))+'</button>'+
+      '<button class="dh-act sos" data-d2="sos"><span class="ic"><b style="font:800 13px/1 \'JetBrains Mono\',monospace">SOS</b></span>'+qe(tt("sos"))+'</button></div>'+
+    '<div class="q-map"><div id="qMap" style="position:absolute;inset:0"></div><span class="chip"><i></i><span id="trailLive">'+qe(sh.loginPlace||tt("on_road"))+'</span></span></div>'+
+    annHTML+
+    dhSlider(tt("slide_out"),true,"end"));
+};
+
+/* ---------- live bits (after each draw) ---------- */
+function dhDigits(str){return str.split("").map(function(c){if(!/\d/.test(c))return '<span style="display:inline-block">'+c+'</span>';return '<span class="col"><span style="transform:translateY(-'+(+c)+'em)">0<br>1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</span></span>';}).join("");}
+function dhPaintClock(sh){
+  var el=document.getElementById("dhClock");if(!el)return;
+  var x=d2dur(Date.now()-sh.startedAt),hm=x[0]+":"+x[1],ss=x[2];
+  var cols=el.querySelectorAll(".col > span");
+  if(!cols.length||cols.length!==(hm+ss).replace(/\D/g,"").length){el.innerHTML=dhDigits(hm)+'<span class="sec">:'+dhDigits(ss)+'</span>';}
+  else{var all=(hm+ss).replace(/\D/g,"");Array.prototype.forEach.call(cols,function(s,i){var v="translateY(-"+all[i]+"em)";if(s.style.transform!==v)s.style.transform=v;});}
+  var pct=Math.min(1,(Date.now()-sh.startedAt)/(12*3600e3)),p=document.getElementById("dhProg");
+  if(p)p.style.strokeDashoffset=(791*(1-pct)).toFixed(1);
+  var g=document.getElementById("dhGoal");if(g){var s=Math.round(pct*100)+"% "+dhT("of_goal");if(g.textContent!==s)g.textContent=s;}
+}
+function dhPaintOdo(sh){
+  var el=document.getElementById("dhOdo");if(!el)return;
+  var v=Math.min(9999.9,d2gpsKm(sh.id)),s=v.toFixed(1).padStart(5,"0").replace(".","");
+  var ds=el.querySelectorAll(".d > span");
+  if(ds.length!==s.length){el.innerHTML=s.split("").map(function(c,i){return '<span class="d'+(i===s.length-1?" dec":"")+'"><span style="transform:translateY(-'+(+c*38)+'px)">'+[0,1,2,3,4,5,6,7,8,9].join("<br>")+'</span></span>';}).join("");el.setAttribute("aria-label",v.toFixed(1)+" km");return;}
+  Array.prototype.forEach.call(ds,function(sp,i){var t="translateY(-"+(+s[i]*38)+"px)";if(sp.style.transform!==t)sp.style.transform=t;});
+  el.setAttribute("aria-label",v.toFixed(1)+" km");
+}
+function dhPaintSpeed(sh,sample){
+  var fresh=live.last&&Date.now()-live.last.t<30000,v=fresh?Math.max(0,Math.round(live.last.kmh||0)):(sh.breakAt?0:(sh.speed||0));
+  if(sh.breakAt)v=0;
+  if(D2H.histSid!==sh.id){D2H.histSid=sh.id;D2H.hist=[];}
+  if(sample||!D2H.hist.length){D2H.hist.push(v);if(D2H.hist.length>30)D2H.hist.shift();}
+  var b=document.getElementById("dhSpd");if(b&&b.textContent!==String(v))b.textContent=v;
+  var a=document.getElementById("dhSpArc");if(a)a.setAttribute("stroke-dasharray",(174*Math.min(1,v/80)).toFixed(1)+" 233");
+  var sp=document.getElementById("dialSpeed");if(sp&&sp.textContent!==String(v))sp.textContent=v;
+  var k=document.getElementById("dhSpk");
+  if(k){var H=D2H.hist.length>1?D2H.hist:[D2H.hist[0]||0,D2H.hist[0]||0],st=150/Math.max(1,Math.max(29,H.length-1));
+    k.setAttribute("d",H.map(function(x,i){return (i?"L":"M")+(i*st).toFixed(1)+" "+(28-Math.min(80,x)/80*26).toFixed(1);}).join(" "));}
+  var hero=document.getElementById("dhHero");
+  if(hero){var mv=!sh.breakAt;hero.classList.toggle("moving",mv);}
+}
+function dhPaintStack(sh,anim){
+  var s=document.getElementById("dhStack");if(!s)return;
+  var n=Math.max(0,sh.ordersDone||0),vis=Math.min(n,12),bx=s.querySelectorAll(".dh-bx");
+  Array.prototype.forEach.call(bx,function(b,i){if(i>=vis)b.remove();});
+  for(var k=s.querySelectorAll(".dh-bx").length;k<vis;k++){
+    var b=document.createElement("div"),P=[[-36,-36],[2,-36],[-36,2],[2,2]][k%4];
+    b.className="dh-bx"+(anim?"":" still");b.style.left=P[0]+"px";b.style.top=P[1]+"px";
+    b.style.setProperty("--z",(17+Math.floor(k/4)*34)+"px");b.style.setProperty("--pcol",DH_BOXC[k%DH_BOXC.length]);
+    if(anim&&anim!==true)b.style.animationDelay=(k*.06).toFixed(2)+"s";
+    b.innerHTML='<i class="c"></i><i class="e"></i><i class="a"></i><i class="b"></i><i class="t"></i>';s.appendChild(b);
+  }
+  var m=document.getElementById("dhMore");if(m){m.style.display=n>12?"":"none";m.textContent="+"+(n-12);}
+}
+function dhToast(icon,text){
+  var old=document.querySelector(".dh-toast");if(old)old.remove();
+  var el=document.createElement("div");el.className="dh-toast";el.setAttribute("role","status");el.innerHTML='<span class="m">'+icon+'</span>'+qe(text);document.body.appendChild(el);
+  setTimeout(function(){el.remove();},2500);
+}
+function dhTick(sample){
+  if(state.screen!=="driver"||state.driverTab!=="home")return;
+  var hero=document.getElementById("dhHero");if(hero){var ph=dhPhase();if(hero.getAttribute("data-time")!==ph)hero.setAttribute("data-time",ph);}
+  var sh=activeShift(state.driverId);if(!sh)return;
+  dhPaintClock(sh);dhPaintOdo(sh);dhPaintSpeed(sh,sample);
+  var tr=document.getElementById("dhTrack");if(tr)tr.classList.toggle("brk",!!sh.breakAt);
+}
+var _dhPost=postRender;
+postRender=function(){
+  _dhPost();
+  try{
+    if(D2H.iv){clearInterval(D2H.iv);D2H.iv=null;}
+    if(!d2mode()||state.screen!=="driver"||state.driverTab!=="home"||!document.getElementById("dhHero"))return;
+    var sh=activeShift(state.driverId),still=!!document.querySelector(".q-still");
+    if(sh){
+      dhTick(true);
+      dhPaintStack(sh,still?false:"stagger");D2H.lastOrd=sh.ordersDone||0;
+      var n=0;D2H.iv=setInterval(function(){n++;dhTick(n%2===0);},1000);
+    }else{
+      D2H.iv=setInterval(function(){dhTick(false);},60000);
+      var xb=document.getElementById("dhXp");
+      if(xb&&!still)setTimeout(function(){xb.style.width=xb.getAttribute("data-w")+"%";},350);
+    }
+  }catch(e){}
+};
+/* platform cards + orders (the app's own handlers do the saving; these only animate) */
+document.addEventListener("click",function(e){
+  if(!d2mode()||state.screen!=="driver")return;
+  var p=e.target.closest(".dh-plat[data-plat]");
+  if(p){Array.prototype.forEach.call(document.querySelectorAll(".dh-plat[data-plat]"),function(b){b.classList.toggle("on",b===p);});
+    var hero=document.getElementById("dhHero");if(hero)hero.style.setProperty("--pcol",dhPlatCol(p.getAttribute("data-plat")));
+    try{if(navigator.vibrate)navigator.vibrate(8);}catch(_){}
+    return;}
+  var o=e.target.closest('[data-d2="ordPlus"],[data-d2="ordMinus"]');
+  if(o){setTimeout(function(){var sh=activeShift(state.driverId);if(!sh)return;
+    var n=sh.ordersDone||0,up=n>(D2H.lastOrd==null?n:D2H.lastOrd);D2H.lastOrd=n;
+    dhPaintStack(sh,up);
+    if(up&&n>0&&n%5===0)dhToast(n>=10?"🏆":"🎉",n+" "+dhT("keep"));},0);}
+});
+
+/* ---------- shift done: 3D medal + badges ---------- */
+d2doneSheet=function(s){
+  var d=d2me()||{},dist=d2num(s.distance),ord=s.ordersDone||0,gain=Math.round(dist+5*ord);
+  var startH=null;try{startH=parseInt(new Intl.DateTimeFormat("en-GB",{hour:"2-digit",hourCycle:"h23",timeZone:"Asia/Kuwait"}).format(new Date(s.startedAt)),10);}catch(e){}
+  var bd=[];
+  if(startH!=null&&startH>=4&&startH<8)bd.push(["🌅",dhT("early")]);
+  if(ord>=10)bd.push(["📦",dhT("o10")]);
+  if(dist>=100)bd.push(["🛣️",dhT("k100")]);
+  bd.push(["⚡","+"+gain+" XP"]);
+  var wk=d2week();
+  openModal('<div class="q-grip"></div><div class="q-done"><div class="dh-medal"><div class="m">'+qi("trophy",48)+'</div></div><h2>'+qe(dhT("done_t"))+'</h2>'+
+    '<div class="q-sub" style="font-size:13px;margin-top:4px">'+qe(tt("great"))+', '+qe(String(d.name||"").split(" ")[0])+'! '+qe(dhT("safe"))+'</div>'+
+    '<div class="q-sub" style="font-size:12px;margin-top:4px">'+qe(tt("out"))+' '+qe(s.logoutTime||"")+(s.logoutPlace?" · "+qe(s.logoutPlace):"")+' · '+qe(tt("synced"))+'</div>'+
+    '<div class="q-sum3"><div><b class="q-cu">'+(s.distance||0)+'</b><span>km</span></div><div><b class="q-cu">'+ord+'</b><span>'+qe(tt("orders"))+'</span></div><div><b>'+qe(s.duration||"—")+'</b><span>'+qe(tt("shift_time"))+'</span></div></div>'+
+    '<div class="dh-badges">'+bd.map(function(b,i){return '<span class="dh-bdg" style="animation-delay:'+(0.9+i*.25).toFixed(2)+'s"><i style="font-style:normal">'+b[0]+'</i>'+qe(b[1])+'</span>';}).join("")+'</div>'+
+    (wk.streak>=2?'<div class="q-ann" style="margin-top:14px;text-align:start"><span class="spark">'+qi("fire",22)+'</span><span class="q-lbl">'+qe(tt("your_week"))+'</span><div style="margin-top:6px;font-weight:800;font-size:15px">'+wk.streak+qe(tt("streak"))+'</div></div>':"")+
+    '<button class="q-btn" data-close>'+qe(tt("done"))+'</button></div>');
+  Array.prototype.forEach.call(document.querySelectorAll("#overlay .q-cu"),function(el){var tg=parseFloat(el.textContent);if(!isFinite(tg)||!tg)return;var t0=performance.now();(function f(n){var p=Math.min(1,(n-t0)/900),e=1-Math.pow(1-p,3);el.textContent=Math.round(tg*e);if(p<1)requestAnimationFrame(f);})(t0);});
+  d2confetti();
+};
+if(state.ready&&state.screen==="driver")render();
 </script>
 </body>
 </html>
