@@ -1354,6 +1354,34 @@ body.d2on[data-dskin="night"] .dl-cloud{opacity:.2}
 @media (prefers-reduced-motion:reduce){.dh-hero *,.dh-hero,.dh-pop,.dh-bx,.dh-track .rider,.dh-act *{animation:none !important}}
 .q-slide.dh-road-s::before{opacity:.55}
 @media (max-width:374px){.dh-parcels{grid-template-columns:1fr 104px}.dh-stackbox{height:124px}.dh-stack{transform:rotateX(62deg) rotateZ(45deg) scale(.7)}.dh-pbtns .plus{font-size:13.5px}.dh-pc{font-size:48px}.dh-tl{letter-spacing:.06em}}
+
+/* ===== orders at clock-out ===== */
+.do-box{margin-top:6px;padding:14px;border-radius:20px;border:1.5px solid var(--acc);background:var(--acc-soft);transition:border-color .25s,background-color .25s}
+.do-box.done{border-color:var(--good);background:var(--good-bg)}
+.do-bh{display:flex;align-items:center;gap:10px;color:var(--acc-text)}
+.do-box.done .do-bh{color:var(--good)}
+.do-bh svg.q{width:22px;height:22px;flex:none}
+.do-bh b{display:block;font-size:15px;font-weight:800;color:var(--ink)}
+.do-bh small{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-top:1px}
+.do-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.do-box .q-fl{margin-top:12px}
+.do-req{margin-inline-start:auto;font:800 9px "JetBrains Mono",monospace;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:6px;background:var(--crit-bg);color:var(--crit)}
+.do-box.done .do-req{background:var(--good-bg);color:var(--good)}
+.q-inp.do-num{height:60px;text-align:center;font:800 28px "Bricolage Grotesque",sans-serif;background:var(--panel)}
+.q-inp.do-num::placeholder{color:var(--line)}
+.do-box .q-camb{background:var(--panel);min-height:104px}
+.do-box .q-camb.shot{min-height:150px}
+.do-bad{border-color:var(--crit)!important;box-shadow:0 0 0 4px var(--crit-bg)!important;animation:doShake .38s ease}
+@keyframes doShake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.do-left{margin-top:16px;text-align:center;font-size:12px;font-weight:700;color:var(--crit)}
+.q-btn.do-dim{opacity:.55}
+.do-left+.q-btn{margin-top:8px}
+/* on-duty reminder card */
+.q-card.do-hint{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.do-hint .ic{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;background:var(--acc-soft);color:var(--acc-text)}
+.do-hint .t b{display:block;font-size:13.5px;font-weight:800}
+.do-hint .t small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+@media (prefers-reduced-motion:reduce){.do-bad{animation:none}}
 </style>
 </head>
 <body>
@@ -1435,7 +1463,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.4";
+const APP_VERSION="4.5";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -1459,7 +1487,7 @@ function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");cl
 const mapDriver=r=>({id:r.id,name:r.name,phone:r.phone,pin:r.pin,plate:r.plate,model:r.model,platforms:r.platforms||[],activeDevice:r.active_device||null});
 const mapShift=r=>({id:r.id,driverId:r.driver_id,platform:r.platform,date:r.date,status:r.status,
   startOdo:r.start_odo,endOdo:r.end_odo,distance:r.distance,ordersDone:r.orders_done,ordersCancelled:r.orders_cancelled,
-  startOdoPhoto:r.start_odo_photo,endOdoPhoto:r.end_odo_photo,
+  startOdoPhoto:r.start_odo_photo,endOdoPhoto:r.end_odo_photo,ordersReceipt:r.orders_receipt||null,
   loginTime:r.login_time,loginPlace:r.login_place,loginAddr:r.login_addr,loginLat:r.login_lat,loginLng:r.login_lng,
   logoutTime:r.logout_time,logoutPlace:r.logout_place,logoutAddr:r.logout_addr,logoutLat:r.logout_lat,logoutLng:r.logout_lng,
   duration:r.duration,summary:r.summary,liveLat:r.live_lat,liveLng:r.live_lng,speed:r.speed,lastPing:r.live_time,
@@ -2262,6 +2290,7 @@ async function doStartDuty(){
 }
 async function doEndDuty(){
   const d=driverById(state.driverId);const sh=activeShift(d.id);if(!sh)return;
+  if(typeof d2ordCheck==="function"&&!d2ordCheck())return;
   const end=+$("#edOdo").value;
   if(!end||end<=0)return toast("Enter the ending odometer KM.");
   if(end<sh.startOdo)return toast("End KM can't be less than start ("+km(sh.startOdo)+"). Check the reading.");
@@ -2272,9 +2301,10 @@ async function doEndDuty(){
   try{
     const g=state.gps.logout;const mins=Math.max(1,Math.round((Date.now()-sh.startedAt)/60000));
     const photoUrl=await uploadPhoto(photoBuf.odoout,`odo/${d.id}-out-${Date.now()}.jpg`);
-    await rpc("driver_end_shift",{p_token:state.token,p_shift:String(sh.id),p:{end_odo:end,orders_done:+$("#edDone").value||0,orders_cancelled:+$("#edCanc").value||0,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps",summary:$("#edNote").value}});
+    const ordUrl=photoBuf.ordrcpt?await uploadPhoto(photoBuf.ordrcpt,`orders/${d.id}-${sh.id}-${Date.now()}.jpg`):null;
+    await rpc("driver_end_shift",{p_token:state.token,p_shift:String(sh.id),p:{end_odo:end,orders_done:+$("#edDone").value||0,orders_cancelled:+$("#edCanc").value||0,orders_photo:ordUrl,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps",summary:$("#edNote").value}});
     if(live.queue.length)await flushQueue();
-    stopLiveWatch();delete photoBuf.odoout;state.gps.logout=null;closeModal();toast("Duty completed — clocked out ✓");await loadDriver();render();
+    stopLiveWatch();delete photoBuf.odoout;delete photoBuf.ordrcpt;state.gps.logout=null;closeModal();toast("Duty completed — clocked out ✓");await loadDriver();render();
   }catch(e){toast("Clock-out failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('stop','i-xs')+" Confirm & Clock Out";}}
 }
 async function doSaveFuel(){
@@ -2747,9 +2777,9 @@ function d2history(d){
   var last="",list=mine.slice(0,40).map(function(s){
     var hd=s.date!==last?'<div class="q-day"><span>'+qe(fmtDate(s.date))+'</span></div>':"";last=s.date;
     var fl=shiftFuel(s.id),on=s.status==="ACTIVE",flag=isFlagged(s);
-    return hd+'<div class="q-card q-sc"><div class="top"><span class="q-chip '+(/keeta/i.test(s.platform)?"q-i":"q-a")+'">'+qe(s.platform)+'</span>'+(on?'<span class="q-pill on"><i></i>Live</span>':'<span class="q-chip q-n">'+(s.ordersDone||0)+' '+qe(tt("orders"))+'</span>')+(flag?'<span class="q-chip q-c">CHECK KM</span>':"")+(s.breakSec?'<span class="q-chip q-i">'+qe(tt("break_log"))+' '+Math.round(s.breakSec/60)+'m</span>':"")+(on?"":'<span class="km">+'+km(s.distance||0)+' km</span>')+'</div>'+
+    return hd+'<div class="q-card q-sc"><div class="top"><span class="q-chip '+(/keeta/i.test(s.platform)?"q-i":"q-a")+'">'+qe(s.platform)+'</span>'+(on?'<span class="q-pill on"><i></i>Live</span>':'<span class="q-chip q-n">'+(s.ordersDone||0)+' '+qe(tt("orders"))+(s.ordersCancelled?' · '+s.ordersCancelled+' '+qe(tt("cancelled")):"")+'</span>')+(flag?'<span class="q-chip q-c">CHECK KM</span>':"")+(s.breakSec?'<span class="q-chip q-i">'+qe(tt("break_log"))+' '+Math.round(s.breakSec/60)+'m</span>':"")+(on?"":'<span class="km">+'+km(s.distance||0)+' km</span>')+'</div>'+
       '<div class="q-tl"><div class="p">'+qe(tt("in_at"))+' '+qe(s.loginTime||"—")+' · '+qe(s.loginPlace||"—")+' · '+km(s.startOdo)+' km</div><div class="p o">'+(on?qe(tt("still_road")):qe(tt("out"))+' '+qe(s.logoutTime||"—")+' · '+qe(s.logoutPlace||"—")+' · '+km(s.endOdo)+' km'+(s.duration?' · '+qe(s.duration):""))+'</div></div>'+
-      ((s.startOdoPhoto||s.endOdoPhoto||fl.length)?'<div class="q-thumbs">'+(s.startOdoPhoto?'<img src="'+qe(s.startOdoPhoto)+'" data-photo="'+qe(s.startOdoPhoto)+'" alt="Start ODO">':"")+(s.endOdoPhoto?'<img src="'+qe(s.endOdoPhoto)+'" data-photo="'+qe(s.endOdoPhoto)+'" alt="End ODO">':"")+fl.filter(function(f){return f.receiptPhoto;}).map(function(f){return '<img src="'+qe(f.receiptPhoto)+'" data-photo="'+qe(f.receiptPhoto)+'" alt="Receipt">';}).join("")+'</div>':"")+
+      ((s.startOdoPhoto||s.endOdoPhoto||s.ordersReceipt||fl.length)?'<div class="q-thumbs">'+(s.ordersReceipt?'<img src="'+qe(s.ordersReceipt)+'" data-photo="'+qe(s.ordersReceipt)+'" alt="Orders receipt">':"")+(s.startOdoPhoto?'<img src="'+qe(s.startOdoPhoto)+'" data-photo="'+qe(s.startOdoPhoto)+'" alt="Start ODO">':"")+(s.endOdoPhoto?'<img src="'+qe(s.endOdoPhoto)+'" data-photo="'+qe(s.endOdoPhoto)+'" alt="End ODO">':"")+fl.filter(function(f){return f.receiptPhoto;}).map(function(f){return '<img src="'+qe(f.receiptPhoto)+'" data-photo="'+qe(f.receiptPhoto)+'" alt="Receipt">';}).join("")+'</div>':"")+
       (fl.length?'<div class="q-sub" style="margin-top:8px">'+qi("fuel",14)+' '+fl.map(function(f){return money(f.cost)+" KWD · "+qe(f.station||"");}).join(" · ")+'</div>':"")+'</div>';
   }).join("");
   return d2scr(d2header(tt("history"),tt("this_week"),activeShift(d.id))+
@@ -3463,12 +3493,100 @@ document.addEventListener("click",function(e){
   var c=e.target.closest("[data-dtcopy]");if(c){e.preventDefault();var k=c.getAttribute("data-dtcopy");var v=k==="url"?DT_URL:(DT.code||(document.getElementById("dtCode")||{}).textContent||"");if(v&&v!=="…")dtCopyText(v,c);}
 });
 </script>
+<script id="dorders">
+/* ================================================================
+   Orders at clock-out
+   The live "+1 Delivered" counter is gone. When the driver clocks out,
+   the sheet asks for: total delivered, total cancelled, and a photo or
+   screenshot of the platform's shift summary (the orders receipt).
+   Clock-out stays blocked until all three are filled.
+   ================================================================ */
+var DOX={
+ en:{ord_title:"Orders this shift",ord_sub:"From your Talabat / Keeta shift summary",ord_done:"Total delivered",ord_canc:"Cancelled",ord_rcpt:"Orders receipt",ord_rcpt_tap:"Photo or screenshot of the shift summary",ord_need_done:"Enter the total orders you delivered.",ord_need_canc:"Enter cancelled orders (0 if none).",ord_need_rcpt:"Attach the orders receipt to clock out.",ord_too_many:"That number looks too high — check it.",ord_hint:"At clock-out: total orders + receipt",ord_hint_s:"Keep your platform’s shift summary ready",req:"Required",ord_left:"Fill orders + receipt to clock out"},
+ ar:{ord_title:"طلبات هذه المناوبة",ord_sub:"من ملخص المناوبة في طلبات / كيتا",ord_done:"إجمالي المسلّمة",ord_canc:"الملغاة",ord_rcpt:"إيصال الطلبات",ord_rcpt_tap:"صورة أو لقطة شاشة لملخص المناوبة",ord_need_done:"أدخل إجمالي الطلبات التي سلّمتها.",ord_need_canc:"أدخل الطلبات الملغاة (0 إن لم توجد).",ord_need_rcpt:"أرفق إيصال الطلبات لتسجيل الخروج.",ord_too_many:"الرقم كبير جدًا — تحقّق منه.",ord_hint:"عند تسجيل الخروج: إجمالي الطلبات + الإيصال",ord_hint_s:"جهّز ملخص المناوبة من التطبيق",req:"مطلوب",ord_left:"أدخل الطلبات والإيصال لتسجيل الخروج"},
+ hi:{ord_title:"इस शिफ्ट के ऑर्डर",ord_sub:"Talabat / Keeta की शिफ्ट समरी से",ord_done:"कुल डिलीवर",ord_canc:"कैंसल",ord_rcpt:"ऑर्डर की रसीद",ord_rcpt_tap:"शिफ्ट समरी की फोटो या स्क्रीनशॉट",ord_need_done:"कुल डिलीवर किए ऑर्डर लिखें।",ord_need_canc:"कैंसल ऑर्डर लिखें (नहीं हैं तो 0)।",ord_need_rcpt:"क्लॉक-आउट के लिए ऑर्डर की रसीद लगाएँ।",ord_too_many:"यह नंबर बहुत ज़्यादा है — चेक करें।",ord_hint:"क्लॉक-आउट पर: कुल ऑर्डर + रसीद",ord_hint_s:"अपने ऐप की शिफ्ट समरी तैयार रखें",req:"ज़रूरी",ord_left:"क्लॉक-आउट के लिए ऑर्डर + रसीद भरें"},
+ bn:{ord_title:"এই শিফটের অর্ডার",ord_sub:"Talabat / Keeta শিফট সারাংশ থেকে",ord_done:"মোট ডেলিভারি",ord_canc:"বাতিল",ord_rcpt:"অর্ডারের রসিদ",ord_rcpt_tap:"শিফট সারাংশের ছবি বা স্ক্রিনশট",ord_need_done:"মোট ডেলিভারি করা অর্ডার লিখুন।",ord_need_canc:"বাতিল অর্ডার লিখুন (না থাকলে 0)।",ord_need_rcpt:"ক্লক-আউট করতে অর্ডারের রসিদ দিন।",ord_too_many:"সংখ্যাটা অনেক বেশি — দেখে নিন।",ord_hint:"ক্লক-আউটে: মোট অর্ডার + রসিদ",ord_hint_s:"অ্যাপের শিফট সারাংশ তৈরি রাখুন",req:"আবশ্যক",ord_left:"ক্লক-আউটে অর্ডার + রসিদ দিন"},
+ ne:{ord_title:"यो सिफ्टका अर्डर",ord_sub:"Talabat / Keeta सिफ्ट सारांशबाट",ord_done:"जम्मा डेलिभर",ord_canc:"रद्द",ord_rcpt:"अर्डरको रसिद",ord_rcpt_tap:"सिफ्ट सारांशको फोटो वा स्क्रिनसट",ord_need_done:"जम्मा डेलिभर गरेका अर्डर लेख्नुहोस्।",ord_need_canc:"रद्द अर्डर लेख्नुहोस् (छैन भने 0)।",ord_need_rcpt:"क्लक-आउट गर्न अर्डरको रसिद राख्नुहोस्।",ord_too_many:"यो संख्या धेरै ठूलो छ — जाँच्नुहोस्।",ord_hint:"क्लक-आउटमा: जम्मा अर्डर + रसिद",ord_hint_s:"एपको सिफ्ट सारांश तयार राख्नुहोस्",req:"आवश्यक",ord_left:"क्लक-आउट गर्न अर्डर + रसिद भर्नुहोस्"}
+};
+var DORD_MAX=300;
+function doT(k){var l=DOX[D2.lang]||DOX.en;return l[k]!=null?l[k]:(DOX.en[k]!=null?DOX.en[k]:k);}
+
+/* small reminder on the on-duty home screen (replaces the old +1 card) */
+function dOrdHint(){
+  return '<div class="q-card do-hint"><span class="ic">'+qi("box",20)+'</span><span class="t"><b>'+qe(doT("ord_hint"))+'</b><small>'+qe(doT("ord_hint_s"))+'</small></span></div>';
+}
+
+/* the receipt picker: camera OR gallery (screenshots), so no capture attribute */
+function dOrdRcptField(){
+  return '<input type="file" accept="image/*" class="cam" data-key="ordrcpt" id="cam-ordrcpt" style="display:none">'+
+    '<button type="button" class="q-camb do-rcpt" data-camkey="ordrcpt" id="prev-ordrcpt">'+qi("doc",28)+'<span>'+qe(doT("ord_rcpt"))+'</span><span style="font-weight:600;font-size:11.5px">'+qe(doT("ord_rcpt_tap"))+'</span></button>';
+}
+
+modalEndDuty=function(){
+  var d=d2me(),sh=activeShift(d.id);if(!sh)return;
+  delete photoBuf.odoout;delete photoBuf.ordrcpt;state.gps.logout=null;
+  var reqTag='<span class="do-req">'+qe(doT("req"))+'</span>';
+  openModal(d2sheetHead("stop","r",tt("clock_out"),d.name+" · "+tt("in_at")+" "+(sh.loginTime||"")+" · "+km(sh.startOdo)+" km")+
+    '<div class="do-box" id="doBox"><div class="do-bh">'+qi("box",18)+'<div><b>'+qe(doT("ord_title"))+'</b><small>'+qe(doT("ord_sub"))+'</small></div></div>'+
+      '<div class="do-grid"><div><div class="q-fl">'+qe(doT("ord_done"))+reqTag+'</div><input class="q-inp do-num" id="edDone" type="number" inputmode="numeric" min="0" max="'+DORD_MAX+'" step="1" placeholder="0" autocomplete="off"></div>'+
+        '<div><div class="q-fl">'+qe(doT("ord_canc"))+reqTag+'</div><input class="q-inp do-num" id="edCanc" type="number" inputmode="numeric" min="0" max="'+DORD_MAX+'" step="1" placeholder="0" autocomplete="off"></div></div>'+
+      '<div class="q-fl">'+qi("cam")+qe(doT("ord_rcpt"))+reqTag+'</div>'+dOrdRcptField()+
+    '</div>'+
+    '<div class="q-fl">'+qi("cam")+qe(tt("odo_photo"))+' <span class="q-new">AUTO-READ</span></div>'+camField("odoout",tt("odo_photo"))+
+    '<div class="q-fl">'+qi("gauge")+qe(tt("end_km"))+'</div><input class="q-inp" id="edOdo" type="number" inputmode="numeric" placeholder="'+(sh.startOdo+60)+'">'+
+    '<div class="q-calc" id="edCalc" style="opacity:.5"><span><b style="font-size:13px;font-family:inherit;display:block">'+qe(tt("distance"))+'</b><span style="font-size:11.5px">'+km(sh.startOdo)+' → ?</span></span><b id="edDist">— km</b></div>'+
+    '<div class="q-fl">'+qi("pin")+qe(tt("location"))+'</div>'+gpsPickerMini("logout")+
+    '<div class="q-fl">'+qe(tt("note"))+'</div><input class="q-inp txt" id="edNote" placeholder="…">'+
+    '<div class="do-left" id="doLeft">'+qe(doT("ord_left"))+'</div>'+
+    '<button class="q-btn r do-go" data-act="confirmEndDuty">'+qi("stop")+qe(tt("confirm_out"))+'</button><button class="q-btn ghost" data-close>'+qe(tt("keep_riding"))+'</button>');
+  var inp=document.getElementById("edOdo");if(inp)inp.addEventListener("input",function(){d2calcEnd(sh);});
+  ["edDone","edCanc"].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener("input",function(){el.classList.remove("do-bad");dOrdState();});});
+  dOrdState();
+  detectGps("logout");
+};
+
+function dOrdVal(id){
+  var el=document.getElementById(id);if(!el)return null;
+  var v=String(el.value||"").trim();if(v==="")return null;
+  var n=Number(v);return (isFinite(n)&&n>=0&&Math.floor(n)===n)?n:NaN;
+}
+function dOrdState(){
+  var ok=dOrdVal("edDone")!=null&&dOrdVal("edCanc")!=null&&!!photoBuf.ordrcpt;
+  var l=document.getElementById("doLeft"),b=document.querySelector('.overlay [data-act="confirmEndDuty"]'),box=document.getElementById("doBox");
+  if(l)l.style.display=ok?"none":"";
+  if(b)b.classList.toggle("do-dim",!ok);
+  if(box)box.classList.toggle("done",ok);
+  return ok;
+}
+function dOrdFlag(id,msg){
+  var el=document.getElementById(id);
+  if(el){el.classList.remove("do-bad");void el.offsetWidth;el.classList.add("do-bad");try{el.scrollIntoView({block:"center",behavior:"smooth"});}catch(e){}
+    if(el.tagName==="INPUT")setTimeout(function(){try{el.focus();}catch(e){}},250);}
+  try{if(navigator.vibrate)navigator.vibrate([30,40,30]);}catch(e){}
+  toast(msg);return false;
+}
+/* called by doEndDuty before anything else (see build.py) — returns false to block clock-out */
+function d2ordCheck(){
+  if(!document.getElementById("doBox"))return true;
+  var dn=dOrdVal("edDone"),cn=dOrdVal("edCanc");
+  if(dn==null||isNaN(dn))return dOrdFlag("edDone",doT("ord_need_done"));
+  if(dn>DORD_MAX)return dOrdFlag("edDone",doT("ord_too_many"));
+  if(cn==null||isNaN(cn))return dOrdFlag("edCanc",doT("ord_need_canc"));
+  if(cn>DORD_MAX)return dOrdFlag("edCanc",doT("ord_too_many"));
+  if(!photoBuf.ordrcpt)return dOrdFlag("prev-ordrcpt",doT("ord_need_rcpt"));
+  document.getElementById("edDone").value=dn;document.getElementById("edCanc").value=cn;
+  return true;
+}
+/* refresh the "ready" state after a photo is picked */
+var _doOnCam=onCam;
+onCam=async function(inp){await _doOnCam(inp);if(inp&&inp.dataset&&inp.dataset.key==="ordrcpt"){var b=document.getElementById("prev-ordrcpt");if(b)b.classList.remove("do-bad");}dOrdState();};
+</script>
 <script id="dhome">
 /* ================================================================
    Driver home v3 — a living street scene (morning / evening / night by
    Kuwait time), race-track shift timer, 3D parcel stack, streak + levels.
    Only the HOME screen's look changes. Every button still calls the
-   same tested actions (clock in/out sliders, +1 order, break, fuel, SOS).
+   same tested actions (clock in/out sliders, break, fuel, SOS). Orders are entered once at clock-out (dorders.js).
    ================================================================ */
 var DHX={
  en:{tap_one:"tap one",last:"Last ride",first:"First ride here!",go:"Let’s roll!",brk:"Coffee time ☕",kw:"Kuwait",prog:"Shift in progress",of_goal:"of 12h goal",deliv:"+1 Delivered",keep:"orders! Keep rolling",early:"Early bird",o10:"10+ orders",k100:"100 km club",done_t:"Shift complete!",safe:"Ride home safe.",to_next:"{n} XP to Level {l}",top:"Top level!"},
@@ -3599,10 +3717,7 @@ driverHome=function(d,sh){
       '</div></div></div>'+
     '<div class="dh-tiles"><div class="q-card"><div class="dh-tl">'+qi("radar")+qe(tt("gps_km"))+'</div><div class="dh-odo" id="dhOdo"></div></div>'+
       '<div class="q-card"><div class="dh-tl">'+qi("gauge")+qe(tt("speed"))+'</div><div class="dh-spd"><span id="dialSpeed">'+spd+'</span><small>km/h</small></div><div class="dh-spark"><svg viewBox="0 0 150 30" preserveAspectRatio="none"><path id="dhSpk" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div></div>'+
-    '<div class="q-card"><div class="dh-parcels"><div><div class="dh-tl">'+qi("box")+qe(tt("orders_delivered"))+'</div><b class="dh-pc" id="qOrd">'+(sh.ordersDone||0)+'</b>'+
-        '<div class="dh-sub"><span id="qCanc">'+(sh.ordersCancelled||0)+'</span> '+qe(tt("cancelled"))+'</div>'+
-        '<div class="dh-pbtns"><button class="minus" data-d2="ordMinus" aria-label="-1">−</button><button class="plus" data-d2="ordPlus">'+qe(dhT("deliv"))+'</button></div></div>'+
-      '<div class="dh-stackbox"><div class="dh-stack" id="dhStack"><div class="pad"></div></div><span class="dh-more" id="dhMore" style="display:none"></span></div></div></div>'+
+    dOrdHint()+
     '<div class="dh-acts">'+
       '<button class="dh-act fuel" data-act="openFuel"><span class="ic"><span class="drop"></span>'+qi("fuel")+'</span>'+qe(tt("log_fuel"))+(fuelT?'<span class="dh-sub dh-mono">'+fuelT.toFixed(1)+' KWD</span>':"")+'</button>'+
       '<button class="dh-act brk'+(brk?" on":"")+'" data-d2="break"><span class="ic"><span class="steam"></span><span class="steam s2"></span><span class="steam s3"></span>'+qi("coffee")+'</span>'+qe(brk?tt("end_break"):tt("take_break"))+'</button>'+
