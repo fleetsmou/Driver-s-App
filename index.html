@@ -1382,6 +1382,29 @@ body.d2on[data-dskin="night"] .dl-cloud{opacity:.2}
 .do-hint .t b{display:block;font-size:13.5px;font-weight:800}
 .do-hint .t small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
 @media (prefers-reduced-motion:reduce){.do-bad{animation:none}}
+
+/* ===== GPS problem banner (on duty) ===== */
+#dgps{position:fixed;left:10px;right:10px;top:calc(8px + env(safe-area-inset-top));z-index:9800;display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:18px;background:#B42318;color:#fff;box-shadow:0 14px 34px rgba(180,35,24,.45);font-family:"Plus Jakarta Sans",system-ui,sans-serif;animation:dgIn .3s cubic-bezier(.2,.8,.2,1.2) both}
+#dgps .dg-ic{width:34px;height:34px;flex:none;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.18);animation:dgPulse 1.4s ease-in-out infinite}
+#dgps .dg-ic svg{width:19px;height:19px}
+#dgps .dg-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+#dgps .dg-t b{font-size:13.5px;font-weight:800}
+#dgps .dg-t small{font-size:11.5px;opacity:.9;margin-top:1px}
+#dgps button{flex:none;height:34px;padding:0 12px;border-radius:11px;border:0;background:#fff;color:#B42318;font:800 12.5px "Plus Jakarta Sans",system-ui,sans-serif;cursor:pointer}
+@keyframes dgIn{from{opacity:0;transform:translateY(-12px)}}
+@keyframes dgPulse{50%{background:rgba(255,255,255,.34)}}
+/* ===== new-version bar ===== */
+#dupd{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:9700;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:18px;border:0;background:#1F1A14;color:#fff;text-align:start;box-shadow:0 14px 34px rgba(0,0,0,.35);font-family:"Plus Jakarta Sans",system-ui,sans-serif;cursor:pointer;animation:duIn .35s cubic-bezier(.2,.8,.2,1.2) both}
+#dupd .du-dot{width:10px;height:10px;flex:none;border-radius:50%;background:var(--acc,#E8590C);box-shadow:0 0 0 4px rgba(232,89,12,.3)}
+#dupd .du-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+#dupd .du-t b{font-size:13.5px;font-weight:800}
+#dupd .du-t small{font-size:11.5px;opacity:.75}
+#dupd .du-b{flex:none;height:34px;padding:0 14px;border-radius:11px;display:grid;place-items:center;background:var(--acc,#E8590C);color:#fff;font-weight:800;font-size:12.5px}
+@keyframes duIn{from{opacity:0;transform:translateY(14px)}}
+@media (prefers-reduced-motion:reduce){#dgps,#dupd,#dgps .dg-ic{animation:none}}
+/* ===== GPS alerts (push) ===== */
+.dp-card .q-row h3,.dp-home .q-row h3{margin:0}
+.dp-home{border:1.5px solid color-mix(in srgb,var(--acc) 45%,transparent);background:color-mix(in srgb,var(--acc-soft) 70%,var(--panel));animation:dtIn .4s both}
 </style>
 </head>
 <body>
@@ -1463,7 +1486,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.5";
+const APP_VERSION="4.7";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -3840,6 +3863,199 @@ d2doneSheet=function(s){
   d2confetti();
 };
 if(state.ready&&state.screen==="driver")render();
+</script>
+<script id="dday3">
+/* ================================================================
+   Day 3 · (1) GPS problem banner — while on duty, if the phone blocks
+   location or gives no GPS fix, the driver sees a red bar at once.
+   (2) New-version notice — when a newer app is published, the driver
+   gets an "Update" bar; the app also updates itself on resume when
+   nothing is open.
+   ================================================================ */
+var D3X={
+ en:{gps_off:"Live · GPS off",off_t:"Location is OFF — the office can’t see you",off_s:"Turn on Location and allow it for this app (Precise · While Using).",nosig_t:"No GPS signal",nosig_s:"Go to open sky, or turn Location off and on again.",fix:"Try again",upd_t:"New app version",upd_s:"Tap to update — takes 2 seconds",upd_b:"Update"},
+ ar:{gps_off:"مباشر · GPS مغلق",off_t:"الموقع مغلق — المكتب لا يراك",off_s:"شغّل الموقع واسمح به لهذا التطبيق (دقيق · أثناء الاستخدام).",nosig_t:"لا توجد إشارة GPS",nosig_s:"اخرج إلى مكان مفتوح، أو أطفئ الموقع وشغّله مرة أخرى.",fix:"حاول مرة أخرى",upd_t:"نسخة جديدة من التطبيق",upd_s:"اضغط للتحديث — يستغرق ثانيتين",upd_b:"تحديث"},
+ hi:{gps_off:"लाइव · GPS बंद",off_t:"लोकेशन बंद है — ऑफिस आपको नहीं देख सकता",off_s:"लोकेशन चालू करें और इस ऐप को अनुमति दें (Precise · While Using)।",nosig_t:"GPS सिग्नल नहीं है",nosig_s:"खुली जगह पर जाएं, या लोकेशन बंद करके फिर चालू करें।",fix:"फिर कोशिश करें",upd_t:"ऐप का नया वर्ज़न",upd_s:"अपडेट के लिए टैप करें — 2 सेकंड लगेंगे",upd_b:"अपडेट"},
+ bn:{gps_off:"লাইভ · GPS বন্ধ",off_t:"লোকেশন বন্ধ — অফিস আপনাকে দেখতে পাচ্ছে না",off_s:"লোকেশন চালু করুন এবং এই অ্যাপকে অনুমতি দিন (Precise · While Using)।",nosig_t:"GPS সিগন্যাল নেই",nosig_s:"খোলা জায়গায় যান, অথবা লোকেশন বন্ধ করে আবার চালু করুন।",fix:"আবার চেষ্টা করুন",upd_t:"অ্যাপের নতুন ভার্সন",upd_s:"আপডেট করতে ট্যাপ করুন — ২ সেকেন্ড লাগবে",upd_b:"আপডেট"},
+ ne:{gps_off:"लाइभ · GPS बन्द",off_t:"लोकेसन बन्द छ — अफिसले तपाईंलाई देख्न सक्दैन",off_s:"लोकेसन खोल्नुहोस् र यो एपलाई अनुमति दिनुहोस् (Precise · While Using)।",nosig_t:"GPS सिग्नल छैन",nosig_s:"खुला ठाउँमा जानुहोस्, वा लोकेसन बन्द गरेर फेरि खोल्नुहोस्।",fix:"फेरि प्रयास गर्नुहोस्",upd_t:"एपको नयाँ संस्करण",upd_s:"अपडेट गर्न ट्याप गर्नुहोस् — २ सेकेन्ड लाग्छ",upd_b:"अपडेट"}
+};
+function d3T(k){var l=D3X[(typeof D2!=="undefined"&&D2.lang)||"en"]||D3X.en;return l[k]!=null?l[k]:D3X.en[k];}
+function d3E(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+/* ---------- (1) GPS problem banner ---------- */
+var DG={err:0,fix:0,start:0};
+startWebWatch=function(){
+  if(!navigator.geolocation){toast("GPS not supported on this device.");DG.err=2;dgPaint();return;}
+  acquireWake();DG.start=Date.now();DG.err=0;
+  live.watchId=navigator.geolocation.watchPosition(
+    function(p){DG.fix=Date.now();if(DG.err){DG.err=0;}dgPaint();var c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},
+    function(e){if(e&&e.code===1){DG.err=1;toast("Location permission denied — live tracking is OFF. Allow location in settings.");}dgPaint();},
+    {enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  dgPaint();
+};
+function dgState(){
+  if(!live.shiftId||live.watchId==null||document.hidden)return "";
+  if(DG.err===1||DG.err===2)return "off";
+  if(Date.now()-Math.max(DG.fix,DG.start)>90000)return "nosig";
+  return "";
+}
+function dgPaint(){
+  var st=dgState(),el=document.getElementById("dgps");
+  if(!st){if(el)el.remove();return;}
+  if(!el){el=document.createElement("div");el.id="dgps";el.setAttribute("role","alert");document.body.appendChild(el);}
+  el.setAttribute("dir",(typeof D2!=="undefined"&&D2.lang==="ar")?"rtl":"ltr");
+  var k=st==="off"?"off":"nosig";
+  el.innerHTML='<span class="dg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><path d="m4 4 16 16"/></svg></span>'+
+    '<span class="dg-t"><b>'+d3E(d3T(k+"_t"))+'</b><small>'+d3E(d3T(k+"_s"))+'</small></span><button type="button" data-dgfix="1">'+d3E(d3T("fix"))+'</button>';
+}
+function dgRetry(){
+  var b=document.querySelector("[data-dgfix]");if(b){b.disabled=true;b.textContent="…";}
+  try{navigator.geolocation.getCurrentPosition(function(p){DG.fix=Date.now();DG.err=0;dgPaint();var c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},
+    function(e){if(e&&e.code===1)DG.err=1;dgPaint();},{enableHighAccuracy:true,maximumAge:0,timeout:15000});}catch(e){}
+  if(live.watchId!=null){try{navigator.geolocation.clearWatch(live.watchId);}catch(e){}live.watchId=null;startWebWatch();}
+  setTimeout(function(){var b2=document.querySelector("[data-dgfix]");if(b2){b2.disabled=false;b2.textContent=d3T("fix");}},4000);
+}
+document.addEventListener("click",function(e){if(e.target.closest("[data-dgfix]"))dgRetry();});
+(function(){var _tt=tt;tt=function(k){if(k==="live_gps"&&DG.err&&live.shiftId)return d3T("gps_off");return _tt.apply(this,arguments);};})();   /* the “Live · GPS on” pill must not lie */
+document.addEventListener("visibilitychange",function(){if(!document.hidden)DG.start=Date.now();dgPaint();});
+setInterval(dgPaint,10000);
+
+/* ---------- (2) new-version notice ---------- */
+(function(){
+  var TAG=null,NEWV=null,last=0;
+  var RX=new RegExp("const APP"+"_VERSION=\"([^\"]+)\"");
+  function vnum(v){var m=/(\d+)\.(\d+)/.exec(String(v||""));return m?(+m[1])*10000+(+m[2]):0;}
+  function url(){return location.pathname+"?vc="+Date.now();}
+  function tagOf(r){return r.headers.get("etag")||r.headers.get("last-modified")||"";}
+  function full(){return fetch(url(),{cache:"no-store"}).then(function(r){if(!r.ok)return;TAG=tagOf(r)||TAG||"x";return r.text().then(function(t){var m=RX.exec(t);if(m&&vnum(m[1])>vnum(APP_VERSION)){NEWV=m[1];show();}});});}
+  function check(force){
+    if(NEWV||!navigator.onLine||!/^https?:$/.test(location.protocol))return;
+    if(!force&&Date.now()-last<60000)return;last=Date.now();
+    if(!TAG){full().catch(function(){});return;}
+    fetch(url(),{method:"HEAD",cache:"no-store"}).then(function(r){var t=tagOf(r);if(!t||t!==TAG)return full();}).catch(function(){});
+  }
+  function busy(){return !!document.querySelector("#overlay,.overlay,.d2sheet");}
+  function tried(){try{return sessionStorage.getItem("d2-upd")===NEWV;}catch(e){return false;}}
+  function go(){try{sessionStorage.setItem("d2-upd",NEWV);}catch(e){}location.reload();}
+  function show(){
+    var el=document.getElementById("dupd");if(el)el.remove();
+    el=document.createElement("button");el.type="button";el.id="dupd";el.setAttribute("data-dupd","1");
+    el.setAttribute("dir",(typeof D2!=="undefined"&&D2.lang==="ar")?"rtl":"ltr");
+    el.innerHTML='<span class="du-dot"></span><span class="du-t"><b>'+d3E(d3T("upd_t"))+' · v'+d3E(NEWV)+'</b><small>'+d3E(d3T("upd_s"))+'</small></span><span class="du-b">'+d3E(d3T("upd_b"))+'</span>';
+    document.body.appendChild(el);
+  }
+  document.addEventListener("click",function(e){if(e.target.closest("[data-dupd]"))go();});
+  document.addEventListener("visibilitychange",function(){
+    if(document.hidden)return;
+    if(NEWV&&!busy()&&!tried()){go();return;}      /* app came back to the front with nothing open: update quietly */
+    check(false);
+  });
+  setTimeout(function(){check(true);},12000);
+  setInterval(function(){check(false);},5*60000);
+  window.addEventListener("online",function(){check(true);});
+  window.__d3Show=function(v){NEWV=v;show();};    /* used by the test page */
+})();
+</script>
+<script id="dpush">
+/* ================================================================
+   GPS-lost alerts in the phone's notification bar (Web Push).
+   The server checks every 2 min: on duty + no location for 8 min →
+   push "GPS lost — open the app, leave with Home, don't swipe it away".
+   Works even when the app was swiped away. Needs: iPhone app added to
+   Home Screen (iOS 16.4+) or Android Chrome, and the driver tapping
+   "Turn on" once. (Inside the Android APK web push is not available.)
+   ================================================================ */
+var DP_KEY="BAmWp6fFfRzb4DPuYSDXVlAtSQK2_RhpH7_mqNRPG8iRVCWVoj0kJU6W0VIfH0AYXvFB4DltMV_5gdtVkcuCf9A";
+var DPX={
+ en:{t:"GPS alerts",sub:"If your live location stops during a shift, you get a message in the notification bar.",on:"On",off:"Off",blocked:"Blocked",turn:"Turn on",test:"Send test",
+     hT:"Turn on GPS alerts",hS:"Get a message on your phone if the office stops seeing your location.",ok:"GPS alerts are on ✓",sent:"Test sent — check your notification bar.",
+     deny:"Notifications are blocked. Allow them for SMOU Driver in phone Settings → Notifications.",ios:"iPhone: add SMOU to the Home Screen first (Share → Add to Home Screen), then open it from there.",fail:"Could not turn on alerts — try again."},
+ ar:{t:"تنبيهات GPS",sub:"إذا توقف موقعك المباشر أثناء المناوبة تصلك رسالة في شريط الإشعارات.",on:"مفعّل",off:"متوقف",blocked:"محظور",turn:"تفعيل",test:"إرسال تجربة",
+     hT:"فعّل تنبيهات GPS",hS:"تصلك رسالة على هاتفك إذا توقف المكتب عن رؤية موقعك.",ok:"تنبيهات GPS مفعّلة ✓",sent:"تم الإرسال — راجع شريط الإشعارات.",
+     deny:"الإشعارات محظورة. اسمح بها لتطبيق SMOU من الإعدادات ← الإشعارات.",ios:"آيفون: أضف SMOU إلى الشاشة الرئيسية أولاً (مشاركة ← إضافة إلى الشاشة الرئيسية) ثم افتحه من هناك.",fail:"تعذّر تفعيل التنبيهات — حاول مرة أخرى."},
+ hi:{t:"GPS अलर्ट",sub:"शिफ्ट में लाइव लोकेशन रुकी तो नोटिफिकेशन बार में मैसेज आएगा।",on:"चालू",off:"बंद",blocked:"ब्लॉक",turn:"चालू करें",test:"टेस्ट भेजें",
+     hT:"GPS अलर्ट चालू करें",hS:"ऑफिस को आपकी लोकेशन दिखना बंद हो तो फोन पर मैसेज आएगा।",ok:"GPS अलर्ट चालू ✓",sent:"टेस्ट भेजा — नोटिफिकेशन बार देखें।",
+     deny:"नोटिफिकेशन ब्लॉक हैं। फोन Settings → Notifications में SMOU Driver को अनुमति दें।",ios:"iPhone: पहले SMOU को Home Screen पर जोड़ें (Share → Add to Home Screen), फिर वहीं से खोलें।",fail:"अलर्ट चालू नहीं हुआ — फिर कोशिश करें।"},
+ bn:{t:"GPS অ্যালার্ট",sub:"শিফটে লাইভ লোকেশন থামলে নোটিফিকেশন বারে মেসেজ আসবে।",on:"চালু",off:"বন্ধ",blocked:"ব্লক",turn:"চালু করুন",test:"টেস্ট পাঠান",
+     hT:"GPS অ্যালার্ট চালু করুন",hS:"অফিস আপনার লোকেশন দেখতে না পেলে ফোনে মেসেজ আসবে।",ok:"GPS অ্যালার্ট চালু ✓",sent:"টেস্ট পাঠানো হয়েছে — নোটিফিকেশন বার দেখুন।",
+     deny:"নোটিফিকেশন ব্লক করা। ফোনের Settings → Notifications এ SMOU Driver কে অনুমতি দিন।",ios:"iPhone: আগে SMOU কে Home Screen এ যোগ করুন (Share → Add to Home Screen), তারপর সেখান থেকে খুলুন।",fail:"অ্যালার্ট চালু হয়নি — আবার চেষ্টা করুন।"},
+ ne:{t:"GPS अलर्ट",sub:"सिफ्टमा लाइभ लोकेसन रोकियो भने नोटिफिकेसन बारमा सन्देश आउँछ।",on:"सक्रिय",off:"बन्द",blocked:"ब्लक",turn:"सक्रिय गर्नुहोस्",test:"टेस्ट पठाउनुहोस्",
+     hT:"GPS अलर्ट सक्रिय गर्नुहोस्",hS:"अफिसले तपाईंको लोकेसन देख्न छोड्यो भने फोनमा सन्देश आउँछ।",ok:"GPS अलर्ट सक्रिय ✓",sent:"टेस्ट पठाइयो — नोटिफिकेसन बार हेर्नुहोस्।",
+     deny:"नोटिफिकेसन ब्लक छ। फोन Settings → Notifications मा SMOU Driver लाई अनुमति दिनुहोस्।",ios:"iPhone: पहिले SMOU लाई Home Screen मा थप्नुहोस् (Share → Add to Home Screen), अनि त्यहीँबाट खोल्नुहोस्।",fail:"अलर्ट सक्रिय भएन — फेरि प्रयास गर्नुहोस्।"}
+};
+function dpT(k){var l=DPX[(typeof D2!=="undefined"&&D2.lang)||"en"]||DPX.en;return l[k]!=null?l[k]:DPX.en[k];}
+var DP={st:"",reg:null,busy:false,saved:""};
+function dpNative(){return typeof dlNative==="function"&&dlNative();}
+function dpIOS(){return typeof dlIOS==="function"&&dlIOS();}
+function dpCan(){return !dpNative()&&"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window&&(/^https:$/.test(location.protocol)||location.hostname==="localhost");}
+function dpKey(b){var p="=".repeat((4-b.length%4)%4),s=atob((b+p).replace(/-/g,"+").replace(/_/g,"/")),a=new Uint8Array(s.length);for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}
+/* state: "" (not applicable) · ios (needs Home Screen) · off · denied · on */
+function dpState(){
+  if(dpNative())return "";
+  if(!dpCan())return dpIOS()?"ios":"";
+  if(Notification.permission==="denied")return "denied";
+  return DP.st==="on"?"on":"off";
+}
+function dpReg(){
+  if(DP.reg)return Promise.resolve(DP.reg);
+  return navigator.serviceWorker.register("sw.js").then(function(r){DP.reg=r;return navigator.serviceWorker.ready.then(function(){return r;});});
+}
+function dpSave(sub){
+  if(!state.token||!sub)return Promise.resolve();
+  var j=sub.toJSON?sub.toJSON():sub,key=j.endpoint+"|"+(D2.lang||"en")+"|"+state.token;
+  if(DP.saved===key)return Promise.resolve();
+  return rpc("driver_push_subscribe",{p_token:state.token,p_sub:j,p_lang:D2.lang||"en",p_ua:(navigator.userAgent||"").slice(0,300)}).then(function(){DP.saved=key;});
+}
+/* on every start (after login): if already allowed, make sure the server has this phone */
+function dpSync(){
+  if(!dpCan()||!state.token||DP.busy)return;
+  if(Notification.permission!=="granted"){DP.st="off";return;}
+  DP.busy=true;
+  dpReg().then(function(r){return r.pushManager.getSubscription().then(function(s){return s||r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:dpKey(DP_KEY)});});})
+    .then(function(s){return dpSave(s).then(function(){DP.st="on";});})
+    .catch(function(){DP.st="off";})
+    .then(function(){DP.busy=false;dpPaint();});
+}
+function dpEnable(btn){
+  if(!dpCan()){toast(dpIOS()?dpT("ios"):dpT("fail"));return;}
+  if(btn){btn.disabled=true;}
+  var ask=Notification.permission==="granted"?Promise.resolve("granted"):Notification.requestPermission();
+  Promise.resolve(ask).then(function(p){
+    if(p!=="granted"){DP.st="off";toast(dpT("deny"));return;}
+    return dpReg().then(function(r){return r.pushManager.getSubscription().then(function(s){return s||r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:dpKey(DP_KEY)});});})
+      .then(function(s){DP.saved="";return dpSave(s);}).then(function(){DP.st="on";toast(dpT("ok"));});
+  }).catch(function(){toast(dpT("fail"));}).then(function(){if(btn)btn.disabled=false;dpPaint();if(typeof render==="function"&&state.driverTab==="me")render();});
+}
+function dpTest(btn){
+  if(btn)btn.disabled=true;
+  fetch(SUPABASE_URL+"/functions/v1/gps-push",{method:"POST",headers:{"content-type":"application/json",apikey:SUPABASE_ANON_KEY,authorization:"Bearer "+SUPABASE_ANON_KEY},body:JSON.stringify({token:state.token})})
+    .then(function(r){return r.json().catch(function(){return {};}).then(function(j){if(r.ok&&j.ok)toast(dpT("sent"));else if(j.error==="NO_SUBSCRIPTION"){DP.st="off";DP.saved="";toast(dpT("fail"));dpSync();}else toast(dpT("fail"));});})
+    .catch(function(){toast(dpT("fail"));}).then(function(){if(btn)btn.disabled=false;});
+}
+/* Me tab card */
+function dpCard(){
+  var st=dpState();if(!st)return "";
+  var chip=st==="on"?'<span class="q-chip q-g">'+qe(dpT("on"))+'</span>':st==="denied"?'<span class="q-chip q-c">'+qe(dpT("blocked"))+'</span>':'<span class="q-chip q-n">'+qe(dpT("off"))+'</span>';
+  var btn=st==="on"?'<button class="q-btn sm" data-dp="test">'+qe(dpT("test"))+'</button>':st==="off"?'<button class="q-btn sm" data-dp="on">'+qe(dpT("turn"))+'</button>':'';
+  var note=st==="denied"?dpT("deny"):st==="ios"?dpT("ios"):dpT("sub");
+  return '<div class="q-card dp-card" id="dpCard"><div class="q-row"><span class="dt-ic'+(st==="on"?" on":"")+'">'+qi("bell",20)+'</span><div style="flex:1;min-width:0"><h3>'+qe(dpT("t"))+'</h3><div class="q-sub">'+qe(note)+'</div></div></div>'+
+    '<div class="q-row" style="margin-top:12px">'+chip+'<span class="q-sp"></span>'+btn+'</div></div>';
+}
+/* home: one-tap nudge until alerts are on */
+function dpPaint(){
+  var el=document.getElementById("dpHome");
+  var want=state.screen==="driver"&&state.driverTab==="home"&&dpState()==="off"&&!DP.busy;
+  if(!want){if(el)el.remove();}
+  else if(!el){var hd=document.querySelector(".q-scr > :first-child");
+    if(hd)hd.insertAdjacentHTML("afterend",'<div class="q-card dp-home" id="dpHome"><div class="q-row"><span class="dt-ic warn">'+qi("bell",20)+'</span><div style="flex:1;min-width:0"><h3>'+qe(dpT("hT"))+'</h3><div class="q-sub">'+qe(dpT("hS"))+'</div></div></div><button class="q-btn sm" data-dp="on" style="margin-top:10px">'+qe(dpT("turn"))+'</button></div>');}
+  var c=document.getElementById("dpCard");if(c&&!document.getElementById("overlay")){var t=document.createElement("div");t.innerHTML=dpCard();if(t.firstChild&&c.innerHTML!==t.firstChild.innerHTML)c.innerHTML=t.firstChild.innerHTML;}
+}
+var _dpSettings=d2settings;
+d2settings=function(){return dpCard()+_dpSettings();};
+var _dpPost=postRender;
+postRender=function(){_dpPost();try{if(state.token&&DP.st==="")dpSync();dpPaint();}catch(e){}};
+document.addEventListener("click",function(e){var b=e.target.closest("[data-dp]");if(!b)return;e.preventDefault();if(b.getAttribute("data-dp")==="test")dpTest(b);else dpEnable(b);});
+document.addEventListener("visibilitychange",function(){if(!document.hidden&&state.token){DP.saved="";dpSync();}});
 </script>
 </body>
 </html>
