@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>SMOU Driver</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -1486,7 +1486,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.7";
+const APP_VERSION="4.8";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -1535,6 +1535,21 @@ const todayKm=()=>completedShifts().filter(s=>s.date===today()).reduce((a,s)=>a+
 const todayFuel=()=>state.fuelRecords.filter(f=>f.date===today()).reduce((a,f)=>a+(f.cost||0),0);
 const todayOrders=()=>state.shifts.filter(s=>s.date===today()).reduce((a,s)=>({done:a.done+(s.ordersDone||0),canc:a.canc+(s.ordersCancelled||0)}),{done:0,canc:0});
 
+var driverCacheEpoch=0;
+function resetDriverPrivateData(){
+  driverCacheEpoch++;
+  if(typeof D2!=="undefined"&&D2){Object.assign(D2,{home:null,homeAt:0,homeBusy:false,prof:null,profAt:0,profBusy:false,pts:{},sosType:"Accident",chk:{},station:null});}
+  if(typeof DT!=="undefined"&&DT){DT.code=null;DT.busy=false;}
+  if(typeof DP!=="undefined"&&DP){DP.saved="";DP.st="";}
+  if(typeof DQ!=="undefined"&&DQ){DQ.rows=[];DQ.owner=null;DQ.loading=null;}
+  if(typeof photoBuf!=="undefined")Object.keys(photoBuf).forEach(k=>delete photoBuf[k]);
+  if(typeof gpsBusy!=="undefined")gpsBusy={};
+  if(typeof gpsWait!=="undefined")gpsWait={};
+  if(typeof gpsMsg!=="undefined")gpsMsg={};
+  state.gps={};state.selectedPlatform=null;state.mplat=null;
+  var p=document.getElementById("driverPending");if(p)p.remove();
+}
+
 /* ============================================================ DATA LAYER ============================================================ */
 /* Admin: logged in with Supabase Auth, reads tables directly (allowed by RLS for admins only) */
 async function loadAdmin(){
@@ -1550,7 +1565,8 @@ async function loadAdmin(){
 }
 /* Driver: gets ONLY their own data through a server function (no other drivers, no PINs) */
 async function loadDriver(){
-  const {data,error}=await sb.rpc("driver_bootstrap",{p_token:state.token});
+  const token=state.token;const {data,error}=await sb.rpc("driver_bootstrap",{p_token:token});
+  if(token!==state.token)return false;
   if(error)throw error;
   state.drivers=data&&data.driver?[mapDriver(data.driver)]:[];
   state.shifts=((data&&data.shifts)||[]).map(mapShift);
@@ -1562,10 +1578,10 @@ const ERRMSG={SESSION_EXPIRED:"Session expired — please sign in again.",ALREAD
 function friendly(m){m=m||"";for(const k in ERRMSG)if(m.includes(k))return ERRMSG[k];return m;}
 async function rpc(fn,args){
   const {data,error}=await sb.rpc(fn,args);
-  if(error){if(/SESSION_EXPIRED/.test(error.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);throw new Error(friendly(error.message));}
+  if(error){if(/SESSION_EXPIRED/.test(error.message||"")&&(!args.p_token||args.p_token===state.token))forceDriverLogout(ERRMSG.SESSION_EXPIRED);throw new Error(friendly(error.message));}
   return data;
 }
-function forceDriverLogout(msg){stopLiveWatch();clearSession();state.token=null;state.driverId=null;state.screen="landing";state.drivers=[];state.shifts=[];state.fuelRecords=[];closeModal();render();if(msg)toast(msg);}
+function forceDriverLogout(msg){stopLiveWatch();resetDriverPrivateData();clearSession();state.token=null;state.driverId=null;state.screen="landing";state.drivers=[];state.shifts=[];state.fuelRecords=[];closeModal();render();if(msg)toast(msg);}
 async function checkAdmin(){try{const {data,error}=await sb.rpc("is_admin");return !error&&data===true;}catch(e){return false;}}
 async function enterAdmin(){state.screen="admin";await loadAdmin();subscribeRealtime();render();}
 
@@ -1617,8 +1633,8 @@ function camField(key,label){return `<label class="fld">${ic('camera','i-xs')} $
   <div class="cam-row"><button type="button" class="btn btn-ghost cam-btn" data-camkey="${key}">${ic('camera','i-xs')} <span id="camlbl-${key}">Take Photo</span></button>
     <div class="cam-prev" id="prev-${key}"><span class="fhint" style="margin:0">No photo yet</span></div></div>`;}
 async function onCam(inp){
-  const key=inp.dataset.key,file=inp.files&&inp.files[0];if(!file)return;
-  try{const blob=await compressImage(file);photoBuf[key]=blob;
+  const key=inp.dataset.key,file=inp.files&&inp.files[0],epoch=driverCacheEpoch,token=state.token;if(!file)return;
+  try{const blob=await compressImage(file);if(epoch!==driverCacheEpoch||token!==state.token||!inp.isConnected)return;photoBuf[key]=blob;
     const prev=$("#prev-"+key);if(prev)prev.innerHTML=`<img src="${URL.createObjectURL(blob)}"><span class="ok">${ic('check','i-xs')} Ready</span>`;
     const lbl=$("#camlbl-"+key);if(lbl)lbl.textContent="Retake";
   }catch(e){toast("Photo error — try again.");}
@@ -1665,28 +1681,31 @@ function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
 });}
 let gpsBusy={},gpsWait={},gpsMsg={};
 async function detectGps(kind){
+  const epoch=driverCacheEpoch,token=state.token;const current=()=>epoch===driverCacheEpoch&&token===state.token;
   /* on duty the phone already has a fresh fix from live tracking — use it straight away */
   if(live.last&&Date.now()-live.last.t<20000){const f=live.last;
-    reverseGeocode(f.lat,f.lng).then(g=>{state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:Math.max(1,f.acc||15),time:nowTime(),src:"gps"};refreshGps(kind);});
+    reverseGeocode(f.lat,f.lng).then(g=>{if(!current())return;state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:Math.max(1,f.acc||15),time:nowTime(),src:"gps"};refreshGps(kind);});
     return;}
   if(gpsBusy[kind])return gpsWait[kind];
   gpsBusy[kind]=Date.now();gpsMsg[kind]=null;refreshGps(kind);
   const tick=setInterval(()=>{const el=$("#gpsSecs-"+kind);if(el)el.textContent=Math.round((Date.now()-gpsBusy[kind])/1000)+"s";},1000);
   let resolveWait;gpsWait[kind]=new Promise(r=>resolveWait=r);
   try{
-    const f=await getFix();
-    const g=await reverseGeocode(f.lat,f.lng);
+    const f=await getFix();if(!current())return;
+    const g=await reverseGeocode(f.lat,f.lng);if(!current())return;
     state.gps[kind]={place:g.place,addr:g.addr,lat:+f.lat.toFixed(6),lng:+f.lng.toFixed(6),acc:f.acc,time:nowTime(),src:"gps"};
     refreshGps(kind);toast(f.acc>100?"Location found (approx. ±"+f.acc+" m) ✓":"GPS locked ✓");
   }catch(err){
+    if(!current())return;
     const c=err&&err.code;
     gpsMsg[kind]=c===1?"Location permission is OFF. Open phone Settings → Apps → this app → Permissions → Location → Allow, then tap GPS."
          :c===2?"Phone Location is turned OFF. Swipe down, turn on Location, then tap GPS."
          :"No signal yet. Step near a window or outside and tap GPS again, or pick a Hub.";
     let perm="?";try{if(navigator.permissions){const q=await navigator.permissions.query({name:"geolocation"});perm=q.state;}}catch(e){perm="n/a";}
+    if(!current())return;
     gpsMsg[kind]+=`<div style="margin-top:8px;font-family:var(--mono);font-size:10px;opacity:.85;word-break:break-word">Details for support: app=${isNativeApp?"native":"browser"} · capacitor=${window.Capacitor?"yes":"no"} · tracker=${SGT?"yes":"no"} · geo-plugin=${CapGeo?"yes":"no"} · plugins=${(()=>{try{return Object.keys(window.Capacitor&&window.Capacitor.Plugins||{}).join(",")||"none";}catch(e){return "?";}})()} · permission=${perm} · https=${location.protocol} · ${gpsDiag.join(" | ")}</div>`;
     toast("Location not found — see details in the box");
-  }finally{clearInterval(tick);gpsBusy[kind]=false;refreshGps(kind);resolveWait();}
+  }finally{clearInterval(tick);if(current()){gpsBusy[kind]=false;refreshGps(kind);}resolveWait();}
 }
 function setHubGps(kind,i){const h=HUBS[i];state.gps[kind]={place:h.name,addr:h.addr,lat:h.lat,lng:h.lng,acc:15,time:nowTime(),src:"hub"};refreshGps(kind);toast("Hub location set ✓");}
 function refreshGps(kind){const el=$("#"+kind+"Gps");if(el)el.innerHTML=gpsPickerMini(kind);if(kind==="login")updateDriverGps();}
@@ -1711,13 +1730,14 @@ function updateDriverGps(){
    every move is saved as a route point, and offline points are queued.
    ------------------------------------------------------------------ */
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
-const live={shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,queue:[],flushing:false,native:false};
+const live={shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,queue:readGPSQueue(),flushing:false,native:false,generation:0};
 
 /* ---- SumouTracker native background tracking: our own foreground-service plugin POSTs each
         fix straight to the Supabase RPC from native code, so it keeps working with the app
         minimised / screen off / OS-frozen. In native mode JS only updates the on-screen dial. ---- */
 const LIVE_URL=SUPABASE_URL+"/rest/v1/rpc/driver_update_live";
 function startLiveWatch(shiftId){
+  if(typeof dqHasEnd==="function"&&dqHasEnd(shiftId)){if(live.shiftId)stopLiveWatch();return;}
   if(String(live.shiftId)===String(shiftId)&&(live.native||live.watchId!=null))return; /* already tracking this shift */
   stopLiveWatch();live.shiftId=shiftId;
   if(SGT){
@@ -1732,9 +1752,10 @@ function startLiveWatch(shiftId){
 function startWebWatch(){
   if(!navigator.geolocation){toast("GPS not supported on this device.");return;}
   acquireWake();
+  const generation=live.generation,token=state.token;
   live.watchId=navigator.geolocation.watchPosition(
-    p=>{const c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},
-    e=>{if(e.code===1)toast("Location permission denied — live tracking is OFF. Allow location in settings.");},
+    p=>{if(generation!==live.generation||token!==state.token)return;const c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},
+    e=>{if(generation!==live.generation||token!==state.token)return;if(e.code===1)toast("Location permission denied — live tracking is OFF. Allow location in settings.");},
     {enableHighAccuracy:true,maximumAge:0,timeout:20000});
 }
 function onFix(lat,lng,acc,heading,spd){
@@ -1753,38 +1774,54 @@ function onFix(lat,lng,acc,heading,spd){
 }
 async function pushLive(heartbeat){
   if(live.native)return; /* native (transistorsoft) mode posts directly from the plugin — no JS POST */
-  const Lf=live.last,sid=live.shiftId;if(!Lf||!sid||!state.token)return;
+  const Lf=live.last,sid=live.shiftId,owner=state.driverId,token=state.token,generation=live.generation;if(!Lf||!sid||!token)return;
   if(live.busy){live.pending=(live.pending==="pt"||!heartbeat)?"pt":"hb";return;}
   live.busy=true;
-  const p={lat:+Lf.lat.toFixed(6),lng:+Lf.lng.toFixed(6),acc:Lf.acc,speed:Lf.kmh,heading:Lf.heading,time:nowTime()};
+  const p={lat:+Lf.lat.toFixed(6),lng:+Lf.lng.toFixed(6),acc:Lf.acc,speed:Lf.kmh,heading:Lf.heading,time:nowTime(),at:new Date(Lf.t).toISOString()};
   live.sent={lat:Lf.lat,lng:Lf.lng,t:Date.now()};
   const sh=state.shifts.find(s=>String(s.id)===String(sid));
   if(sh){sh.liveLat=p.lat;sh.liveLng=p.lng;sh.speed=p.speed;sh.lastPing=p.time;sh.liveAt=Date.now();}
+  if(!heartbeat)queuePoint(p,owner,sid);
   try{
-    const {error}=await sb.rpc("driver_update_live",{p_token:state.token,p_shift:String(sid),p,p_point:!heartbeat});
+    const {error}=await sb.rpc("driver_update_live",{p_token:token,p_shift:String(sid),p,p_point:false});
+    if(generation!==live.generation||token!==state.token)return;
     if(error){
       const m=error.message||"";
       if(/NO_ACTIVE_SHIFT/.test(m)){stopLiveWatch();loadDriver().then(render).catch(()=>{});}
       else if(/SESSION_EXPIRED/.test(m))forceDriverLogout(ERRMSG.SESSION_EXPIRED);
-      else if(!heartbeat)queuePoint(p);
+      /* Trail points stay in their durable outbox until acknowledged. */
     }else if(live.queue.length)flushQueue();
-  }catch(e){if(!heartbeat)queuePoint(p);}
-  finally{live.busy=false;const pn=live.pending;live.pending=null;if(pn)pushLive(pn==="hb");}
+  }catch(e){}
+  finally{if(generation===live.generation){live.busy=false;const pn=live.pending;live.pending=null;if(pn)pushLive(pn==="hb");}}
 }
-function queuePoint(p){live.queue.push({...p,at:new Date().toISOString()});if(live.queue.length>500)live.queue.shift();}
-async function flushQueue(){
-  if(live.flushing||!live.queue.length||!live.shiftId)return;live.flushing=true;
-  const batch=live.queue.splice(0,100);
-  try{const {error}=await sb.rpc("driver_add_points",{p_token:state.token,p_shift:String(live.shiftId),p_pts:batch});if(error)live.queue.unshift(...batch);}
-  catch(e){live.queue.unshift(...batch);}
-  live.flushing=false;
+/* Every queued fix retains its driver, shift and capture time across refreshes. */
+function readGPSQueue(){try{var a=JSON.parse(localStorage.getItem("smou-gps-outbox-v1")||"[]");return Array.isArray(a)?a.filter(function(p){return p.id&&p.driverId&&p.shiftId&&p.point;}):[];}catch(e){return [];}}
+function saveGPSQueue(){try{localStorage.setItem("smou-gps-outbox-v1",JSON.stringify(live.queue));return true;}catch(e){toast("Phone storage is full. Keep this app open until GPS points sync.");return false;}}
+function queuePoint(p,driverId,shiftId){
+  driverId=driverId==null?state.driverId:driverId;shiftId=shiftId==null?live.shiftId:shiftId;
+  if(!driverId||!shiftId)return null;
+  var row={id:"gps-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2),driverId:String(driverId),shiftId:String(shiftId),point:{...p,at:p.at||new Date().toISOString()}};
+  live.queue.push(row);saveGPSQueue();return row;
+}
+async function flushQueue(forShift){
+  if(live.flushing||!state.token||!state.driverId)return;
+  const token=state.token,owner=String(state.driverId);live.flushing=true;
+  try{
+    const shifts=[...new Set(live.queue.filter(x=>x.driverId===owner&&(!forShift||x.shiftId===String(forShift))).map(x=>x.shiftId))];
+    for(const sid of shifts){
+      if(token!==state.token||owner!==String(state.driverId))break;
+      const batch=live.queue.filter(x=>x.driverId===owner&&x.shiftId===sid).slice(0,100);if(!batch.length)continue;
+      const {error}=await sb.rpc("driver_add_points_v2",{p_token:token,p_shift:sid,p_pts:batch.map(x=>({...x.point,client_point_id:x.id}))});
+      if(!error){const ids=new Set(batch.map(x=>x.id));live.queue=live.queue.filter(x=>!ids.has(x.id));saveGPSQueue();}
+    }
+  }catch(e){}finally{live.flushing=false;}
 }
 function stopLiveWatch(){
   if(SGT&&live.native){try{SGT.stop();}catch(e){}}
   if(live.watchId!=null){try{navigator.geolocation.clearWatch(live.watchId);}catch(e){}}
   if(live.hb)clearInterval(live.hb);
-  Object.assign(live,{shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,native:false});
-  releaseWake();
+  Object.assign(live,{shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,native:false,generation:(live.generation||0)+1});
+  saveGPSQueue();releaseWake();
 }
 
 /* Admin fallback: re-read running shifts every 5 s (in case realtime drops) */
@@ -1809,7 +1846,7 @@ function render(){
   if(state.screen==="landing")app.innerHTML=viewLanding();
   else if(state.screen==="admin")app.innerHTML=viewAdmin();
   else if(state.screen==="driver")app.innerHTML=viewDriver();
-  postRender();
+  postRender();dqPaint();
 }
 let timerInt=null,ccClockInt=null;
 function postRender(){
@@ -2288,6 +2325,125 @@ function summaryBody(id,from,to){
   ${s.shifts.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Platform</th><th>Distance</th><th>Orders</th><th>Status</th></tr></thead><tbody>${s.shifts.map(x=>`<tr><td>${fmtDate(x.date)}</td><td style="color:var(--amber)">${x.platform}</td><td class="td-dist">${x.status==="COMPLETED"?"+"+x.distance+" KM":"—"}</td><td>${x.ordersDone||0}/${x.ordersCancelled||0}</td><td>${x.status}</td></tr>`).join("")}</tbody></table></div>`:`<div class="fhint">No shifts in this date range.</div>`}`;
 }
 
+/* Photos and submissions are stored before the app attempts a network write. */
+var DQ={rows:[],owner:null,loading:null,busy:false,saving:false,db:null};
+var DQ_TEXT={
+ en:{pending:"Pending on this phone",end:"Clock-out pending — office confirmation needed",fuel:"Fuel receipt pending",retry:"Retry",check:"Check status",review:"Office review needed",local:"Saved on this phone. It will send when connected.",saving:"Saving on this phone…",storage:"Could not save on this phone. Keep the form open and try again.",sent:"Pending entry synced ✓",unknown:"The reply was lost. Checking the office record before any retry.",missing:"No confirmed record yet. Ask the office to check this pending entry.",shift:"The shift changed. Ask the office to review this fuel receipt.",removed:"This shift is no longer available. Ask the office to review.",different:"Office closed this shift with different details. Review needed."},
+ ar:{pending:"بانتظار الإرسال على هذا الهاتف",end:"تسجيل الخروج معلّق — يحتاج تأكيد المكتب",fuel:"إيصال الوقود معلّق",retry:"إعادة المحاولة",check:"تحقق من الحالة",review:"تحتاج مراجعة المكتب",local:"تم الحفظ على الهاتف. سيتم الإرسال عند الاتصال.",saving:"جارٍ الحفظ على الهاتف…",storage:"تعذر الحفظ على الهاتف. أبقِ النموذج مفتوحًا وحاول مجددًا.",sent:"تمت المزامنة ✓",unknown:"فُقد الرد. نتحقق من سجل المكتب قبل إعادة المحاولة.",missing:"لم يتم تأكيد السجل. اطلب من المكتب مراجعته.",shift:"تغيّرت المناوبة. اطلب مراجعة إيصال الوقود.",removed:"المناوبة غير متاحة. اطلب مراجعة المكتب.",different:"أغلق المكتب المناوبة بتفاصيل مختلفة. تحتاج مراجعة."},
+ hi:{pending:"इस फोन पर लंबित",end:"क्लॉक-आउट लंबित — ऑफिस की पुष्टि चाहिए",fuel:"ईंधन की रसीद लंबित",retry:"फिर भेजें",check:"स्थिति देखें",review:"ऑफिस की जाँच चाहिए",local:"फोन पर सेव हुआ। इंटरनेट आने पर भेजा जाएगा।",saving:"फोन पर सेव हो रहा है…",storage:"फोन पर सेव नहीं हुआ। फॉर्म खुला रखें और फिर कोशिश करें।",sent:"लंबित एंट्री भेज दी गई ✓",unknown:"जवाब नहीं मिला। दोबारा भेजने से पहले ऑफिस का रिकॉर्ड जाँच रहे हैं।",missing:"रिकॉर्ड की पुष्टि नहीं हुई। ऑफिस से जाँच कराएँ।",shift:"शिफ्ट बदल गई। ऑफिस से ईंधन की रसीद जाँच कराएँ।",removed:"यह शिफ्ट उपलब्ध नहीं है। ऑफिस से जाँच कराएँ।",different:"ऑफिस ने शिफ्ट अलग विवरण के साथ बंद की। जाँच चाहिए।"},
+ bn:{pending:"এই ফোনে অপেক্ষমাণ",end:"ক্লক-আউট অপেক্ষমাণ — অফিসের নিশ্চিতকরণ দরকার",fuel:"জ্বালানির রসিদ অপেক্ষমাণ",retry:"আবার পাঠান",check:"অবস্থা দেখুন",review:"অফিসের যাচাই দরকার",local:"ফোনে সংরক্ষিত। সংযোগ হলে পাঠানো হবে।",saving:"ফোনে সংরক্ষণ হচ্ছে…",storage:"ফোনে সংরক্ষণ হয়নি। ফর্ম খোলা রেখে আবার চেষ্টা করুন।",sent:"অপেক্ষমাণ এন্ট্রি পাঠানো হয়েছে ✓"},
+ ne:{pending:"यो फोनमा बाँकी",end:"क्लक-आउट बाँकी — अफिसको पुष्टि चाहिन्छ",fuel:"इन्धनको रसिद बाँकी",retry:"फेरि पठाउनुहोस्",check:"स्थिति हेर्नुहोस्",review:"अफिसले जाँच गर्नुपर्छ",local:"फोनमा सुरक्षित भयो। इन्टरनेट हुँदा पठाइन्छ।",saving:"फोनमा सुरक्षित हुँदैछ…",storage:"फोनमा सुरक्षित भएन। फारम खुला राखेर फेरि प्रयास गर्नुहोस्।",sent:"बाँकी विवरण पठाइयो ✓"}
+};
+function dqText(k){var l=typeof D2!=="undefined"&&D2?D2.lang:"en";return (DQ_TEXT[l]||DQ_TEXT.en)[k]||DQ_TEXT.en[k]||k;}
+function dqHasEnd(sid){return DQ.rows.some(function(r){return r.kind==="end"&&r.shiftId===String(sid)&&String(r.driverId)===String(state.driverId);});}
+function dqIdentity(owner,token,epoch){return String(state.driverId)===String(owner)&&state.token===token&&driverCacheEpoch===epoch;}
+function dqDB(){
+  if(DQ.db)return DQ.db;
+  DQ.db=new Promise(function(resolve,reject){
+    if(typeof indexedDB==="undefined"){reject(new Error(dqText("storage")));return;}
+    var req=indexedDB.open("smou-driver-submissions-v1",1);
+    req.onupgradeneeded=function(){var store=req.result.createObjectStore("actions",{keyPath:"id"});store.createIndex("driverId","driverId",{unique:false});};
+    req.onsuccess=function(){resolve(req.result);};req.onerror=function(){reject(req.error||new Error(dqText("storage")));};req.onblocked=function(){reject(new Error(dqText("storage")));};
+  }).catch(function(e){DQ.db=null;throw e;});return DQ.db;
+}
+async function dqStore(row){var db=await dqDB();return new Promise(function(resolve,reject){var tx=db.transaction("actions","readwrite");tx.objectStore("actions").put(row);tx.oncomplete=function(){resolve();};tx.onerror=tx.onabort=function(){reject(tx.error||new Error(dqText("storage")));};});}
+async function dqRemove(id){var db=await dqDB();return new Promise(function(resolve,reject){var tx=db.transaction("actions","readwrite");tx.objectStore("actions").delete(id);tx.oncomplete=function(){resolve();};tx.onerror=tx.onabort=function(){reject(tx.error||new Error(dqText("storage")));};});}
+async function dqRead(owner){var db=await dqDB();return new Promise(function(resolve,reject){var tx=db.transaction("actions","readonly"),req=tx.objectStore("actions").index("driverId").getAll(String(owner));req.onsuccess=function(){resolve(req.result||[]);};req.onerror=function(){reject(req.error);};});}
+function dqRefresh(){
+  if(!state.token||!state.driverId||state.screen!=="driver")return Promise.resolve();
+  var owner=String(state.driverId),token=state.token,epoch=driverCacheEpoch;
+  if(DQ.loading&&DQ.owner===owner)return DQ.loading;
+  DQ.owner=owner;
+  var run=dqRead(owner).then(function(rows){if(!dqIdentity(owner,token,epoch))return;DQ.rows=rows.sort(function(a,b){return (a.kind==="fuel"?0:1)-(b.kind==="fuel"?0:1)||a.createdAt.localeCompare(b.createdAt);});dqPaint();}).catch(function(){}).finally(function(){if(DQ.loading===run)DQ.loading=null;});
+  DQ.loading=run;return run;
+}
+function dqPaint(){
+  var old=document.getElementById("driverPending");
+  if(state.screen!=="driver"||!state.driverId){if(old)old.remove();return;}
+  if(DQ.owner!==String(state.driverId)){if(old)old.remove();dqRefresh().then(function(){dqFlush();});return;}
+  var mine=DQ.rows.filter(function(r){return String(r.driverId)===String(state.driverId);});
+  if(live.shiftId&&dqHasEnd(live.shiftId))stopLiveWatch();
+  if(!mine.length){if(old)old.remove();return;}
+  var host=document.querySelector(".q-scr");if(!host)return;
+  if(!old){old=document.createElement("div");old.id="driverPending";old.className="q-card";old.setAttribute("role","status");host.insertBefore(old,host.firstChild);}else if(old.parentNode!==host)host.insertBefore(old,host.firstChild);
+  var e=typeof qe==="function"?qe:function(s){return String(s).replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));};
+  old.innerHTML='<h3>'+e(dqText("pending"))+'</h3>'+mine.map(function(r){var checking=r.rpcStarted||r.status==="checking",review=r.status==="review";return '<div style="padding-top:12px"><b>'+e(dqText(r.kind==="end"?"end":"fuel"))+'</b><div class="q-sub">'+e(r.createdAt)+' · '+e(r.message||dqText("local"))+'</div><button type="button" class="q-btn sm" data-dqretry="'+e(r.id)+'" '+(DQ.busy?'disabled':'')+'>'+e(dqText(review?"review":checking?"check":"retry"))+'</button></div>';}).join("");
+}
+async function dqPhoto(row,key,token,epoch){
+  if(row.urls[key])return row.urls[key];
+  if(!dqIdentity(row.driverId,token,epoch))throw new Error("ACCOUNT_CHANGED");
+  var res=await sb.storage.from("photos").upload(row.paths[key],row.files[key],{contentType:"image/jpeg",upsert:false});
+  if(res.error&&!(/already exists|duplicate/i.test(res.error.message||"")||String(res.error.statusCode)==="409"))throw res.error;
+  if(!dqIdentity(row.driverId,token,epoch))throw new Error("ACCOUNT_CHANGED");
+  row.urls[key]=sb.storage.from("photos").getPublicUrl(row.paths[key]).data.publicUrl;await dqStore(row);return row.urls[key];
+}
+async function dqDone(row,owner,token,epoch){
+  await dqRemove(row.id);if(!dqIdentity(owner,token,epoch))return;
+  DQ.rows=DQ.rows.filter(function(r){return r.id!==row.id;});toast(dqText("sent"));
+  if(row.kind==="end"){stopLiveWatch();try{localStorage.removeItem("d2km-"+row.shiftId);}catch(e){}if(typeof d2loadHome==="function")d2loadHome(true);}
+}
+async function dqRun(row,token,epoch){
+  var owner=row.driverId;
+  function guard(){if(!dqIdentity(owner,token,epoch))throw new Error("ACCOUNT_CHANGED");}
+  guard();await loadDriver();guard();
+  if(row.kind==="fuel"&&row.urls.receipt&&state.fuelRecords.some(function(f){return f.receiptPhoto===row.urls.receipt;})){await dqDone(row,owner,token,epoch);return;}
+  var shift=row.shiftId&&state.shifts.find(function(s){return String(s.id)===String(row.shiftId);});
+  if(row.kind==="end"&&shift&&shift.status==="COMPLETED"){
+    if(row.urls.odo&&shift.endOdoPhoto===row.urls.odo){await dqDone(row,owner,token,epoch);return;}
+    row.status="review";row.message=dqText("different");await dqStore(row);return;
+  }
+  // The v2 server functions return the original result when this request ID repeats.
+  if(row.kind==="end"&&!row.rpcStarted&&(!shift||shift.status!=="ACTIVE")){row.status="review";row.message=dqText("removed");await dqStore(row);return;}
+  if(row.kind==="fuel"&&row.shiftId&&!row.rpcStarted&&!shift){row.status="review";row.message=dqText("shift");await dqStore(row);return;}
+  row.status="sending";row.message="";await dqStore(row);guard();
+  var payload={...row.payload,client_request_id:row.id,client_submitted_at:row.createdAt},fn,args;
+  if(row.kind==="end"){
+    payload.photo=await dqPhoto(row,"odo",token,epoch);payload.orders_photo=await dqPhoto(row,"orders",token,epoch);
+    await flushQueue(row.shiftId);guard();fn="driver_end_shift_v2";args={p_token:token,p_shift:String(row.shiftId),p:payload};
+  }else{payload.photo=await dqPhoto(row,"receipt",token,epoch);fn="driver_add_fuel_v2";args={p_token:token,p_shift:row.shiftId,p:payload};}
+  guard();row.rpcStarted=true;await dqStore(row);guard();
+  var result=await sb.rpc(fn,args);guard();
+  if(result.error){
+    if(/fetch|network|timeout|abort|connection/i.test(result.error.message||""))throw result.error;
+    row.rpcStarted=false;row.status="review";row.message=friendly(result.error.message||"Could not save.");await dqStore(row);
+    if(/SESSION_EXPIRED/.test(result.error.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);return;
+  }
+  await dqDone(row,owner,token,epoch);await loadDriver();guard();
+}
+function dqFlush(manualId){
+  if(DQ.busy||DQ.saving||!state.token||state.screen!=="driver"||navigator.onLine===false)return Promise.resolve();
+  var token=state.token,epoch=driverCacheEpoch,owner=String(state.driverId);DQ.busy=true;
+  return (async function(){
+    var rows=DQ.rows.filter(function(r){return String(r.driverId)===owner&&(!manualId||r.id===manualId);});
+    for(var row of rows){
+      if(!dqIdentity(owner,token,epoch))break;
+      if(row.status==="review"&&!row.rpcStarted&&!manualId)continue;
+      try{await dqRun(row,token,epoch);}catch(e){
+        if(!dqIdentity(owner,token,epoch))break;
+        row.status=row.rpcStarted?"checking":"pending";row.message=row.rpcStarted?dqText("unknown"):dqText("local");
+        try{await dqStore(row);}catch(err){toast(dqText("storage"));}
+        if(navigator.onLine===false)break;
+      }
+    }
+  })().finally(function(){DQ.busy=false;if(dqIdentity(owner,token,epoch)){dqPaint();render();}});
+}
+async function dqEnqueue(kind,shift,payload,files){
+  var owner=String(state.driverId),token=state.token,epoch=driverCacheEpoch;if(DQ.saving)return false;DQ.saving=true;
+  try{
+    await dqRefresh();if(!dqIdentity(owner,token,epoch))return false;
+    var existing=kind==="end"&&DQ.rows.find(function(r){return r.kind==="end"&&r.shiftId===String(shift);});
+    if(existing){closeModal();dqPaint();toast(dqText("end"));dqFlush(existing.id);return true;}
+    var id="act-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2),paths={};Object.keys(files).forEach(function(k){paths[k]="pending/"+owner+"/"+id+"-"+k+".jpg";});
+    var row={id,kind,driverId:owner,shiftId:shift==null?null:String(shift),createdAt:new Date().toISOString(),payload,files,paths,urls:{},status:"pending",rpcStarted:false,message:""};
+    await dqStore(row);if(!dqIdentity(owner,token,epoch))return false;
+    DQ.owner=owner;DQ.rows.push(row);if(kind==="end")stopLiveWatch();closeModal();toast(dqText("local"));return true;
+  }catch(e){toast(dqText("storage"));return false;}finally{DQ.saving=false;dqPaint();}
+}
+document.addEventListener("click",function(e){var b=e.target.closest("[data-dqretry]");if(b){e.preventDefault();dqRefresh().then(function(){dqFlush(b.getAttribute("data-dqretry"));});}});
+window.addEventListener("online",function(){dqRefresh().then(function(){dqFlush();});});
+document.addEventListener("visibilitychange",function(){if(!document.hidden)dqRefresh().then(function(){dqFlush();});});
+setInterval(function(){if(!document.hidden&&state.screen==="driver"&&!document.getElementById("overlay"))dqRefresh().then(function(){dqFlush();});},30000);
+
 /* ============================================================ ACTIONS ============================================================ */
 async function doAddDriver(){const name=$("#ndName").value.trim();if(!name)return toast("Driver name is required.");
   if(digitsOnly($("#ndPhone").value).length<6)return toast("A valid phone number is required (login ID).");
@@ -2312,39 +2468,35 @@ async function doStartDuty(){
   }catch(e){toast("Clock-in failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('zap','i-xs')+" Clock In";}}
 }
 async function doEndDuty(){
-  const d=driverById(state.driverId);const sh=activeShift(d.id);if(!sh)return;
+  if(DQ.saving||DQ.busy)return;
+  const d=driverById(state.driverId),sh=d&&activeShift(d.id);if(!sh)return;
   if(typeof d2ordCheck==="function"&&!d2ordCheck())return;
   const end=+$("#edOdo").value;
-  if(!end||end<=0)return toast("Enter the ending odometer KM.");
+  if(!isFinite(end)||end<=0)return toast("Enter the ending odometer KM.");
   if(end<sh.startOdo)return toast("End KM can't be less than start ("+km(sh.startOdo)+"). Check the reading.");
   if(!photoBuf.odoout)return toast("Take the odometer photo first (camera).");
-  if(!state.gps.logout&&gpsBusy.logout){const b0=$('[data-act="confirmEndDuty"]');if(b0){b0.disabled=true;b0.textContent="Waiting for location…";}await gpsWait.logout;if(b0){b0.disabled=false;b0.textContent="Confirm & Clock Out";}}
-  if(!state.gps.logout)return toast(gpsMsg.logout||"No location yet — tap GPS to retry, or pick a Hub.");
-  const btn=$('[data-act="confirmEndDuty"]');if(btn){btn.disabled=true;btn.textContent="Uploading…";}
-  try{
-    const g=state.gps.logout;const mins=Math.max(1,Math.round((Date.now()-sh.startedAt)/60000));
-    const photoUrl=await uploadPhoto(photoBuf.odoout,`odo/${d.id}-out-${Date.now()}.jpg`);
-    const ordUrl=photoBuf.ordrcpt?await uploadPhoto(photoBuf.ordrcpt,`orders/${d.id}-${sh.id}-${Date.now()}.jpg`):null;
-    await rpc("driver_end_shift",{p_token:state.token,p_shift:String(sh.id),p:{end_odo:end,orders_done:+$("#edDone").value||0,orders_cancelled:+$("#edCanc").value||0,orders_photo:ordUrl,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps",summary:$("#edNote").value}});
-    if(live.queue.length)await flushQueue();
-    stopLiveWatch();delete photoBuf.odoout;delete photoBuf.ordrcpt;state.gps.logout=null;closeModal();toast("Duty completed — clocked out ✓");await loadDriver();render();
-  }catch(e){toast("Clock-out failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('stop','i-xs')+" Confirm & Clock Out";}}
+  if(!state.gps.logout&&gpsBusy.logout)await gpsWait.logout;
+  const g=state.gps.logout;if(!g)return toast("Choose a location before saving clock-out.");
+  const btn=$('[data-act="confirmEndDuty"]');if(btn){btn.disabled=true;btn.textContent=dqText("saving");}
+  const payload={end_odo:end,orders_done:+$("#edDone").value||0,orders_cancelled:+$("#edCanc").value||0,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps",summary:$("#edNote").value};
+  const saved=await dqEnqueue("end",sh.id,payload,{odo:photoBuf.odoout,orders:photoBuf.ordrcpt});
+  if(saved){delete photoBuf.odoout;delete photoBuf.ordrcpt;state.gps.logout=null;await dqFlush();render();}
+  else if(btn){btn.disabled=false;btn.innerHTML=ic('stop','i-xs')+" Confirm & Clock Out";}
 }
 async function doSaveFuel(){
-  const d=driverById(state.driverId);const sh=activeShift(d.id);
-  const cost=+$("#fuCost").value;if(!cost||cost<=0)return toast("Enter the fuel amount in KWD.");
+  if(DQ.saving||DQ.busy)return;
+  const d=driverById(state.driverId);if(!d)return;const sh=activeShift(d.id),cost=+$("#fuCost").value;
+  if(!isFinite(cost)||cost<=0)return toast("Enter the fuel amount in KWD.");
   if(!photoBuf.receipt)return toast("Take the receipt photo first (camera).");
-  if(!state.gps.fuel&&gpsBusy.fuel){const b0=$('[data-act="saveFuel"]');if(b0){b0.disabled=true;b0.textContent="Waiting for location…";}await gpsWait.fuel;if(b0){b0.disabled=false;b0.textContent="Save Fuel";}}
-  if(!state.gps.fuel)return toast(gpsMsg.fuel||"No location yet — tap GPS to retry, or pick a Hub.");
-  const btn=$('[data-act="saveFuel"]');if(btn){btn.disabled=true;btn.textContent="Uploading…";}
-  try{
-    const g=state.gps.fuel;
-    const photoUrl=await uploadPhoto(photoBuf.receipt,`receipt/${d.id}-${Date.now()}.jpg`);
-    const data=await rpc("driver_add_fuel",{p_token:state.token,p:{station:$("#fuStation").value,cost,photo:photoUrl,place:g.place,lat:g.lat,lng:g.lng,time:nowTime()}});
-    const mf=mapFuel(data);if(!state.fuelRecords.find(x=>x.id===mf.id))state.fuelRecords.push(mf);
-    delete photoBuf.receipt;state.gps.fuel=null;closeModal();toast("Fuel refill saved ✓");render();
-  }catch(e){toast("Fuel save failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('check','i-xs')+" Save Fuel";}}
+  if(!state.gps.fuel&&gpsBusy.fuel)await gpsWait.fuel;
+  const g=state.gps.fuel;if(!g)return toast("Choose a location before saving fuel.");
+  const btn=$('[data-act="saveFuel"]');if(btn){btn.disabled=true;btn.textContent=dqText("saving");}
+  const payload={station:$("#fuStation").value,cost,place:g.place,lat:g.lat,lng:g.lng,time:g.time||nowTime()};
+  const saved=await dqEnqueue("fuel",sh?sh.id:null,payload,{receipt:photoBuf.receipt});
+  if(saved){delete photoBuf.receipt;state.gps.fuel=null;await dqFlush();render();}
+  else if(btn){btn.disabled=false;btn.innerHTML=ic('check','i-xs')+" Save Fuel";}
 }
+
 async function doDeleteDriver(id){if(!confirm("Remove this driver and ALL their records?"))return;await sb.from("driver_sessions").delete().eq("driver_id",String(id));const {error}=await sb.from("drivers").delete().eq("id",id);if(error){toast("Error: "+error.message);return;}await loadAll();toast("Driver removed");render();}
 async function doResetDevice(id){const d=driverById(id);if(!confirm(`Reset ${d.name}'s device login? They can then sign in on a new phone.`))return;const {error}=await sb.from("drivers").update({active_device:null}).eq("id",id);if(error){toast("Error: "+error.message);return;}await sb.from("driver_sessions").delete().eq("driver_id",String(id));d.activeDevice=null;toast("Device reset — driver can log in on a new phone.");render();}
 function exportCsv(rows,fn){const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=fn;a.click();toast("Exported "+fn);}
@@ -2405,14 +2557,14 @@ document.addEventListener("click",async e=>{
       const {data,error}=await sb.rpc("driver_login",{p_phone:ph,p_pin:pin,p_device:deviceId()});
       if(error){t.disabled=false;fail("Sign-in failed: "+error.message);break;}
       if(data&&data.error){t.disabled=false;fail({NO_ACCOUNT:"No account found for this phone number.",BAD_PIN:"Incorrect PIN.",LOCKED:"Too many wrong PINs. Try again in 15 minutes.",DEVICE_LOCKED:"This driver is already logged in on another phone. Ask admin to reset the device.",BAD_PHONE:"Enter your phone number."}[data.error]||data.error);break;}
-      state.token=data.token;state.screen="driver";
+      resetDriverPrivateData();state.token=data.token;state.screen="driver";
       try{await loadDriver();}catch(e){t.disabled=false;state.token=null;state.screen="landing";fail("Could not load your data: "+(e.message||e));break;}
       const d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=(d&&d.platforms&&d.platforms[0])||null;
       saveSession({role:"driver",token:data.token,dev:deviceId()});render();break;}
     case "logout":{
       if(state.screen==="admin"){unsubscribeRealtime();stopAdminPoll();try{await sb.auth.signOut();}catch(e){}
         state.drivers=[];state.shifts=[];state.fuelRecords=[];state.follow=null;mapView=null;state.screen="landing";render();break;}
-      stopLiveWatch();if(state.token){try{await sb.rpc("driver_logout",{p_token:state.token});}catch(e){}}
+      stopLiveWatch();resetDriverPrivateData();if(state.token){try{await sb.rpc("driver_logout",{p_token:state.token});}catch(e){}}
       clearSession();state.token=null;state.screen="landing";state.driverId=null;state.gps={};state.selectedPlatform=null;state.drivers=[];state.shifts=[];state.fuelRecords=[];render();break;}
     case "gpsGauge":{const sh=activeShift(state.driverId);if(sh){startLiveWatch(sh.id);if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{const c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed);},e=>{},{enableHighAccuracy:true,timeout:12000});toast("Refreshing live location…");}else detectGps("login");break;}
     case "openStartDuty":modalStartDuty();break;
@@ -2653,17 +2805,17 @@ function d2gpsKm(sid){try{return d2num(localStorage.getItem("d2km-"+sid));}catch
 /* ---------- data (home + profile) ---------- */
 function d2loadHome(force){
   if(!state.token||D2.homeBusy)return;if(!force&&D2.home&&Date.now()-D2.homeAt<60000)return;
-  D2.homeBusy=true;
-  rpc("driver_home",{p_token:state.token}).then(function(h){var ch=JSON.stringify(h)!==JSON.stringify(D2.home);D2.home=h||{};D2.homeAt=Date.now();
+  D2.homeBusy=true;var epoch=driverCacheEpoch,token=state.token;
+  rpc("driver_home",{p_token:token}).then(function(h){if(epoch!==driverCacheEpoch||token!==state.token)return;var ch=JSON.stringify(h)!==JSON.stringify(D2.home);D2.home=h||{};D2.homeAt=Date.now();
     if(ch&&state.screen==="driver"&&(state.driverTab==="home"||state.driverTab==="leaders")&&!document.getElementById("overlay"))d2soft();})
-  .catch(function(){}).finally(function(){D2.homeBusy=false;});
+  .catch(function(){}).finally(function(){if(epoch===driverCacheEpoch)D2.homeBusy=false;});
 }
 function d2loadProf(force){
   if(!state.token||D2.profBusy)return;if(!force&&D2.prof&&Date.now()-D2.profAt<300000)return;
-  D2.profBusy=true;
-  rpc("driver_profile",{p_token:state.token}).then(function(p){var ch=JSON.stringify(p)!==JSON.stringify(D2.prof);D2.prof=p||{};D2.profAt=Date.now();
+  D2.profBusy=true;var epoch=driverCacheEpoch,token=state.token;
+  rpc("driver_profile",{p_token:token}).then(function(p){if(epoch!==driverCacheEpoch||token!==state.token)return;var ch=JSON.stringify(p)!==JSON.stringify(D2.prof);D2.prof=p||{};D2.profAt=Date.now();
     if(ch&&state.screen==="driver"&&!document.getElementById("overlay"))d2soft();})
-  .catch(function(){}).finally(function(){D2.profBusy=false;});
+  .catch(function(){}).finally(function(){if(epoch===driverCacheEpoch)D2.profBusy=false;});
 }
 /* re-render without replaying the entrance animation */
 function d2soft(){var y=window.scrollY;D2.still=true;render();D2.still=false;window.scrollTo(0,y);}
@@ -3039,18 +3191,20 @@ doStartDuty=async function(){await _d2DoStart();if(activeShift(state.driverId))d
 
 /* ---- photos: preview + automatic odometer reading ---- */
 async function onCam(inp){
-  var key=inp.dataset.key,file=inp.files&&inp.files[0];if(!file)return;
-  try{var blob=await compressImage(file);photoBuf[key]=blob;var url=URL.createObjectURL(blob),box=document.getElementById("prev-"+key);
+  var key=inp.dataset.key,file=inp.files&&inp.files[0],epoch=driverCacheEpoch,token=state.token;if(!file)return;
+  try{var blob=await compressImage(file);if(epoch!==driverCacheEpoch||token!==state.token||!inp.isConnected)return;photoBuf[key]=blob;var url=URL.createObjectURL(blob),box=document.getElementById("prev-"+key);
     var isOdo=key==="odoin"||key==="odoout";
     if(box){box.className="q-camb shot";box.innerHTML='<img src="'+url+'" alt=""><span class="veil"></span>'+(isOdo?'<span class="scan"></span>':"")+'<span class="st">'+qi("check",16)+'<span id="odoSt-'+key+'">'+qe(isOdo?tt("reading"):tt("ok"))+'</span><span class="odo" id="odoV-'+key+'"></span></span>';}
     if(isOdo)d2readOdo(key,blob);
   }catch(e){toast("Photo error — try again.");}
 }
 function d2readOdo(key,blob){
+  var epoch=driverCacheEpoch,token=state.token;function current(){return epoch===driverCacheEpoch&&token===state.token&&photoBuf[key]===blob;}
   var fr=new FileReader();fr.onload=function(){
+    if(!current())return;
     var ctl=window.AbortController?new AbortController():null,tm=setTimeout(function(){if(ctl)ctl.abort();},25000);
-    fetch(SUPABASE_URL+"/functions/v1/odo-reader",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY},body:JSON.stringify({token:state.token,image:String(fr.result)}),signal:ctl?ctl.signal:undefined})
-    .then(function(r){return r.json();}).then(function(j){clearTimeout(tm);d2odoResult(key,j&&j.km);}).catch(function(){clearTimeout(tm);d2odoResult(key,null);});
+    fetch(SUPABASE_URL+"/functions/v1/odo-reader",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY},body:JSON.stringify({token:token,image:String(fr.result)}),signal:ctl?ctl.signal:undefined})
+    .then(function(r){return r.json();}).then(function(j){clearTimeout(tm);if(current())d2odoResult(key,j&&j.km);}).catch(function(){clearTimeout(tm);if(current())d2odoResult(key,null);});
   };fr.readAsDataURL(blob);
 }
 function d2odoResult(key,v){
@@ -3068,7 +3222,7 @@ function d2post(){
   if(D2.map){try{D2.map.remove();}catch(e){}D2.map=null;D2.mapMe=null;D2.mapLine=null;}
   if(!d2mode())return;
   requestAnimationFrame(function(){requestAnimationFrame(function(){var r=document.getElementById("qRing");if(r)r.style.strokeDashoffset=r.getAttribute("data-off");});});
-  d2bindSlides();
+  d2bindSlides();d2accessibleDutyButtons();dqPaint();
   if(state.screen==="driver"){
     var sh=activeShift(state.driverId);
     if(sh&&document.getElementById("qMap"))d2mountMap(sh);
@@ -3095,6 +3249,9 @@ function d2mountMap(sh){
     D2.mapMe=L.marker(p,{icon:L.divIcon({className:"",html:'<div class="q-me"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(D2.map);
     setTimeout(function(){try{D2.map&&D2.map.invalidateSize();}catch(e){}},200);
   }catch(e){}
+}
+function d2accessibleDutyButtons(){
+  document.querySelectorAll('[data-q-slide]').forEach(function(el){if(el.nextElementSibling&&el.nextElementSibling.classList.contains('duty-alternative'))return;var start=el.getAttribute('data-q-slide')==='start',button=document.createElement('button');button.type='button';button.className='q-btn ghost duty-alternative';button.textContent=tt(start?'clock_in':'clock_out');button.addEventListener('click',function(){if(start)modalStartDuty();else modalEndDuty();});el.insertAdjacentElement('afterend',button);});
 }
 function d2bindSlides(){
   Array.prototype.forEach.call(document.querySelectorAll("[data-q-slide]"),function(el){
@@ -3189,8 +3346,9 @@ if(state.ready)render();
     if(busy||D2.dutyBusy||!state.token||state.screen!=="driver")return Promise.resolve();
     if(navigator.onLine===false)return Promise.resolve();
     busy=true;
-    var before=sig(),wasOn=activeShift(state.driverId);
+    var before=sig(),wasOn=activeShift(state.driverId),syncToken=state.token,syncEpoch=driverCacheEpoch;
     return loadDriver().then(function(){
+      if(syncToken!==state.token||syncEpoch!==driverCacheEpoch)return;
       lastSync=Date.now();
       if(D2.dutyBusy)return;                       /* driver is clocking in/out right now — that flow re-renders itself */
       if(!state.drivers.length){forceDriverLogout(tt("sync_removed"));return;}
@@ -3203,6 +3361,7 @@ if(state.ready)render();
       if(live.queue&&live.queue.length&&!live.native)flushQueue();
       d2loadHome(why==="focus"||why==="online");
     }).catch(function(e){
+      if(syncToken!==state.token||syncEpoch!==driverCacheEpoch)return;
       var m=(e&&e.message)||"";
       if(/SESSION_EXPIRED/.test(m))forceDriverLogout(tt("sync_removed"));
     }).then(function(){busy=false;});
@@ -3393,7 +3552,7 @@ async function dlSubmit(){
     return;
   }
   /* signed in */
-  state.token=data.token;
+  resetDriverPrivateData();state.token=data.token;
   try{await loadDriver();}catch(e){state.token=null;dlBusy(false);DL.pin="";dlPaintPins();dlSetMsg("pin",dlt("loadf"));return;}
   try{localStorage.setItem("d2-phone",ph);}catch(e){}
   var d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=(d&&d.platforms&&d.platforms[0])||null;
@@ -3466,7 +3625,7 @@ function dtShow(){return typeof dlIOS==="function"&&dlIOS()&&!(typeof dlNative==
 function dtAgo(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+"s":Math.floor(s/60)+"m";}
 function dtState(){var sh=activeShift(state.driverId);if(!sh)return "idle";return sh.trkAt&&Date.now()-sh.trkAt<180000?"on":"off";}
 function dtCode(){if(DT.code||DT.busy||!state.token)return;DT.busy=true;
-  rpc("driver_track_code",{p_token:state.token}).then(function(c){DT.code=c;var el=document.getElementById("dtCode");if(el)el.textContent=c;}).catch(function(){}).then(function(){DT.busy=false;});}
+  var epoch=driverCacheEpoch,token=state.token;rpc("driver_track_code",{p_token:token}).then(function(c){if(epoch!==driverCacheEpoch||token!==state.token)return;DT.code=c;var el=document.getElementById("dtCode");if(el)el.textContent=c;}).catch(function(){}).then(function(){if(epoch===driverCacheEpoch)DT.busy=false;});}
 function dtCard(){
   if(!dtShow())return "";
   var st=dtState(),sh=activeShift(state.driverId);
@@ -3934,7 +4093,7 @@ setInterval(dgPaint,10000);
     if(!TAG){full().catch(function(){});return;}
     fetch(url(),{method:"HEAD",cache:"no-store"}).then(function(r){var t=tagOf(r);if(!t||t!==TAG)return full();}).catch(function(){});
   }
-  function busy(){return !!document.querySelector("#overlay,.overlay,.d2sheet");}
+  function busy(){return !!document.querySelector("#overlay,.overlay,.d2sheet")||(typeof DQ!=="undefined"&&(DQ.busy||DQ.saving||DQ.rows.some(function(r){return String(r.driverId)===String(state.driverId);})));}
   function tried(){try{return sessionStorage.getItem("d2-upd")===NEWV;}catch(e){return false;}}
   function go(){try{sessionStorage.setItem("d2-upd",NEWV);}catch(e){}location.reload();}
   function show(){
