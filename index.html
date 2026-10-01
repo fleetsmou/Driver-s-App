@@ -1486,7 +1486,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.9";
+const APP_VERSION="4.10";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -1537,7 +1537,7 @@ const todayOrders=()=>state.shifts.filter(s=>s.date===today()).reduce((a,s)=>({d
 
 var driverCacheEpoch=0;
 function resetDriverPrivateData(){
-  driverCacheEpoch++;
+  driverCacheEpoch++;driverBootstrapVersion=null;driverBootstrapOwner=null;driverBootstrapJob=null;
   if(typeof D2!=="undefined"&&D2){Object.assign(D2,{home:null,homeAt:0,homeBusy:false,prof:null,profAt:0,profBusy:false,pts:{},sosType:"Accident",chk:{},station:null});}
   if(typeof DT!=="undefined"&&DT){DT.code=null;DT.busy=false;}
   if(typeof DP!=="undefined"&&DP){DP.saved="";DP.st="";}
@@ -1552,27 +1552,53 @@ function resetDriverPrivateData(){
 
 /* ============================================================ DATA LAYER ============================================================ */
 /* Admin: logged in with Supabase Auth, reads tables directly (allowed by RLS for admins only) */
+var adminOwner=null,adminDataEpoch=0,adminLoaded=false,adminLoadSlot=null;
 async function loadAdmin(){
+  const epoch=adminDataEpoch,owner=adminOwner,slot={business:{},events:[]};adminLoadSlot=slot;
   const [d,s,f]=await Promise.all([
     sb.from("drivers").select("*").order("created_at"),
     sb.from("shifts").select("*").order("created_at"),
     sb.from("fuel_records").select("*").order("created_at"),
   ]);
+  if(epoch!==adminDataEpoch||owner!==adminOwner||state.screen!=="admin"||adminLoadSlot!==slot)return;
   if(d.error||s.error||f.error){console.error(d.error||s.error||f.error);throw (d.error||s.error||f.error);}
   state.drivers=(d.data||[]).map(mapDriver);
-  state.shifts=(s.data||[]).map(mapShift);
+  const previous=state.shifts;
+  state.shifts=(s.data||[]).map(r=>keepAdminGps(mapShift(r),previous.find(s=>String(s.id)===String(r.id))));
+  Object.keys(slot.business).forEach(id=>{state.shifts=state.shifts.filter(s=>String(s.id)!==id);const row=slot.business[id];if(row)state.shifts.push(keepAdminGps(mapShift(row),previous.find(s=>String(s.id)===id)));});
   state.fuelRecords=(f.data||[]).map(mapFuel);
+  adminLoadSlot=null;slot.events.forEach(p=>applyChange(p.table,p.eventType,p.new,p.old));adminLoaded=true;ADMIN_SYNC.sync();
 }
 /* Driver: gets ONLY their own data through a server function (no other drivers, no PINs) */
-async function loadDriver(){
-  const token=state.token,epoch=driverCacheEpoch;const {data,error}=await sb.rpc("driver_bootstrap",{p_token:token});
-  if(token!==state.token||epoch!==driverCacheEpoch)return false;
-  if(error)throw error;
-  state.drivers=data&&data.driver?[mapDriver(data.driver)]:[];
-  state.shifts=((data&&data.shifts)||[]).map(mapShift);
-  state.fuelRecords=((data&&data.fuel)||[]).map(mapFuel);
-  state.driverId=data&&data.driver?data.driver.id:null;
-  reconcileDriverTracking(token);
+var driverBootstrapVersion=null,driverBootstrapOwner=null,driverBootstrapJob=null;
+async function loadDriver(force){
+  const token=state.token,epoch=driverCacheEpoch;
+  if(!token)return false;
+  if(driverBootstrapJob&&driverBootstrapJob.token===token&&driverBootstrapJob.epoch===epoch){
+    if(!force)return driverBootstrapJob.promise;
+    await driverBootstrapJob.promise;if(token!==state.token||epoch!==driverCacheEpoch)return false;
+    if(driverBootstrapJob&&driverBootstrapJob.token===token&&driverBootstrapJob.epoch===epoch)return loadDriver(force);
+  }
+  if(driverBootstrapOwner!==token){driverBootstrapOwner=token;driverBootstrapVersion=null;}
+  const slot={token,epoch,promise:null};
+  slot.promise=(async()=>{
+    let {data,error}=await sb.rpc("driver_bootstrap_if_changed",{p_token:token,p_version:force?null:driverBootstrapVersion});
+    if(token!==state.token||epoch!==driverCacheEpoch)return false;
+    if(error)throw error;
+    if(!data||typeof data.version!=="string"||typeof data.unchanged!=="boolean")throw new Error("Invalid driver sync response");
+    if(!data.unchanged){
+      const payload=data.data;if(!payload||!payload.driver||!Array.isArray(payload.shifts)||!Array.isArray(payload.fuel))throw new Error("Incomplete driver sync response");
+      const previous=state.shifts;state.drivers=[mapDriver(payload.driver)];state.shifts=payload.shifts.map(row=>keepAdminGps(mapShift(row),previous.find(s=>String(s.id)===String(row.id))));state.fuelRecords=payload.fuel.map(mapFuel);state.driverId=payload.driver.id;
+    }
+    (data.live||[]).forEach(row=>{
+      const existing=state.shifts.find(s=>String(s.id)===String(row.id)&&s.status==="ACTIVE");if(!existing)return;
+      const next=smouKeepNewerGps(mapShift(row),existing,true);
+      ["liveLat","liveLng","liveAcc","livePosAt","liveAt","lastPing","speed","heading","liveSrc","trkAt"].forEach(k=>existing[k]=next[k]);
+    });
+    driverBootstrapVersion=data.version;reconcileDriverTracking(token);return !data.unchanged;
+  })();
+  driverBootstrapJob=slot;
+  try{return await slot.promise;}finally{if(driverBootstrapJob===slot)driverBootstrapJob=null;}
 }
 function loadAll(){return state.token&&state.screen!=="admin"?loadDriver():loadAdmin();}
 const ERRMSG={SESSION_EXPIRED:"Session expired — please sign in again.",ALREADY_ON_DUTY:"You are already on duty.",NO_ACTIVE_SHIFT:"No active shift found — pull to refresh.",BAD_ODO:"Enter a valid odometer reading.",END_LESS_THAN_START:"End KM can't be less than start KM.",BAD_COST:"Enter the fuel amount."};
@@ -1584,22 +1610,31 @@ async function rpc(fn,args){
 }
 function forceDriverLogout(msg){stopLiveWatch();resetDriverPrivateData();clearSession();state.token=null;state.driverId=null;state.screen="landing";state.drivers=[];state.shifts=[];state.fuelRecords=[];closeModal();render();if(msg)toast(msg);}
 async function checkAdmin(){try{const {data,error}=await sb.rpc("is_admin");return !error&&data===true;}catch(e){return false;}}
-async function enterAdmin(){state.screen="admin";await loadAdmin();subscribeRealtime();render();}
+async function enterAdmin(){
+  stopAdminPoll();const epoch=adminDataEpoch;
+  const session=await sb.auth.getSession();
+  if(epoch!==adminDataEpoch)return;
+  const user=session.data&&session.data.session&&session.data.session.user;
+  if(!user)throw new Error("Sign in again to open the fleet");
+  adminOwner=user.id;state.screen="admin";
+  subscribeRealtime();await loadAdmin();
+  if(epoch===adminDataEpoch&&state.screen==="admin")render();
+}
 
 /* Realtime — admin only */
 let rtChan=null,adminRealtimeStatus="CLOSED",adminRealtimeRetry=null;
 function subscribeRealtime(){
-  if(rtChan||state.screen!=="admin")return;
+  if(rtChan||!adminWanted())return;
   const ch=sb.channel("sumou-admin");rtChan=ch;adminRealtimeStatus="CONNECTING";
-  ["drivers","shifts","fuel_records","shift_points"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{if(rtChan===ch&&state.screen==="admin")onRealtime(p);}));
+  ["drivers","fuel_records","shift_business_changes"].forEach(t=>ch.on("postgres_changes",{event:"*",schema:"public",table:t},p=>{if(rtChan===ch&&adminWanted()){if(p.table==="shift_business_changes")ADMIN_SYNC.signal(p);else onRealtime(p);}}));
   ch.subscribe(status=>{
     if(rtChan!==ch)return;
     const previous=adminRealtimeStatus;adminRealtimeStatus=status;
-    if(status==="SUBSCRIBED"){if(previous!=="CONNECTING")pollAdminGPS(true);return;}
+    if(status==="SUBSCRIBED"){ADMIN_SYNC.reconcile();return;}
     if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)){
       rtChan=null;try{sb.removeChannel(ch);}catch(e){}
       if(adminRealtimeRetry)clearTimeout(adminRealtimeRetry);
-      adminRealtimeRetry=setTimeout(()=>{adminRealtimeRetry=null;if(state.screen==="admin")subscribeRealtime();},5000);
+      adminRealtimeRetry=setTimeout(()=>{adminRealtimeRetry=null;if(adminWanted())subscribeRealtime();},5000);
     }
   });
 }
@@ -1620,7 +1655,7 @@ function scheduleRender(){clearTimeout(renderT);renderT=setTimeout(()=>{
   if(ae&&["INPUT","SELECT","TEXTAREA"].includes(ae.tagName))return;render();},450);}
 function onRealtime(p){
   if(state.screen!=="admin")return;
-  if(ADMIN_GPS.busy&&p.table==="shifts"){const row=p.eventType==="DELETE"?p.old:p.new;if(row&&row.id!=null)ADMIN_GPS.changed.add(String(row.id));}
+  if(adminLoadSlot)adminLoadSlot.events.push(p);
   /* new route point → extend that driver's trail line */
   if(p.table==="shift_points"){if(p.eventType==="INSERT"&&p.new)addTrailPoint(p.new.shift_id,p.new.lat,p.new.lng);return;}
   /* live GPS ping on a running shift → just move the marker (NO full re-render, map keeps its zoom) */
@@ -1770,7 +1805,7 @@ function gpsHandleNativeStatus(status,generation,token,sid){
     const seen=gpsNativeTerminal.token===token&&gpsNativeTerminal.shift===String(sid)&&gpsNativeTerminal.reason===reason;
     gpsNativeTerminal={token,shift:String(sid),reason};stopLiveWatch();
     if(/SESSION_EXPIRED/.test(reason)){if(token===state.token)forceDriverLogout(ERRMSG.SESSION_EXPIRED);}
-    else if(!seen)loadDriver().then(()=>{if(token===state.token&&state.screen==="driver")render();}).catch(e=>{if(token===state.token&&/SESSION_EXPIRED/.test(e.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);});
+    else if(!seen)loadDriver(true).then(()=>{if(token===state.token&&state.screen==="driver")render();}).catch(e=>{if(token===state.token&&/SESSION_EXPIRED/.test(e.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);});
   }else if(status.running===false){stopLiveWatch();startLiveWatch(sid);}
 }
 function gpsCheckNativeStatus(){
@@ -1875,7 +1910,7 @@ async function pushLive(heartbeat){
       const m=error.message||"";
       if(/NO_ACTIVE_SHIFT/.test(m)){
         stopLiveWatch();
-        loadDriver().then(()=>{if(token===state.token&&state.screen==="driver")render();}).catch(e=>{if(token===state.token&&/SESSION_EXPIRED/.test(e.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);});
+        loadDriver(true).then(()=>{if(token===state.token&&state.screen==="driver")render();}).catch(e=>{if(token===state.token&&/SESSION_EXPIRED/.test(e.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);});
       }else if(/SESSION_EXPIRED/.test(m))forceDriverLogout(ERRMSG.SESSION_EXPIRED);
       else{live.failures++;live.retryAt=Date.now()+gpsRetryDelay(live.failures);}
     }else{live.failures=0;live.retryAt=0;scheduleGPSQueue();}
@@ -1950,32 +1985,168 @@ function stopLiveWatch(){
 }
 window.addEventListener("online",gpsResumeQueue);
 
-/* Realtime moves pins immediately; polling reconciles state periodically and after socket loss. */
-let adminPoll=null;
-const ADMIN_GPS={busy:false,last:0,epoch:0,changed:new Set()};
-function startAdminPoll(){
-  if(state.screen!=="admin"){stopAdminPoll();return;}
-  if(adminPoll)return;
-  adminPoll=setInterval(()=>pollAdminGPS(false),5000);
+/* ===== Compact fleet GPS sync: current positions only, business changes separately ===== */
+function smouKeepNewerGps(next,previous,camel){
+  if(!previous)return next;
+  var out=Object.assign({},next),ms=function(v){return typeof v==='number'?v:Date.parse(v)||0;};
+  var position=camel?['liveLat','liveLng','liveAcc','livePosAt','lastPing','speed','heading','liveSrc']:['live_lat','live_lng','live_acc','live_pos_at','live_time','speed','heading','live_src'];
+  var pos=camel?'livePosAt':'live_pos_at',old=ms(previous[pos]),fresh=ms(next[pos]);
+  if(old>fresh||(old>0&&old===fresh))position.forEach(function(k){out[k]=previous[k];});
+  [camel?'liveAt':'live_at',camel?'trkAt':'trk_at'].forEach(function(k){if(ms(previous[k])>ms(next[k]))out[k]=previous[k];});
+  if(!camel&&old>fresh)['live_rej_lat','live_rej_lng','live_rej_at'].forEach(function(k){out[k]=previous[k];});
+  return out;
 }
-async function pollAdminGPS(force){
-  if(ADMIN_GPS.busy||state.screen!=="admin"||document.hidden||navigator.onLine===false)return;
-  const wait=adminRealtimeStatus==="SUBSCRIBED"?60000:15000;
-  if(!force&&Date.now()-ADMIN_GPS.last<wait)return;
-  ADMIN_GPS.busy=true;ADMIN_GPS.changed=new Set();ADMIN_GPS.last=Date.now();const epoch=ADMIN_GPS.epoch;
-  try{
-    const ids=state.shifts.filter(s=>s.status==="ACTIVE").map(s=>String(s.id));
-    let q=sb.from("shifts").select("*");q=ids.length?q.or("status.eq.ACTIVE,id.in.("+ids.join(",")+")"):q.eq("status","ACTIVE");
-    const {data,error}=await q;
-    if(epoch!==ADMIN_GPS.epoch||state.screen!=="admin"||error||!data)return;
-    let changedStatus=false;
-    data.forEach(r=>{if(ADMIN_GPS.changed.has(String(r.id)))return;const ms=mapShift(r),i=state.shifts.findIndex(x=>String(x.id)===String(ms.id));if(i>=0){if(state.shifts[i].status!==ms.status)changedStatus=true;state.shifts[i]=ms;}else{state.shifts.push(ms);changedStatus=true;}onLiveMove(r.id);});
-    refreshLivePanel();if(changedStatus)scheduleRender();
-  }catch(e){}finally{if(epoch===ADMIN_GPS.epoch)ADMIN_GPS.busy=false;}
+function createSmouFleetSync(o){
+  var generation=0,who=null,running=false,mapOn=false,timer=null,wake=null;
+  var gpsJob=null,shiftJob=null,scanJob=null,gpsVersion=0,lastGps=0,lastScan=0;
+  var cursor=0,queued={},versions={},revisions={},serial=0,scanAgain=false;
+  function wanted(){return !!o.owner()&&o.wanted();}
+  function valid(g,u){return running&&g===generation&&u===who&&u===o.owner()&&wanted();}
+  function abort(job){if(job&&job.controller)job.controller.abort();}
+  function request(q,job){return q.abortSignal&&job.controller?q.abortSignal(job.controller.signal):q;}
+  function job(){return {controller:typeof AbortController!=="undefined"?new AbortController():null};}
+  function error(kind,e){if(o.error)o.error(kind,e&&e.message||String(e||"Sync failed"));}
+  function later(){if(wake)return;wake=setTimeout(function(){wake=null;tick();},0);}
+  function stop(){
+    if(running||mapOn){generation++;gpsVersion++;}
+    running=false;mapOn=false;if(timer)clearInterval(timer);timer=null;
+    if(wake)clearTimeout(wake);wake=null;abort(gpsJob);abort(shiftJob);abort(scanJob);
+    lastGps=0;lastScan=0;
+  }
+  function sync(){
+    if(!wanted()){stop();return;}
+    var u=o.owner();
+    /* Signal timestamps come from the server: never seed this cursor from the office clock. */
+    if(who!==u){stop();who=u;cursor=0;queued={};versions={};revisions={};}
+    if(!running){running=true;generation++;timer=setInterval(tick,15000);}
+    var next=!!o.gpsWanted();
+    if(next!==mapOn){mapOn=next;gpsVersion++;lastGps=0;abort(gpsJob);}
+    tick();
+  }
+  function queue(id,operation){
+    if(id==null||!wanted()||!running)return;id=String(id);
+    versions[id]=++serial;
+    if(operation==='DELETE'){delete queued[id];o.business(null,id);}
+    else queued[id]=versions[id];
+    later();
+  }
+  function signal(p){
+    if(!running||!wanted())return;
+    var r=p&&p.new;if(!r||!r.shift_id)return;
+    var id=String(r.shift_id),revision=String(r.revision||r.changed_at||'');
+    if(revisions[id]===revision)return;
+    if(revisions[id]&&/^\d+$/.test(revisions[id])&&/^\d+$/.test(revision)){
+      var previous=revisions[id].replace(/^0+/,''),next=revision.replace(/^0+/,'');
+      if(next.length<previous.length||(next.length===previous.length&&next<previous))return;
+    }
+    revisions[id]=revision;
+    queue(r.shift_id,r.operation);
+  }
+  function flush(){
+    if(shiftJob||!running||!wanted())return;
+    var ids=Object.keys(queued).slice(0,100);if(!ids.length)return;
+    var stamps={},g=generation,u=who,j=job();ids.forEach(function(id){stamps[id]=queued[id];});shiftJob=j;
+    Promise.resolve(request(o.client.from('shifts').select('*').in('id',ids),j)).then(function(r){
+      if(!valid(g,u))return;if(r.error)throw r.error;
+      var found={};(r.data||[]).forEach(function(row){found[String(row.id)]=row;});
+      ids.forEach(function(id){if(versions[id]!==stamps[id])return;delete queued[id];o.business(found[id]||null,id);});
+      if(o.error)o.error('business','');
+    }).catch(function(e){if(valid(g,u))error('business',e);}).finally(function(){
+      if(shiftJob===j)shiftJob=null;
+      if(valid(g,u)&&Object.keys(queued).some(function(id){return stamps[id]!==queued[id];}))later();
+      else if(running&&generation!==g)later();
+    });
+  }
+  function scan(force){
+    if(scanJob){if(force)scanAgain=true;return;}
+    if(!running||!wanted()||(!force&&Date.now()-lastScan<60000))return;
+    var g=generation,u=who,j=job(),since=new Date(Math.max(0,cursor-60000)).toISOString(),after=null,high=cursor;
+    lastScan=Date.now();scanJob=j;
+    function page(){
+      if(!valid(g,u))return Promise.resolve();
+      var q=o.client.from('shift_business_changes').select('shift_id,operation,revision,changed_at').gte('changed_at',since).order('shift_id',{ascending:true}).limit(1000);
+      if(after!==null)q=q.gt('shift_id',after);
+      return Promise.resolve(request(q,j)).then(function(r){
+        if(!valid(g,u))return;if(r.error)throw r.error;
+        var rows=r.data||[];
+        rows.forEach(function(row){high=Math.max(high,Date.parse(row.changed_at)||0);signal({new:row});});
+        if(rows.length===1000){var id=String(rows[rows.length-1].shift_id);if(id===after)throw new Error('Business change page did not advance');after=id;return page();}
+        cursor=high;
+      });
+    }
+    page().catch(function(e){if(valid(g,u))error('business',e);}).finally(function(){
+      if(scanJob===j)scanJob=null;
+      if(scanAgain){scanAgain=false;lastScan=0;if(running)later();}
+      else if(running&&generation!==g)later();
+    });
+  }
+  function poll(force){
+    if(gpsJob||!running||!wanted()||!mapOn||!o.gpsWanted()||(!force&&Date.now()-lastGps<15000))return;
+    var g=generation,u=who,v=gpsVersion,j=job(),atSerial=serial;lastGps=Date.now();gpsJob=j;
+    Promise.resolve(request(o.client.rpc('erp_live_gps_snapshot'),j)).then(function(r){
+      if(!valid(g,u)||v!==gpsVersion||!mapOn||!o.gpsWanted())return;
+      if(r.error)throw r.error;
+      if(!r.data||!Array.isArray(r.data.shifts))throw new Error('Invalid live GPS response');
+      var seen={};
+      r.data.shifts.forEach(function(row){
+        var id=String(row.id);seen[id]=true;if((versions[id]||0)>atSerial)return;
+        if(!o.hasActive(id))queue(id,'UPSERT');else o.gps(row);
+      });
+      o.activeIds().forEach(function(id){if(!seen[String(id)]&&(versions[String(id)]||0)<=atSerial)queue(id,'UPSERT');});
+      if(o.error)o.error('gps','');if(o.fresh)o.fresh(r.data.server_at);
+    }).catch(function(e){if(valid(g,u)&&v===gpsVersion)error('gps',e);}).finally(function(){
+      if(gpsJob===j)gpsJob=null;
+      if(running&&(generation!==g||gpsVersion!==v))later();
+    });
+  }
+  function tick(){
+    if(!wanted()){stop();return;}
+    if(!running)return;
+    if(o.owner()!==who||!!o.gpsWanted()!==mapOn){sync();return;}
+    poll(false);scan(false);flush();
+  }
+  return {sync:sync,stop:stop,signal:signal,reconcile:function(){sync();scan(true);},poll:function(){sync();poll(false);},changed:queue};
 }
-function stopAdminPoll(){if(adminPoll){clearInterval(adminPoll);adminPoll=null;}ADMIN_GPS.epoch++;ADMIN_GPS.busy=false;ADMIN_GPS.last=0;unsubscribeRealtime();}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&state.screen==="admin")pollAdminGPS(true);});
-window.addEventListener("online",()=>{if(state.screen==="admin"){subscribeRealtime();pollAdminGPS(true);}});
+/* ===== End compact fleet GPS sync ===== */
+
+/* Admin fleet reads: current GPS every 15 seconds on the visible map only. */
+function adminWanted(){return !!adminOwner&&state.screen==="admin"&&!document.hidden&&document.visibilityState!=="hidden"&&navigator.onLine!==false;}
+function keepAdminGps(next,previous){
+  return previous&&next.status==="ACTIVE"&&previous.status==="ACTIVE"?smouKeepNewerGps(next,previous,true):next;
+}
+function mergeAdminBusiness(row,id){
+  if(adminLoadSlot)adminLoadSlot.business[String(id)]=row;
+  const previous=state.shifts.find(s=>String(s.id)===String(id));
+  if(row){
+    const next=keepAdminGps(mapShift(row),previous);
+    const i=state.shifts.findIndex(s=>String(s.id)===String(id));if(i>=0)state.shifts[i]=next;else state.shifts.push(next);
+  }else state.shifts=state.shifts.filter(s=>String(s.id)!==String(id));
+  scheduleRender();
+}
+const ADMIN_SYNC=createSmouFleetSync({
+  client:sb,owner:()=>adminOwner,wanted:adminWanted,gpsWanted:()=>adminLoaded&&state.adminTab==="map",
+  hasActive:id=>state.shifts.some(s=>String(s.id)===String(id)&&s.status==="ACTIVE"),
+  activeIds:()=>state.shifts.filter(s=>s.status==="ACTIVE").map(s=>String(s.id)),
+  business:mergeAdminBusiness,
+  gps:row=>{
+    const s=state.shifts.find(s=>String(s.id)===String(row.id));if(!s||s.status!=="ACTIVE")return;
+    const next=smouKeepNewerGps(mapShift(row),s,true);
+    ["liveLat","liveLng","liveAcc","livePosAt","liveAt","lastPing","speed","heading","liveSrc","trkAt"].forEach(k=>s[k]=next[k]);
+    onLiveMove(row.id);
+  },
+  fresh:()=>{state.adminGpsAt=Date.now();refreshLivePanel();},
+  error:(kind,message)=>{if(kind==="gps"){state.adminSyncError=message||"";refreshLivePanel();}}
+});
+function startAdminPoll(){if(!adminWanted()){ADMIN_SYNC.stop();unsubscribeRealtime();return;}ADMIN_SYNC.sync();subscribeRealtime();}
+function pollAdminGPS(){ADMIN_SYNC.poll();}
+function stopAdminPoll(){adminDataEpoch++;adminOwner=null;adminLoaded=false;adminLoadSlot=null;state.adminGpsAt=0;state.adminSyncError="";ADMIN_SYNC.stop();unsubscribeRealtime();}
+document.addEventListener("visibilitychange",()=>{if(adminWanted())startAdminPoll();else{ADMIN_SYNC.stop();unsubscribeRealtime();}});
+window.addEventListener("online",()=>{if(adminWanted()){startAdminPoll();ADMIN_SYNC.reconcile();}});
+window.addEventListener("offline",()=>{ADMIN_SYNC.stop();unsubscribeRealtime();state.adminSyncError="Offline";refreshLivePanel();});
+sb.auth.onAuthStateChange((event,session)=>{
+  const owner=adminOwner;if(!owner||(session&&session.user&&session.user.id===owner))return;
+  setTimeout(()=>{if(adminOwner!==owner)return;stopAdminPoll();state.drivers=[];state.shifts=[];state.fuelRecords=[];state.screen="landing";if(state.ready)render();},0);
+});
 
 let wakeLock=null;
 async function acquireWake(){try{if("wakeLock" in navigator)wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
@@ -2193,16 +2364,17 @@ function adminSection(){
   const inner={logs:secLogs,km:secKm,fuel:secFuel,drivers:secDrivers}[state.adminTab]();
   return `<div class="oa-page">${adminToolsRow()}${inner}${footer()}</div>`;
 }
-function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?(mountMap(),drawKmChart()):teardownMap();}
+function paintAdmin(){const el=$("#adminSection");if(!el)return;el.innerHTML=adminSection();state.adminTab==="map"?(mountMap(),drawKmChart()):teardownMap();startAdminPoll();}
 function setAppMode(m){m=(m==="day"?"day":"night");document.documentElement.dataset.mode=m;document.querySelectorAll(".oa-mode button,.dmode button").forEach(function(b){if(b.dataset.mode===m)b.classList.add("on");else b.classList.remove("on");});try{localStorage.setItem("sumou-mode",m);}catch(e){}if(typeof LMAP!=="undefined"&&LMAP)setTimeout(function(){try{LMAP.invalidateSize();}catch(e){}},60);}
 
 const STALE_MS=120000; /* no captured position for 2 min = GPS lost */
 const isStale=s=>!s.livePosAt||Date.now()-s.livePosAt>STALE_MS;
 function ago(ms){if(!ms)return "no GPS yet";const sec=Math.max(0,Math.round((Date.now()-ms)/1000));if(sec<60)return sec+"s ago";const m=Math.floor(sec/60);if(m<60)return m+"m ago";return Math.floor(m/60)+"h "+(m%60)+"m ago";}
 function livePanelInner(){
+  const notice=state.adminSyncError?'<div class="live-empty">Live location sync delayed. Reconnecting…</div>':!state.adminGpsAt?'<div class="live-empty">Updating live locations…</div>':"";
   const live=onDutyShifts().filter(passFilter);
-  if(!live.length)return `<div class="live-empty">No drivers on duty right now. When a driver clocks in, their live location streams here and on the map.</div>`;
-  return live.map(s=>{const d=driverById(s.driverId);const st=isStale(s);const f=String(state.follow)===String(s.id);
+  if(!live.length)return notice+`<div class="live-empty">No drivers on duty right now. When a driver clocks in, their live location streams here and on the map.</div>`;
+  return notice+live.map(s=>{const d=driverById(s.driverId);const st=isStale(s);const f=String(state.follow)===String(s.id);
     const canEnd=(st&&Date.now()-(s.liveAt||s.startedAt)>30*60000)||Date.now()-s.startedAt>14*3600000;
     return `<div class="live-driver-bar"><div class="av">${initials(d?.name)}</div>
       <div class="m"><div class="nm">${d?.name||"Driver"} <span class="tag-plate">${d?.plate||""}</span> ${st?`<span class="live-chip lost">GPS LOST</span>`:`<span class="live-chip">LIVE</span>`}</div>
@@ -2290,19 +2462,8 @@ function addLiveMarker(s){
     .bindPopup(()=>{const x=state.shifts.find(y=>String(y.id)===String(s.id))||s;return `<b>${d?.name||"Driver"}</b><br>${x.platform} · ${x.speed||0} km/h<br>updated ${ago(x.livePosAt)}`;});
   m._stale=st;liveMarkers[s.id]=m;
 }
-async function loadTrails(){
-  const ids=onDutyShifts().map(s=>String(s.id));if(!ids.length||!LMAP)return;
-  const {data,error}=await sb.from("shift_points").select("shift_id,lat,lng,recorded_at").in("shift_id",ids).order("recorded_at",{ascending:true}).limit(10000);
-  if(error||!data||!LMAP)return;
-  const by={};data.forEach(p=>{(by[p.shift_id]=by[p.shift_id]||[]).push([p.lat,p.lng]);});
-  Object.keys(by).forEach(sid=>{const ll=by[sid];const sh=state.shifts.find(s=>String(s.id)===sid);if(sh&&sh.liveLat!=null)ll.push([sh.liveLat,sh.liveLng]);
-    if(trails[sid])trails[sid].setLatLngs(ll);else trails[sid]=L.polyline(ll,{color:"#F2C46D",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);});
-}
-function addTrailPoint(sid,lat,lng){
-  sid=String(sid);if(!LMAP||state.adminTab!=="map"||lat==null)return;
-  if(trails[sid])trails[sid].addLatLng([lat,lng]);
-  else trails[sid]=L.polyline([[lat,lng]],{color:"#F2C46D",weight:4,opacity:.85,lineJoin:"round"}).addTo(LMAP);
-}
+async function loadTrails(){}
+function addTrailPoint(){}
 /* glide the marker to its new spot instead of jumping */
 function animateMarker(m,to,ms=900){
   const from=m.getLatLng();if(Math.abs(from.lat-to[0])<1e-7&&Math.abs(from.lng-to[1])<1e-7)return;
@@ -2528,7 +2689,7 @@ async function dqDone(row,owner,token,epoch){
 async function dqRun(row,token,epoch){
   var owner=row.driverId;
   function guard(){if(!dqIdentity(owner,token,epoch))throw new Error("ACCOUNT_CHANGED");}
-  guard();await loadDriver();guard();
+  guard();await loadDriver(true);guard();
   if(row.kind==="fuel"&&row.urls.receipt&&state.fuelRecords.some(function(f){return f.receiptPhoto===row.urls.receipt;})){await dqDone(row,owner,token,epoch);return;}
   var shift=row.shiftId&&state.shifts.find(function(s){return String(s.id)===String(row.shiftId);});
   if(row.kind==="end"&&shift&&shift.status==="COMPLETED"){
@@ -2551,7 +2712,7 @@ async function dqRun(row,token,epoch){
     row.rpcStarted=false;row.status="review";row.message=friendly(result.error.message||"Could not save.");await dqStore(row);
     if(/SESSION_EXPIRED/.test(result.error.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);return;
   }
-  await dqDone(row,owner,token,epoch);await loadDriver();guard();
+  await dqDone(row,owner,token,epoch);await loadDriver(true);guard();
 }
 function dqFlush(manualId){
   if(DQ.busy||DQ.saving||!state.token||state.screen!=="driver"||navigator.onLine===false)return Promise.resolve();
@@ -2701,7 +2862,7 @@ document.addEventListener("click",async e=>{
       if(error){t.disabled=false;fail("Sign-in failed: "+error.message);break;}
       if(data&&data.error){t.disabled=false;fail({NO_ACCOUNT:"No account found for this phone number.",BAD_PIN:"Incorrect PIN.",LOCKED:"Too many wrong PINs. Try again in 15 minutes.",DEVICE_LOCKED:"This driver is already logged in on another phone. Ask admin to reset the device.",BAD_PHONE:"Enter your phone number."}[data.error]||data.error);break;}
       resetDriverPrivateData();state.token=data.token;state.screen="driver";
-      try{await loadDriver();}catch(e){t.disabled=false;state.token=null;state.screen="landing";fail("Could not load your data: "+(e.message||e));break;}
+      try{await loadDriver(true);}catch(e){t.disabled=false;state.token=null;state.screen="landing";fail("Could not load your data: "+(e.message||e));break;}
       const d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=(d&&d.platforms&&d.platforms[0])||null;
       saveSession({role:"driver",token:data.token,dev:deviceId()});render();break;}
     case "logout":{
@@ -2744,7 +2905,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;if(e.target.id
     const sess=loadSession();
     if(sess&&sess.role==="driver"&&sess.token){
       state.token=sess.token;state.screen="driver";
-      try{await loadDriver();
+      try{await loadDriver(true);
         if(!state.driverId)throw new Error("SESSION_EXPIRED");
         const d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=((d&&d.platforms)||[])[0]||null;}
       catch(e){state.token=null;state.screen="landing";clearSession();
@@ -3696,7 +3857,7 @@ async function dlSubmit(){
   }
   /* signed in */
   resetDriverPrivateData();state.token=data.token;
-  try{await loadDriver();}catch(e){state.token=null;dlBusy(false);DL.pin="";dlPaintPins();dlSetMsg("pin",dlt("loadf"));return;}
+  try{await loadDriver(true);}catch(e){state.token=null;dlBusy(false);DL.pin="";dlPaintPins();dlSetMsg("pin",dlt("loadf"));return;}
   try{localStorage.setItem("d2-phone",ph);}catch(e){}
   var d=driverById(state.driverId);state.driverTab="home";state.selectedPlatform=(d&&d.platforms&&d.platforms[0])||null;
   saveSession({role:"driver",token:data.token,dev:deviceId()});
