@@ -1486,7 +1486,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.10";
+const APP_VERSION="4.11";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -1784,7 +1784,7 @@ function updateDriverGps(){
    ------------------------------------------------------------------ */
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
 /* Moving positions keep the 2 s cadence; route history uploads in durable batches. */
-const GPS_MOVE_MS=2000, GPS_HEARTBEAT_MS=30000, GPS_BATCH_MS=10000;
+const GPS_MOVE_MS=10000, GPS_HEARTBEAT_MS=30000, GPS_BATCH_MS=10000, GPS_KEEP_ROUTE=false;  /* live position every 10 s while moving; route history is off */
 const live={shiftId:null,watchId:null,hb:null,last:null,sent:null,pointLast:null,busy:false,pending:null,starting:false,queue:readGPSQueue(),flushing:false,native:false,generation:0,retryAt:0,failures:0};
 const GPSQ={timer:null,promise:null,owner:null,token:null,due:0,retryAt:0,failures:0,blocked:new Set()};
 var gpsNativeOp=Promise.resolve();
@@ -1918,7 +1918,7 @@ async function pushLive(heartbeat){
   finally{if(gpsTrackingCurrent(generation,token,sid)){live.busy=false;const pending=live.pending;live.pending=null;if(pending)pushLive(pending==="hb");}}
 }
 /* Point IDs, owner, shift and original capture time survive refreshes and uncertain replies. */
-function readGPSQueue(){try{const a=JSON.parse(localStorage.getItem("smou-gps-outbox-v1")||"[]");return Array.isArray(a)?a.filter(p=>p.id&&p.driverId&&p.shiftId&&p.point):[];}catch(e){return [];}}
+function readGPSQueue(){try{const a=JSON.parse(localStorage.getItem("smou-gps-outbox-v1")||"[]");return Array.isArray(a)?a.filter(p=>p.id&&p.driverId&&p.shiftId&&p.point).slice(-500):[];}catch(e){return [];}}
 function saveGPSQueue(){try{localStorage.setItem("smou-gps-outbox-v1",JSON.stringify(live.queue));return true;}catch(e){toast("Phone storage is full. Keep this app open until GPS points sync.");return false;}}
 function gpsQueueContext(){
   const owner=state.driverId==null?null:String(state.driverId),token=state.token;
@@ -1934,6 +1934,7 @@ function scheduleGPSQueue(){
   GPSQ.timer=setTimeout(()=>{GPSQ.timer=null;if(token===state.token&&owner===String(state.driverId))flushQueue();},delay);
 }
 function queuePoint(p,driverId,shiftId){
+  if(!GPS_KEEP_ROUTE)return null;
   driverId=driverId==null?state.driverId:driverId;shiftId=shiftId==null?live.shiftId:shiftId;if(!driverId||!shiftId)return null;
   const row={id:"gps-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2),driverId:String(driverId),shiftId:String(shiftId),point:{...p,at:p.at||new Date().toISOString()}};
   live.queue.push(row);saveGPSQueue();
@@ -2632,11 +2633,11 @@ function summaryBody(id,from,to){
 /* Photos and submissions are stored before the app attempts a network write. */
 var DQ={rows:[],owner:null,loading:null,busy:false,saving:false,db:null};
 var DQ_TEXT={
- en:{pending:"Pending on this phone",end:"Clock-out pending — office confirmation needed",fuel:"Fuel receipt pending",retry:"Retry",check:"Check status",review:"Office review needed",local:"Saved on this phone. It will send when connected.",saving:"Saving on this phone…",storage:"Could not save on this phone. Keep the form open and try again.",sent:"Pending entry synced ✓",unknown:"The reply was lost. Checking the office record before any retry.",missing:"No confirmed record yet. Ask the office to check this pending entry.",shift:"The shift changed. Ask the office to review this fuel receipt.",removed:"This shift is no longer available. Ask the office to review.",different:"Office closed this shift with different details. Review needed."},
- ar:{pending:"بانتظار الإرسال على هذا الهاتف",end:"تسجيل الخروج معلّق — يحتاج تأكيد المكتب",fuel:"إيصال الوقود معلّق",retry:"إعادة المحاولة",check:"تحقق من الحالة",review:"تحتاج مراجعة المكتب",local:"تم الحفظ على الهاتف. سيتم الإرسال عند الاتصال.",saving:"جارٍ الحفظ على الهاتف…",storage:"تعذر الحفظ على الهاتف. أبقِ النموذج مفتوحًا وحاول مجددًا.",sent:"تمت المزامنة ✓",unknown:"فُقد الرد. نتحقق من سجل المكتب قبل إعادة المحاولة.",missing:"لم يتم تأكيد السجل. اطلب من المكتب مراجعته.",shift:"تغيّرت المناوبة. اطلب مراجعة إيصال الوقود.",removed:"المناوبة غير متاحة. اطلب مراجعة المكتب.",different:"أغلق المكتب المناوبة بتفاصيل مختلفة. تحتاج مراجعة."},
- hi:{pending:"इस फोन पर लंबित",end:"क्लॉक-आउट लंबित — ऑफिस की पुष्टि चाहिए",fuel:"ईंधन की रसीद लंबित",retry:"फिर भेजें",check:"स्थिति देखें",review:"ऑफिस की जाँच चाहिए",local:"फोन पर सेव हुआ। इंटरनेट आने पर भेजा जाएगा।",saving:"फोन पर सेव हो रहा है…",storage:"फोन पर सेव नहीं हुआ। फॉर्म खुला रखें और फिर कोशिश करें।",sent:"लंबित एंट्री भेज दी गई ✓",unknown:"जवाब नहीं मिला। दोबारा भेजने से पहले ऑफिस का रिकॉर्ड जाँच रहे हैं।",missing:"रिकॉर्ड की पुष्टि नहीं हुई। ऑफिस से जाँच कराएँ।",shift:"शिफ्ट बदल गई। ऑफिस से ईंधन की रसीद जाँच कराएँ।",removed:"यह शिफ्ट उपलब्ध नहीं है। ऑफिस से जाँच कराएँ।",different:"ऑफिस ने शिफ्ट अलग विवरण के साथ बंद की। जाँच चाहिए।"},
- bn:{pending:"এই ফোনে অপেক্ষমাণ",end:"ক্লক-আউট অপেক্ষমাণ — অফিসের নিশ্চিতকরণ দরকার",fuel:"জ্বালানির রসিদ অপেক্ষমাণ",retry:"আবার পাঠান",check:"অবস্থা দেখুন",review:"অফিসের যাচাই দরকার",local:"ফোনে সংরক্ষিত। সংযোগ হলে পাঠানো হবে।",saving:"ফোনে সংরক্ষণ হচ্ছে…",storage:"ফোনে সংরক্ষণ হয়নি। ফর্ম খোলা রেখে আবার চেষ্টা করুন।",sent:"অপেক্ষমাণ এন্ট্রি পাঠানো হয়েছে ✓"},
- ne:{pending:"यो फोनमा बाँकी",end:"क्लक-आउट बाँकी — अफिसको पुष्टि चाहिन्छ",fuel:"इन्धनको रसिद बाँकी",retry:"फेरि पठाउनुहोस्",check:"स्थिति हेर्नुहोस्",review:"अफिसले जाँच गर्नुपर्छ",local:"फोनमा सुरक्षित भयो। इन्टरनेट हुँदा पठाइन्छ।",saving:"फोनमा सुरक्षित हुँदैछ…",storage:"फोनमा सुरक्षित भएन। फारम खुला राखेर फेरि प्रयास गर्नुहोस्।",sent:"बाँकी विवरण पठाइयो ✓"}
+ en:{drop:"Remove & fill again",dropSure:"Tap again to remove",dropped:"Removed. You can fill it again.",wait:"Sending the previous entry — try again in a moment.",logoutPending:"entries are not sent yet. Connect to the internet first. Tap Log out again to leave anyway.",pending:"Pending on this phone",end:"Clock-out pending — office confirmation needed",fuel:"Fuel receipt pending",retry:"Retry",check:"Check status",review:"Office review needed",local:"Saved on this phone. It will send when connected.",saving:"Saving on this phone…",storage:"Could not save on this phone. Keep the form open and try again.",sent:"Pending entry synced ✓",unknown:"The reply was lost. Checking the office record before any retry.",missing:"No confirmed record yet. Ask the office to check this pending entry.",shift:"The shift changed. Ask the office to review this fuel receipt.",removed:"This shift is no longer available. Ask the office to review.",different:"Office closed this shift with different details. Review needed."},
+ ar:{drop:"حذف وإعادة التعبئة",dropSure:"اضغط مرة أخرى للحذف",dropped:"تم الحذف. يمكنك تعبئته مرة أخرى.",wait:"جارٍ إرسال الإدخال السابق — حاول بعد لحظة.",logoutPending:"إدخالات لم تُرسل بعد. اتصل بالإنترنت أولاً. اضغط تسجيل الخروج مرة أخرى للخروج على أي حال.",pending:"بانتظار الإرسال على هذا الهاتف",end:"تسجيل الخروج معلّق — يحتاج تأكيد المكتب",fuel:"إيصال الوقود معلّق",retry:"إعادة المحاولة",check:"تحقق من الحالة",review:"تحتاج مراجعة المكتب",local:"تم الحفظ على الهاتف. سيتم الإرسال عند الاتصال.",saving:"جارٍ الحفظ على الهاتف…",storage:"تعذر الحفظ على الهاتف. أبقِ النموذج مفتوحًا وحاول مجددًا.",sent:"تمت المزامنة ✓",unknown:"فُقد الرد. نتحقق من سجل المكتب قبل إعادة المحاولة.",missing:"لم يتم تأكيد السجل. اطلب من المكتب مراجعته.",shift:"تغيّرت المناوبة. اطلب مراجعة إيصال الوقود.",removed:"المناوبة غير متاحة. اطلب مراجعة المكتب.",different:"أغلق المكتب المناوبة بتفاصيل مختلفة. تحتاج مراجعة."},
+ hi:{drop:"हटाएँ और फिर भरें",dropSure:"हटाने के लिए फिर टैप करें",dropped:"हटा दिया। आप इसे फिर भर सकते हैं।",wait:"पिछली एंट्री भेजी जा रही है — थोड़ी देर में फिर कोशिश करें।",logoutPending:"एंट्री अभी भेजी नहीं गई। पहले इंटरनेट चालू करें। फिर भी निकलना है तो Log out दोबारा दबाएँ।",pending:"इस फोन पर लंबित",end:"क्लॉक-आउट लंबित — ऑफिस की पुष्टि चाहिए",fuel:"ईंधन की रसीद लंबित",retry:"फिर भेजें",check:"स्थिति देखें",review:"ऑफिस की जाँच चाहिए",local:"फोन पर सेव हुआ। इंटरनेट आने पर भेजा जाएगा।",saving:"फोन पर सेव हो रहा है…",storage:"फोन पर सेव नहीं हुआ। फॉर्म खुला रखें और फिर कोशिश करें।",sent:"लंबित एंट्री भेज दी गई ✓",unknown:"जवाब नहीं मिला। दोबारा भेजने से पहले ऑफिस का रिकॉर्ड जाँच रहे हैं।",missing:"रिकॉर्ड की पुष्टि नहीं हुई। ऑफिस से जाँच कराएँ।",shift:"शिफ्ट बदल गई। ऑफिस से ईंधन की रसीद जाँच कराएँ।",removed:"यह शिफ्ट उपलब्ध नहीं है। ऑफिस से जाँच कराएँ।",different:"ऑफिस ने शिफ्ट अलग विवरण के साथ बंद की। जाँच चाहिए।"},
+ bn:{drop:"মুছে আবার পূরণ করুন",dropSure:"মুছতে আবার ট্যাপ করুন",dropped:"মুছে ফেলা হয়েছে। আবার পূরণ করতে পারেন।",wait:"আগের এন্ট্রি পাঠানো হচ্ছে — একটু পরে চেষ্টা করুন।",logoutPending:"এন্ট্রি এখনও পাঠানো হয়নি। আগে ইন্টারনেট চালু করুন। তবুও বের হতে Log out আবার চাপুন।",pending:"এই ফোনে অপেক্ষমাণ",end:"ক্লক-আউট অপেক্ষমাণ — অফিসের নিশ্চিতকরণ দরকার",fuel:"জ্বালানির রসিদ অপেক্ষমাণ",retry:"আবার পাঠান",check:"অবস্থা দেখুন",review:"অফিসের যাচাই দরকার",local:"ফোনে সংরক্ষিত। সংযোগ হলে পাঠানো হবে।",saving:"ফোনে সংরক্ষণ হচ্ছে…",storage:"ফোনে সংরক্ষণ হয়নি। ফর্ম খোলা রেখে আবার চেষ্টা করুন।",sent:"অপেক্ষমাণ এন্ট্রি পাঠানো হয়েছে ✓"},
+ ne:{drop:"हटाएर फेरि भर्नुहोस्",dropSure:"हटाउन फेरि ट्याप गर्नुहोस्",dropped:"हटाइयो। फेरि भर्न सक्नुहुन्छ।",wait:"अघिल्लो विवरण पठाइँदैछ — केही बेरमा फेरि प्रयास गर्नुहोस्।",logoutPending:"विवरण अझै पठाइएको छैन। पहिले इन्टरनेट जोड्नुहोस्। तैपनि निस्कन Log out फेरि थिच्नुहोस्।",pending:"यो फोनमा बाँकी",end:"क्लक-आउट बाँकी — अफिसको पुष्टि चाहिन्छ",fuel:"इन्धनको रसिद बाँकी",retry:"फेरि पठाउनुहोस्",check:"स्थिति हेर्नुहोस्",review:"अफिसले जाँच गर्नुपर्छ",local:"फोनमा सुरक्षित भयो। इन्टरनेट हुँदा पठाइन्छ।",saving:"फोनमा सुरक्षित हुँदैछ…",storage:"फोनमा सुरक्षित भएन। फारम खुला राखेर फेरि प्रयास गर्नुहोस्।",sent:"बाँकी विवरण पठाइयो ✓"}
 };
 function dqText(k){var l=typeof D2!=="undefined"&&D2?D2.lang:"en";return (DQ_TEXT[l]||DQ_TEXT.en)[k]||DQ_TEXT.en[k]||k;}
 function dqHasEnd(sid){return DQ.rows.some(function(r){return r.kind==="end"&&r.shiftId===String(sid)&&String(r.driverId)===String(state.driverId);});}
@@ -2671,10 +2672,14 @@ function dqPaint(){
   var host=document.querySelector(".q-scr");if(!host)return;
   if(!old){old=document.createElement("div");old.id="driverPending";old.className="q-card";old.setAttribute("role","status");host.insertBefore(old,host.firstChild);}else if(old.parentNode!==host)host.insertBefore(old,host.firstChild);
   var e=typeof qe==="function"?qe:function(s){return String(s).replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));};
-  old.innerHTML='<h3>'+e(dqText("pending"))+'</h3>'+mine.map(function(r){var checking=r.rpcStarted||r.status==="checking",review=r.status==="review";return '<div style="padding-top:12px"><b>'+e(dqText(r.kind==="end"?"end":"fuel"))+'</b><div class="q-sub">'+e(r.createdAt)+' · '+e(r.message||dqText("local"))+'</div><button type="button" class="q-btn sm" data-dqretry="'+e(r.id)+'" '+(DQ.busy?'disabled':'')+'>'+e(dqText(review?"review":checking?"check":"retry"))+'</button></div>';}).join("");
+  old.innerHTML='<h3>'+e(dqText("pending"))+'</h3>'+mine.map(function(r){var checking=r.rpcStarted||r.status==="checking",review=r.status==="review";return '<div style="padding-top:12px"><b>'+e(dqText(r.kind==="end"?"end":"fuel"))+'</b><div class="q-sub">'+e(r.createdAt)+' · '+e(r.message||dqText("local"))+'</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button type="button" class="q-btn sm" data-dqretry="'+e(r.id)+'" '+(DQ.busy?'disabled':'')+'>'+e(dqText(review?"review":checking?"check":"retry"))+'</button>'+(review&&!r.rpcStarted?'<button type="button" class="q-btn sm ghost" data-dqdrop="'+e(r.id)+'" '+(DQ.busy?'disabled':'')+'>'+e(dqText("drop"))+'</button>':'')+'</div></div>';}).join("");
 }
+function dqTransient(e){var m=String((e&&e.message)||""),c=String((e&&e.code)||"");return !c||/^(5\d\d|PGRST00\d)$/.test(c)||/load failed|failed to fetch|fetch|network|timeout|abort|connection|gateway|unavailable|offline/i.test(m);}
+function dqFolder(k){return k==="odo"?"odo":k==="orders"?"orders":"receipt";}
+/* entries saved by 4.10 used a "pending/" folder that storage refuses — move them to an allowed folder */
 async function dqPhoto(row,key,token,epoch){
   if(row.urls[key])return row.urls[key];
+  if(/^pending\//.test(row.paths[key]||"")){row.paths[key]=dqFolder(key)+"/"+row.driverId+"-"+row.id+"-"+key+".jpg";await dqStore(row);}
   if(!dqIdentity(row.driverId,token,epoch))throw new Error("ACCOUNT_CHANGED");
   var res=await sb.storage.from("photos").upload(row.paths[key],row.files[key],{contentType:"image/jpeg",upsert:false});
   if(res.error&&!(/already exists|duplicate/i.test(res.error.message||"")||String(res.error.statusCode)==="409"))throw res.error;
@@ -2708,14 +2713,15 @@ async function dqRun(row,token,epoch){
   guard();row.rpcStarted=true;await dqStore(row);guard();
   var result=await sb.rpc(fn,args);guard();
   if(result.error){
-    if(/fetch|network|timeout|abort|connection/i.test(result.error.message||""))throw result.error;
+    if(dqTransient(result.error))throw result.error;
     row.rpcStarted=false;row.status="review";row.message=friendly(result.error.message||"Could not save.");await dqStore(row);
     if(/SESSION_EXPIRED/.test(result.error.message||""))forceDriverLogout(ERRMSG.SESSION_EXPIRED);return;
   }
   await dqDone(row,owner,token,epoch);await loadDriver(true);guard();
 }
 function dqFlush(manualId){
-  if(DQ.busy||DQ.saving||!state.token||state.screen!=="driver"||navigator.onLine===false)return Promise.resolve();
+  if(DQ.busy){DQ.again=true;return Promise.resolve();}
+  if(DQ.saving||!state.token||state.screen!=="driver"||navigator.onLine===false)return Promise.resolve();
   var token=state.token,epoch=driverCacheEpoch,owner=String(state.driverId);DQ.busy=true;
   return (async function(){
     var rows=DQ.rows.filter(function(r){return String(r.driverId)===owner&&(!manualId||r.id===manualId);});
@@ -2729,20 +2735,30 @@ function dqFlush(manualId){
         if(navigator.onLine===false)break;
       }
     }
-  })().finally(function(){DQ.busy=false;if(dqIdentity(owner,token,epoch)){dqPaint();render();}});
+  })().finally(function(){DQ.busy=false;if(dqIdentity(owner,token,epoch)){dqPaint();render();}if(DQ.again){DQ.again=false;setTimeout(function(){dqFlush();},300);}});
 }
 async function dqEnqueue(kind,shift,payload,files){
   var owner=String(state.driverId),token=state.token,epoch=driverCacheEpoch;if(DQ.saving)return false;DQ.saving=true;
   try{
     await dqRefresh();if(!dqIdentity(owner,token,epoch))return false;
     var existing=kind==="end"&&DQ.rows.find(function(r){return r.kind==="end"&&r.shiftId===String(shift);});
+    if(existing&&existing.status==="review"&&!existing.rpcStarted){await dqRemove(existing.id);DQ.rows=DQ.rows.filter(function(r){return r.id!==existing.id;});existing=null;}
     if(existing){closeModal();dqPaint();toast(dqText("end"));dqFlush(existing.id);return true;}
-    var id="act-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2),paths={};Object.keys(files).forEach(function(k){paths[k]="pending/"+owner+"/"+id+"-"+k+".jpg";});
+    var id="act-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2),paths={};Object.keys(files).forEach(function(k){paths[k]=dqFolder(k)+"/"+owner+"-"+id+"-"+k+".jpg";});
     var row={id,kind,driverId:owner,shiftId:shift==null?null:String(shift),createdAt:new Date().toISOString(),payload,files,paths,urls:{},status:"pending",rpcStarted:false,message:""};
     await dqStore(row);if(!dqIdentity(owner,token,epoch))return false;
     DQ.owner=owner;DQ.rows.push(row);if(kind==="end")stopLiveWatch();closeModal();toast(dqText("local"));return true;
   }catch(e){toast(dqText("storage"));return false;}finally{DQ.saving=false;dqPaint();}
 }
+/* a rejected entry can be removed so the driver fills the form again (clock-out: tracking + button come back) */
+document.addEventListener("click",function(e){var b=e.target.closest("[data-dqdrop]");if(!b)return;e.preventDefault();
+  if(DQ.busy||DQ.saving)return;var id=b.getAttribute("data-dqdrop");
+  if(b.getAttribute("data-armed")!=="1"){b.setAttribute("data-armed","1");b.textContent=dqText("dropSure");setTimeout(function(){if(b.isConnected){b.removeAttribute("data-armed");b.textContent=dqText("drop");}},4000);return;}
+  var row=DQ.rows.find(function(r){return r.id===id;});if(!row||row.rpcStarted||row.status!=="review")return;
+  dqRemove(id).then(function(){DQ.rows=DQ.rows.filter(function(r){return r.id!==id;});toast(dqText("dropped"));
+    if(row.kind==="end"&&typeof reconcileDriverTracking==="function")reconcileDriverTracking(state.token);
+    dqPaint();render();}).catch(function(){toast(dqText("storage"));});
+});
 document.addEventListener("click",function(e){var b=e.target.closest("[data-dqretry]");if(b){e.preventDefault();dqRefresh().then(function(){dqFlush(b.getAttribute("data-dqretry"));});}});
 window.addEventListener("online",function(){dqRefresh().then(function(){dqFlush();});});
 document.addEventListener("visibilitychange",function(){if(!document.hidden)dqRefresh().then(function(){dqFlush();});});
@@ -2772,7 +2788,7 @@ async function doStartDuty(){
   }catch(e){toast("Clock-in failed: "+(e.message||e));if(btn){btn.disabled=false;btn.innerHTML=ic('zap','i-xs')+" Clock In";}}
 }
 async function doEndDuty(){
-  if(DQ.saving||DQ.busy)return;
+  if(DQ.saving)return;
   const d=driverById(state.driverId),sh=d&&activeShift(d.id);if(!sh)return;
   if(typeof d2ordCheck==="function"&&!d2ordCheck())return;
   const end=+$("#edOdo").value;
@@ -2788,7 +2804,7 @@ async function doEndDuty(){
   else if(btn){btn.disabled=false;btn.innerHTML=ic('stop','i-xs')+" Confirm & Clock Out";}
 }
 async function doSaveFuel(){
-  if(DQ.saving||DQ.busy)return;
+  if(DQ.saving)return;
   const d=driverById(state.driverId);if(!d)return;const sh=activeShift(d.id),cost=+$("#fuCost").value;
   if(!isFinite(cost)||cost<=0)return toast("Enter the fuel amount in KWD.");
   if(!photoBuf.receipt)return toast("Take the receipt photo first (camera).");
@@ -2868,6 +2884,9 @@ document.addEventListener("click",async e=>{
     case "logout":{
       if(state.screen==="admin"){unsubscribeRealtime();stopAdminPoll();try{await sb.auth.signOut();}catch(e){}
         state.drivers=[];state.shifts=[];state.fuelRecords=[];state.follow=null;mapView=null;state.screen="landing";render();break;}
+      {const left=(typeof DQ!=="undefined"?DQ.rows:[]).filter(function(r){return String(r.driverId)===String(state.driverId);}).length;
+       if(left&&!(DQ.logoutAt&&Date.now()-DQ.logoutAt<10000)){DQ.logoutAt=Date.now();toast(left+" "+dqText("logoutPending"));dqFlush();break;}
+       DQ.logoutAt=0;}
       stopLiveWatch();resetDriverPrivateData();if(state.token){try{await sb.rpc("driver_logout",{p_token:state.token});}catch(e){}}
       clearSession();state.token=null;state.screen="landing";state.driverId=null;state.gps={};state.selectedPlatform=null;state.drivers=[];state.shifts=[];state.fuelRecords=[];render();break;}
     case "gpsGauge":{gpsManualRefresh();break;}
@@ -3925,7 +3944,7 @@ var DTX={
 };
 function dtt(k,v){var s=(DTX[D2.lang]||DTX.en)[k]||DTX.en[k]||k;if(v)for(var x in v)s=s.replace("{"+x+"}",v[x]);return s;}
 var DT={code:null,busy:false};
-function dtShow(){return typeof dlIOS==="function"&&dlIOS()&&!(typeof dlNative==="function"&&dlNative());}
+function dtShow(){return false;}  /* Traccar setup hidden: every driver uses Android */
 function dtAgo(ms){var s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+"s":Math.floor(s/60)+"m";}
 function dtState(){var sh=activeShift(state.driverId);if(!sh)return "idle";return sh.trkAt&&Date.now()-sh.trkAt<180000?"on":"off";}
 function dtCode(){if(DT.code||DT.busy||!state.token)return;DT.busy=true;
@@ -4399,7 +4418,7 @@ setInterval(dgPaint,10000);
     if(!TAG){full().catch(function(){});return;}
     fetch(url(),{method:"HEAD",cache:"no-store"}).then(function(r){var t=tagOf(r);if(!t||t!==TAG)return full();}).catch(function(){});
   }
-  function busy(){return !!document.querySelector("#overlay,.overlay,.d2sheet")||(typeof DQ!=="undefined"&&(DQ.busy||DQ.saving||DQ.rows.some(function(r){return String(r.driverId)===String(state.driverId);})));}
+  function busy(){return !!document.querySelector("#overlay,.overlay,.d2sheet")||(typeof DQ!=="undefined"&&(DQ.busy||DQ.saving));}
   function tried(){try{return sessionStorage.getItem("d2-upd")===NEWV;}catch(e){return false;}}
   function go(){try{sessionStorage.setItem("d2-upd",NEWV);}catch(e){}location.reload();}
   function show(){
