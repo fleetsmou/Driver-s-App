@@ -1486,7 +1486,7 @@ const state={screen:"landing",role:"driver",adminTab:"map",driverTab:"home",driv
   filters:{search:"",driver:"all",platform:"all",status:"all"},gps:{},token:null,follow:null};
 
 const SESSION_KEY="sumou_session_v3";
-const APP_VERSION="4.12";
+const APP_VERSION="4.13";
 try{if(localStorage.getItem("sumou-mode")==="day")document.documentElement.dataset.mode="day";}catch(e){}
 function saveSession(o){try{localStorage.setItem(SESSION_KEY,JSON.stringify(o));}catch(e){}}
 function loadSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(e){return null;}}
@@ -1564,10 +1564,14 @@ function resetDriverPrivateData(){
 var adminOwner=null,adminDataEpoch=0,adminLoaded=false,adminLoadSlot=null;
 async function loadAdmin(){
   const epoch=adminDataEpoch,owner=adminOwner,slot={business:{},events:[]};adminLoadSlot=slot;
+  /* 4.13: the server returns at most 1000 rows per request — read page by page, and only the last 90 days
+     (plus any shift still on duty), the same window the driver screens use. */
+  const since=new Date(Date.now()-90*86400e3).toISOString();
+  async function paged(mk){let out=[],from=0;for(;;){const r=await mk().range(from,from+999);if(r.error)return {data:null,error:r.error};const rows=r.data||[];out=out.concat(rows);if(rows.length<1000)return {data:out,error:null};from+=rows.length;}}
   const [d,s,f]=await Promise.all([
-    sb.from("drivers").select("*").order("created_at"),
-    sb.from("shifts").select("*").order("created_at"),
-    sb.from("fuel_records").select("*").order("created_at"),
+    paged(()=>sb.from("drivers").select("*").order("created_at").order("id")),
+    paged(()=>sb.from("shifts").select("*").or("status.eq.ACTIVE,created_at.gte."+since).order("created_at").order("id")),
+    paged(()=>sb.from("fuel_records").select("*").gte("created_at",since).order("created_at").order("id")),
   ]);
   if(epoch!==adminDataEpoch||owner!==adminOwner||state.screen!=="admin"||adminLoadSlot!==slot)return;
   if(d.error||s.error||f.error){console.error(d.error||s.error||f.error);throw (d.error||s.error||f.error);}
@@ -1685,9 +1689,22 @@ function compressImage(file){return new Promise((res,rej)=>{
     const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
     c.toBlob(b=>b?res(b):rej(new Error("compress failed")),"image/jpeg",0.68);};
   img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("bad image"));};img.src=url;});}
+/* 4.13: the server checks the driver's session and hands out a one-time upload link for THEIR OWN photo.
+   Falls back to the old direct upload only if that service can't be reached (old setup). */
+async function photoPut(path,blob,token){
+  let sig=null;
+  try{
+    const r=await fetch(SUPABASE_URL+"/functions/v1/driver-files",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY},body:JSON.stringify({op:"upload",token:token||state.token,path:path})});
+    if(r.status===401){const e=new Error("SESSION_EXPIRED");e.status=401;return {error:e};}
+    if(r.status===403||r.status===400){const j=await r.json().catch(()=>({}));const e=new Error(j.error||"PHOTO_REFUSED");e.status=r.status;return {error:e};}
+    if(r.ok){const j=await r.json().catch(()=>({}));if(j&&j.exists)return {error:null};if(j&&j.token)sig=j.token;}
+  }catch(e){ /* service unreachable — use the direct upload below */ }
+  if(sig)return await sb.storage.from("photos").uploadToSignedUrl(path,sig,blob,{contentType:"image/jpeg"});
+  return await sb.storage.from("photos").upload(path,blob,{contentType:"image/jpeg",upsert:false});
+}
 async function uploadPhoto(blob,path){
-  const {error}=await sb.storage.from("photos").upload(path,blob,{contentType:"image/jpeg",upsert:false});
-  if(error)throw error;
+  const {error}=await photoPut(path,blob,state.token);
+  if(error&&!(/already exists|duplicate/i.test(error.message||"")||String(error.statusCode)==="409"))throw error;
   const {data}=sb.storage.from("photos").getPublicUrl(path);
   return data.publicUrl;
 }
@@ -2706,7 +2723,7 @@ async function dqPhoto(row,key,token,epoch){
   if(row.urls[key])return row.urls[key];
   if(/^pending\//.test(row.paths[key]||"")){row.paths[key]=dqFolder(key)+"/"+row.driverId+"-"+row.id+"-"+key+".jpg";await dqStore(row);}
   if(!dqIdentity(row.driverId,token,epoch))throw new Error("ACCOUNT_CHANGED");
-  var res=await sb.storage.from("photos").upload(row.paths[key],row.files[key],{contentType:"image/jpeg",upsert:false});
+  var res=await photoPut(row.paths[key],row.files[key],token);
   if(res.error&&!(/already exists|duplicate/i.test(res.error.message||"")||String(res.error.statusCode)==="409"||String(res.error.status)==="409")){if(dqPermanentHttp(res.error)){var pe=new Error(res.error.message||"PHOTO_REFUSED");pe.dqPermanent=true;throw pe;}throw res.error;}
   if(!dqIdentity(row.driverId,token,epoch))throw new Error("ACCOUNT_CHANGED");
   row.urls[key]=sb.storage.from("photos").getPublicUrl(row.paths[key]).data.publicUrl;await dqStore(row);return row.urls[key];
@@ -3206,6 +3223,24 @@ function d2loadProf(force){
     if(ch&&state.screen==="driver"&&!document.getElementById("overlay"))d2soft();})
   .catch(function(){}).finally(function(){if(epoch===driverCacheEpoch)D2.profBusy=false;});
 }
+/* 4.13: employee photos live in a private store. Ask once for a 24-hour link and remember it. */
+var D2AVA={busy:false,tried:""};
+function d2avatar(u){
+  if(!u)return "";
+  if(!/\/storage\/v1\/object\/public\/files\//.test(u))return u;
+  var c=null;try{c=JSON.parse(localStorage.getItem("smou-ava")||"null");}catch(e){}
+  if(c&&c.src===u&&c.url&&c.until>Date.now())return c.url;
+  if(!D2AVA.busy&&D2AVA.tried!==u&&state.token){
+    D2AVA.busy=true;D2AVA.tried=u;var token=state.token;
+    fetch(SUPABASE_URL+"/functions/v1/driver-files",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_ANON_KEY,Authorization:"Bearer "+SUPABASE_ANON_KEY},body:JSON.stringify({op:"avatar",token:token})})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){if(token!==state.token)return;
+        if(j&&j.url){try{localStorage.setItem("smou-ava",JSON.stringify({src:u,url:j.url,until:Date.now()+((j.expiresIn||86400)-600)*1000}));}catch(e){}
+          if(state.screen==="driver"&&!document.getElementById("overlay"))d2soft();}})
+      .catch(function(){D2AVA.tried="";}).finally(function(){D2AVA.busy=false;});
+  }
+  return u;   /* still public today → loads directly; once private, the link above takes over */
+}
 /* re-render without replaying the entrance animation */
 function d2soft(){var y=window.scrollY;D2.still=true;render();D2.still=false;window.scrollTo(0,y);}
 
@@ -3218,7 +3253,7 @@ function d2alerts(){
 }
 function d2seen(id){try{return (localStorage.getItem("d2-seen")||"").indexOf(id)>=0;}catch(e){return false;}}
 function d2header(title,eyebrow,sh){
-  var d=d2me(),photo=D2.prof&&D2.prof.employee&&D2.prof.employee.photo,al=d2alerts();
+  var d=d2me(),photo=d2avatar(D2.prof&&D2.prof.employee&&D2.prof.employee.photo),al=d2alerts();
   return '<div class="q-hd"><div class="q-ava">'+(photo?'<img src="'+qe(photo)+'" alt="">':qe(initials(d&&d.name)))+'<i class="'+(sh?"on":"")+'"></i></div>'+
     '<div class="q-who"><small>'+qe(eyebrow)+'</small><b>'+qe(title)+'</b></div>'+
     '<button class="q-ib" data-d2="menu" aria-label="'+qe(tt("theme"))+'"><span class="sw" style="background:'+d2sw(d2skinObj())+'"></span></button>'+
@@ -3518,6 +3553,15 @@ function d2sosSheet(){
 }
 /* 4.12: one SOS at a time, retried automatically (backoff, and again when the phone is back online) */
 var SOSQ={job:null,busy:false,timer:null,tries:0};
+/* 4.13: the unsent SOS is also kept on the phone, so closing/reopening the app still sends it (for 6 hours) */
+function d2sosSave(){try{if(SOSQ.job)localStorage.setItem("smou-sos",JSON.stringify(SOSQ.job));else localStorage.removeItem("smou-sos");}catch(e){}}
+function d2sosResume(){
+  if(SOSQ.job||SOSQ.busy||!state.token)return;
+  var j=null;try{j=JSON.parse(localStorage.getItem("smou-sos")||"null");}catch(e){}
+  if(!j||!j.p)return;
+  if(j.token!==state.token||!(j.at>Date.now()-6*3600e3)){try{localStorage.removeItem("smou-sos");}catch(e){}return;}
+  SOSQ.job=j;SOSQ.tries=0;d2sosTry();
+}
 function d2sosPhone(){var h=D2.home||{},p=D2.prof||{};return String(h.office_phone||h.officePhone||p.office_phone||"").replace(/[^\d+]/g,"");}  /* none is sent by the server today */
 function d2sosPaint(st){
   var ph=d2sosPhone(),html="";
@@ -3535,24 +3579,26 @@ function d2sendSos(){
   var p={type:D2.sosType,note:(document.getElementById("sosNote")||{}).value||"",lat:f?+f.lat.toFixed(6):(sh&&sh.liveLat)||null,lng:f?+f.lng.toFixed(6):(sh&&sh.liveLng)||null,acc:f?f.acc:null,place:sh?(sh.loginPlace||""):"",
     client_request_id:"sos-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2)};
   try{if(navigator.vibrate)navigator.vibrate([200,80,200]);}catch(e){}
-  SOSQ.job={p:p,token:state.token};SOSQ.tries=0;d2sosTry();
+  SOSQ.job={p:p,token:state.token,at:Date.now()};SOSQ.tries=0;d2sosSave();d2sosTry();
 }
 function d2sosTry(){
   var job=SOSQ.job;if(SOSQ.timer){clearTimeout(SOSQ.timer);SOSQ.timer=null;}
   if(!job||SOSQ.busy)return;
-  if(job.token!==state.token){SOSQ.job=null;d2sosPaint(null);return;}
+  if(job.token!==state.token){SOSQ.job=null;d2sosSave();d2sosPaint(null);return;}
   var f=live.last&&Date.now()-live.last.t<120000?live.last:null;if(f){job.p.lat=+f.lat.toFixed(6);job.p.lng=+f.lng.toFixed(6);job.p.acc=f.acc;}
   if(navigator.onLine===false){d2sosPaint("fail");toast(tt("sos_fail"));return;}   /* the "online" listener sends it */
   SOSQ.busy=true;d2sosPaint("sending");
   rpc("driver_sos",{p_token:job.token,p:job.p}).then(function(){
-    if(SOSQ.job===job)SOSQ.job=null;SOSQ.tries=0;d2sosPaint(null);if(document.getElementById("qSos"))closeModal();toast(tt("sos_sent"));
+    if(SOSQ.job===job){SOSQ.job=null;d2sosSave();}SOSQ.tries=0;d2sosPaint(null);if(document.getElementById("qSos"))closeModal();toast(tt("sos_sent"));
   }).catch(function(){
-    if(SOSQ.job!==job)return;if(job.token!==state.token){SOSQ.job=null;d2sosPaint(null);return;}
+    if(SOSQ.job!==job)return;if(job.token!==state.token){SOSQ.job=null;d2sosSave();d2sosPaint(null);return;}
     SOSQ.tries++;if(SOSQ.tries<6&&navigator.onLine!==false)SOSQ.timer=setTimeout(d2sosTry,Math.min(30000,3000*Math.pow(2,SOSQ.tries-1)));
     d2sosPaint("fail");toast(tt("sos_fail"));
   }).then(function(){SOSQ.busy=false;});
 }
-window.addEventListener("online",function(){if(SOSQ.job&&!SOSQ.busy){SOSQ.tries=0;d2sosTry();}});
+window.addEventListener("online",function(){if(SOSQ.job&&!SOSQ.busy){SOSQ.tries=0;d2sosTry();}else d2sosResume();});
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){if(SOSQ.job&&!SOSQ.busy&&!SOSQ.timer){SOSQ.tries=0;d2sosTry();}else d2sosResume();}});
+setTimeout(d2sosResume,4000);
 function d2checkSheet(){
   var I=[["tyres","tyres"],["brakes","brakes"],["lights","lights"],["horn","horn"],["mirrors","mirrors"],["oil","oil"],["box","box"]];
   D2.chk={};I.forEach(function(x){D2.chk[x[0]]=true;});delete photoBuf.vcheck;
@@ -4260,7 +4306,7 @@ function dhSlider(label,red,act){return '<div class="q-slide dh-road-s'+(red?" r
 /* ---------- the hero scene ---------- */
 function dhHero(d,sh,pcol){
   var k=d2kw(),sc=dhScenery(),brk=!!(sh&&sh.breakAt),mv=!!(sh&&!brk),t=Date.now()/1000;
-  var photo=D2.prof&&D2.prof.employee&&D2.prof.employee.photo,al=d2alerts();
+  var photo=d2avatar(D2.prof&&D2.prof.employee&&D2.prof.employee.photo),al=d2alerts();
   function dl(dur,off){return 'animation-delay:-'+(((t+(off||0))%dur)).toFixed(2)+'s';}   /* keeps the scenery moving smoothly across re-draws */
   var eyebrow=sh?'<small>'+qe(sh.platform+" · "+(d.plate||""))+'</small>':'<small data-q-clk="greet">'+qe(k.greet)+'</small>';
   var title=sh?(brk?dhT("brk"):dhT("go")):tt("ready");
