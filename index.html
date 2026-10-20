@@ -1702,8 +1702,8 @@ async function photoPut(path,blob,token){
   if(sig)return await sb.storage.from("photos").uploadToSignedUrl(path,sig,blob,{contentType:"image/jpeg"});
   return await sb.storage.from("photos").upload(path,blob,{contentType:"image/jpeg",upsert:false});
 }
-async function uploadPhoto(blob,path){
-  const {error}=await photoPut(path,blob,state.token);
+async function uploadPhoto(blob,path,token){
+  const {error}=await photoPut(path,blob,token||state.token);
   if(error&&!(/already exists|duplicate/i.test(error.message||"")||String(error.statusCode)==="409"))throw error;
   const {data}=sb.storage.from("photos").getPublicUrl(path);
   return data.publicUrl;
@@ -1738,7 +1738,7 @@ async function reverseGeocode(lat,lng){
    3) the app's native GPS plugin (APK only; also asks for permission) */
 let gpsDiag=[];
 function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
-  let done=false;const T0=Date.now();const note=(m,e)=>gpsDiag.push(m+":"+(e?(e.code!=null?"code"+e.code:"")+(e.message?" "+String(e.message).slice(0,40):""):"ok")+" "+((Date.now()-T0)/1000).toFixed(0)+"s");const ok=(lat,lng,acc,how)=>{if(!done){done=true;res({lat,lng,acc:Math.max(1,Math.round(acc||25)),how});}};
+  let done=false;const T0=Date.now();const note=(m,e)=>gpsDiag.push(m+":"+(e?(e.code!=null?"code"+e.code:"")+(e.message?" "+String(e.message).slice(0,40):""):"ok")+" "+((Date.now()-T0)/1000).toFixed(0)+"s");const ok=(lat,lng,acc,how,at)=>{if(!done){done=true;res({lat,lng,acc:Math.max(1,Math.round(acc||25)),how,at:Number.isFinite(Number(at))&&Number(at)>0?Number(at):null});}};
   const fail=e=>{if(!done){done=true;rej(e||{code:2});}};
   const G=navigator.geolocation;
   const capTry=prev=>{
@@ -1746,7 +1746,7 @@ function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
     (async()=>{try{
       try{const p=await CapGeo.checkPermissions();if(p.location!=="granted"){const r=await CapGeo.requestPermissions();if(r.location==="denied"){note("capgeo",{code:1,message:"denied"});return fail({code:1});}}}catch(e){}
       const pos=await CapGeo.getCurrentPosition({enableHighAccuracy:true,timeout:20000,maximumAge:30000});
-      ok(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy,"capgeo");
+      ok(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy,"capgeo",pos.timestamp);
     }catch(e){note("capgeo",{message:e&&e.message||String(e)});bgTry(prev);}})();
   };
   const nativeTry=prev=>capTry(prev);
@@ -1755,18 +1755,19 @@ function getFix(){gpsDiag=[];return new Promise((res,rej)=>{
   const bgTry=prev=>{note("native",{message:"no one-shot provider"});return fail(prev);};
   const coarse=prev=>{
     if(!G)return nativeTry(prev);
-    G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"network"),
+    G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"network",p.timestamp),
       e=>{note("wifi",e);nativeTry(e.code===1?e:prev);},{enableHighAccuracy:false,timeout:15000,maximumAge:300000});
   };
   if(!G){note("web",{message:"no navigator.geolocation"});return nativeTry({code:2});}
-  G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"gps"),
+  G.getCurrentPosition(p=>ok(p.coords.latitude,p.coords.longitude,p.coords.accuracy,"gps",p.timestamp),
     e=>{note("gps",e);e.code===1?nativeTry(e):coarse(e);},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 });}
 let gpsBusy={},gpsWait={},gpsMsg={};
 /* 4.12: the fix is saved immediately (place = coordinates); the street name replaces it when it arrives */
 var geoPend={};
-function gpsCoordFix(kind,lat,lng,acc){
+function gpsCoordFix(kind,lat,lng,acc,capturedAt){
   const g={place:"GPS "+(+lat).toFixed(4)+", "+(+lng).toFixed(4),addr:(+lat).toFixed(5)+", "+(+lng).toFixed(5),lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),acc:Math.max(1,Math.round(acc||15)),time:nowTime(),src:"gps"};
+  if(Number.isFinite(Number(capturedAt))&&Number(capturedAt)>0)g.at=new Date(Number(capturedAt)).toISOString();
   state.gps[kind]=g;refreshGps(kind);
   const epoch=driverCacheEpoch,token=state.token;
   const job=reverseGeocode(lat,lng).then(r=>{if(epoch===driverCacheEpoch&&token===state.token&&state.gps[kind]===g&&r&&!r.fallback){g.place=r.place;g.addr=r.addr;refreshGps(kind);}}).catch(()=>{}).then(()=>{if(geoPend[kind]===job)delete geoPend[kind];});
@@ -1775,14 +1776,14 @@ function gpsCoordFix(kind,lat,lng,acc){
 async function detectGps(kind){
   const epoch=driverCacheEpoch,token=state.token;const current=()=>epoch===driverCacheEpoch&&token===state.token;
   /* on duty the phone already has a fresh fix from live tracking — use it straight away */
-  if(live.last&&Date.now()-live.last.t<20000){const f=live.last;gpsCoordFix(kind,f.lat,f.lng,f.acc||15);return;}
+  if(live.last&&Date.now()-live.last.t<20000){const f=live.last;gpsCoordFix(kind,f.lat,f.lng,f.acc||15,f.t);return;}
   if(gpsBusy[kind])return gpsWait[kind];
   gpsBusy[kind]=Date.now();gpsMsg[kind]=null;refreshGps(kind);
   const tick=setInterval(()=>{const el=$("#gpsSecs-"+kind);if(el)el.textContent=Math.round((Date.now()-gpsBusy[kind])/1000)+"s";},1000);
   let resolveWait;gpsWait[kind]=new Promise(r=>resolveWait=r);
   try{
     const f=await getFix();if(!current())return;
-    gpsBusy[kind]=false;gpsCoordFix(kind,f.lat,f.lng,f.acc);
+    gpsBusy[kind]=false;gpsCoordFix(kind,f.lat,f.lng,f.acc,f.at);
     toast(f.acc>100?L10("gps_approx",{m:f.acc}):L10("gps_locked"));
   }catch(err){
     if(!current())return;
@@ -1805,22 +1806,15 @@ function updateDriverGps(){
   else{sp.textContent="0";if(tl)tl.textContent="GPS ready";}
 }
 
-/* ------------------------------------------------------------------
-   LIVE TRACKING — why it looked frozen before:
-   1) every GPS write came back through realtime and re-rendered the driver
-      screen, and each re-render STOPPED and restarted the GPS watcher, so the
-      phone kept sending its first / cached fix instead of real movement;
-   2) it only sent every 7 s and the admin map re-zoomed out to fit all pins;
-   3) native background tracking ignored moves under 8 m.
-   Now: one watcher for the whole shift, sends as soon as the driver moves
-   ~3-5 m (max every 2 s), a heartbeat every 30 s when standing still,
-   every move is saved as a route point, and offline points are queued.
-   ------------------------------------------------------------------ */
+/* Live tracking keeps only the latest position. Native Android sends during
+   screen lock / app dismissal; the web watcher supplies the visible dial and
+   sends while the native service is starting or unavailable. */
 function haversine(a,b,c,d){const R=6371000,r=x=>x*Math.PI/180;const dLat=r(c-a),dLng=r(d-b);const s=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
-/* Moving positions keep the 2 s cadence; route history uploads in durable batches. */
-const GPS_MOVE_MS=10000, GPS_HEARTBEAT_MS=30000, GPS_BATCH_MS=10000, GPS_KEEP_ROUTE=false;  /* live position every 10 s while moving; route history is off */
-const live={shiftId:null,watchId:null,hb:null,last:null,sent:null,pointLast:null,busy:false,pending:null,starting:false,queue:readGPSQueue(),flushing:false,native:false,generation:0,retryAt:0,failures:0};
-const GPSQ={timer:null,promise:null,owner:null,token:null,due:0,retryAt:0,failures:0,blocked:new Set()};
+const GPS_MOVE_MS=10000, GPS_HEARTBEAT_MS=30000;
+/* Discard points left by older versions; they must never be uploaded as history. */
+function discardLegacyGPSQueue(){try{localStorage.removeItem("smou-gps-outbox-v1");}catch(e){}}
+discardLegacyGPSQueue();
+const live={shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,native:false,nativeError:null,nativeRetryAt:0,generation:0,retryAt:0,failures:0};
 var gpsNativeOp=Promise.resolve();
 var gpsNativeTerminal={token:null,shift:null,reason:null};
 
@@ -1828,47 +1822,70 @@ var gpsNativeTerminal={token:null,shift:null,reason:null};
 const LIVE_URL=SUPABASE_URL+"/rest/v1/rpc/driver_update_live";
 function gpsStopNative(){
   if(!SGT)return;
-  gpsNativeOp=gpsNativeOp.catch(()=>{}).then(()=>SGT.stop()).catch(()=>{});
+  const token=state.token,shiftId=live.shiftId==null?null:String(live.shiftId);
+  gpsNativeOp=gpsNativeOp.catch(()=>{}).then(()=>SGT.stop({token,shiftId})).catch(()=>{});
 }
 function gpsTrackingCurrent(generation,token,sid){return generation===live.generation&&token===state.token&&String(sid)===String(live.shiftId);}
 function gpsStartHeartbeat(){if(live.hb)clearInterval(live.hb);live.hb=setInterval(()=>{if(live.last)pushLive(true);},5000);}
 function gpsHandleNativeStatus(status,generation,token,sid){
-  if(!status||!gpsTrackingCurrent(generation,token,sid)||status.shiftId!=null&&String(status.shiftId)!==String(sid))return;
+  if(!status||!gpsTrackingCurrent(generation,token,sid))return;
+  if(status.shiftId!=null&&String(status.shiftId)!==String(sid)){gpsNativeFallback("SHIFT_MISMATCH",generation,token,sid);return;}
   const reason=status.reason||"";
   if(/NO_ACTIVE_SHIFT|SESSION_EXPIRED/.test(reason)){
     const seen=gpsNativeTerminal.token===token&&gpsNativeTerminal.shift===String(sid)&&gpsNativeTerminal.reason===reason;
     gpsNativeTerminal={token,shift:String(sid),reason};stopLiveWatch();
     if(/SESSION_EXPIRED/.test(reason)){if(token===state.token)forceDriverLogout(friendly("SESSION_EXPIRED"));}
     else if(!seen)loadDriver(true).then(()=>{if(token===state.token&&state.screen==="driver")render();}).catch(e=>{if(token===state.token&&/SESSION_EXPIRED/.test(e.message||""))forceDriverLogout(friendly("SESSION_EXPIRED"));});
-  }else if(status.running===false){stopLiveWatch();startLiveWatch(sid);}
+  }else if(status.running===false){gpsNativeFallback(reason||"SERVICE_STOPPED",generation,token,sid);}
+}
+function gpsNativeFallback(reason,generation,token,sid){
+  if(!gpsTrackingCurrent(generation,token,sid))return;
+  live.native=false;live.starting=false;live.nativeError=reason||"START_FAILED";live.nativeRetryAt=Date.now()+30000;
+  gpsStartHeartbeat();if(live.last)pushLive(false);
+  if(typeof dgPaint==="function")dgPaint();
+}
+function gpsStartNative(sid){
+  if(!SGT||live.starting||live.native||Date.now()<live.nativeRetryAt)return;
+  live.starting=true;
+  const generation=live.generation,token=state.token;
+  gpsNativeOp=gpsNativeOp.catch(()=>{}).then(()=>{
+    if(!gpsTrackingCurrent(generation,token,sid))return;
+    return SGT.start({url:LIVE_URL,apikey:SUPABASE_ANON_KEY,token,shiftId:String(sid),interval:GPS_MOVE_MS});
+  }).then(async status=>{
+    if(!gpsTrackingCurrent(generation,token,sid))return;
+    // Older APKs returned no start result. Confirm their service before handing over.
+    if((!status||typeof status.running!=="boolean")&&typeof SGT.isRunning==="function")status=await SGT.isRunning({token,shiftId:String(sid)});
+    if(!gpsTrackingCurrent(generation,token,sid))return;
+    if(status&&/NO_ACTIVE_SHIFT|SESSION_EXPIRED/.test(status.reason||"")){gpsHandleNativeStatus(status,generation,token,sid);return;}
+    if(!status||status.running!==true||status.shiftId!=null&&String(status.shiftId)!==String(sid)){
+      gpsNativeFallback(status&&status.reason||"START_FAILED",generation,token,sid);return;
+    }
+    live.starting=false;live.native=true;live.nativeError=null;live.nativeRetryAt=0;gpsNotificationNotice(status);
+    if(live.hb){clearInterval(live.hb);live.hb=null;}
+    if(typeof dgPaint==="function")dgPaint();
+  }).catch(e=>gpsNativeFallback(e&&e.message||"START_FAILED",generation,token,sid));
 }
 function gpsCheckNativeStatus(){
-  if(!SGT||!live.native||typeof SGT.isRunning!=="function")return;
+  if(!SGT||live.starting)return;
+  if(!live.native){if(live.shiftId)gpsStartNative(live.shiftId);return;}
+  if(typeof SGT.isRunning!=="function")return;
   const generation=live.generation,token=state.token,sid=live.shiftId;
   gpsNativeOp.then(()=>{
-    if(gpsTrackingCurrent(generation,token,sid))return SGT.isRunning({token:token,shiftId:String(sid)});
-  }).then(status=>gpsHandleNativeStatus(status,generation,token,sid)).catch(()=>{});
+    if(gpsTrackingCurrent(generation,token,sid))return SGT.isRunning({token,shiftId:String(sid)});
+  }).then(status=>gpsHandleNativeStatus(status,generation,token,sid)).catch(e=>gpsNativeFallback(e&&e.message||"STATUS_FAILED",generation,token,sid));
 }
 function startLiveWatch(shiftId){
   if(typeof dqHasEnd==="function"&&dqHasEnd(shiftId)){if(live.shiftId)stopLiveWatch();return;}
   if(gpsNativeTerminal.token===state.token&&gpsNativeTerminal.shift===String(shiftId))return;
-  if(String(live.shiftId)===String(shiftId)&&(live.native||live.watchId!=null))return;
-  stopLiveWatch();live.shiftId=shiftId;
-  if(SGT){
-    live.native=true;
-    const generation=live.generation,token=state.token;
-    gpsNativeOp=gpsNativeOp.catch(()=>{}).then(()=>{
-      if(!gpsTrackingCurrent(generation,token,shiftId))return;
-      return SGT.start({url:LIVE_URL,apikey:SUPABASE_ANON_KEY,token:token,shiftId:String(shiftId),interval:10000});
-    }).then(status=>{
-      if(status&&/NO_ACTIVE_SHIFT|SESSION_EXPIRED/.test(status.reason||""))gpsHandleNativeStatus(status,generation,token,shiftId);
-    }).catch(()=>{
-      if(!gpsTrackingCurrent(generation,token,shiftId))return;
-      live.native=false;gpsStartHeartbeat();if(live.last)pushLive(false);
-    });
-    startWebWatch(); /* Native sends to the server; browser watcher updates the visible dial. */
-  }else{startWebWatch();gpsStartHeartbeat();}
-  scheduleGPSQueue();
+  if(String(live.shiftId)===String(shiftId)){
+    if(live.watchId==null)startWebWatch();
+    gpsCheckNativeStatus();return;
+  }
+  // A restored WebView may already have a healthy foreground service. Adopt it.
+  if(live.shiftId!=null)stopLiveWatch();
+  live.shiftId=shiftId;
+  startWebWatch();gpsStartHeartbeat();
+  if(SGT)gpsStartNative(shiftId);
 }
 function reconcileDriverTracking(token){
   if(token!==state.token||state.screen!=="driver")return;
@@ -1876,7 +1893,6 @@ function reconcileDriverTracking(token){
   if(!sh||typeof dqHasEnd==="function"&&dqHasEnd(sh.id)){stopLiveWatch();return;}
   if(String(live.shiftId)!==String(sh.id)||!live.native&&live.watchId==null)startLiveWatch(sh.id);
   gpsCheckNativeStatus();
-  scheduleGPSQueue();
 }
 function startWebWatch(){
   if(!navigator.geolocation){toast(L10("gps_unsup"));return;}
@@ -1916,10 +1932,6 @@ function onFix(lat,lng,acc,heading,spd,fixAt){
   live.last={lat,lng,acc,heading:(heading!=null&&!isNaN(heading))?Math.round(heading):null,kmh,t:at};
   const minMove=Math.max(3,Math.min(acc*0.4,15));
   if(!live.native){
-    const prev=live.pointLast,moved=prev?haversine(prev.lat,prev.lng,lat,lng):Infinity;
-    if(moved>=minMove&&(!prev||now-prev.t>=GPS_MOVE_MS)){
-      queuePoint(gpsPayload(live.last),state.driverId,live.shiftId);live.pointLast={lat,lng,t:now};
-    }
     const movedLive=live.sent?haversine(live.sent.lat,live.sent.lng,lat,lng):Infinity;
     if(!live.sent||now-live.sent.t>=GPS_MOVE_MS&&(movedLive>=minMove||gpsDetailChanged(live.last,live.sent)))pushLive(false);
     else if(now-live.sent.t>=GPS_HEARTBEAT_MS)pushLive(true);
@@ -1947,78 +1959,19 @@ async function pushLive(heartbeat){
         loadDriver(true).then(()=>{if(token===state.token&&state.screen==="driver")render();}).catch(e=>{if(token===state.token&&/SESSION_EXPIRED/.test(e.message||""))forceDriverLogout(friendly("SESSION_EXPIRED"));});
       }else if(/SESSION_EXPIRED/.test(m))forceDriverLogout(friendly("SESSION_EXPIRED"));
       else{live.failures++;live.retryAt=Date.now()+gpsRetryDelay(live.failures);}
-    }else{live.failures=0;live.retryAt=0;scheduleGPSQueue();}
+    }else{live.failures=0;live.retryAt=0;}
   }catch(e){if(gpsTrackingCurrent(generation,token,sid)){live.failures++;live.retryAt=Date.now()+gpsRetryDelay(live.failures);}}
   finally{if(gpsTrackingCurrent(generation,token,sid)){live.busy=false;const pending=live.pending;live.pending=null;if(pending)pushLive(pending==="hb");}}
 }
-/* Point IDs, owner, shift and original capture time survive refreshes and uncertain replies. */
-function readGPSQueue(){try{const a=JSON.parse(localStorage.getItem("smou-gps-outbox-v1")||"[]");return Array.isArray(a)?a.filter(p=>p.id&&p.driverId&&p.shiftId&&p.point).slice(-500):[];}catch(e){return [];}}
-function saveGPSQueue(){try{localStorage.setItem("smou-gps-outbox-v1",JSON.stringify(live.queue));return true;}catch(e){toast("Phone storage is full. Keep this app open until GPS points sync.");return false;}}
-function gpsQueueContext(){
-  const owner=state.driverId==null?null:String(state.driverId),token=state.token;
-  if(owner!==GPSQ.owner||token!==GPSQ.token){GPSQ.owner=owner;GPSQ.token=token;GPSQ.retryAt=0;GPSQ.failures=0;GPSQ.due=0;GPSQ.blocked.clear();}
-  return {owner,token};
-}
-function gpsQueued(owner,shift){return live.queue.filter(x=>x.driverId===owner&&(!shift||x.shiftId===String(shift))&&!GPSQ.blocked.has(x.shiftId));}
-function scheduleGPSQueue(){
-  const {owner,token}=gpsQueueContext();if(GPSQ.timer){clearTimeout(GPSQ.timer);GPSQ.timer=null;}
-  if(!owner||!token||navigator.onLine===false||!gpsQueued(owner).length||GPSQ.promise)return;
-  if(!GPSQ.due)GPSQ.due=Date.now()+GPS_BATCH_MS;
-  const delay=Math.max(0,Math.max(GPSQ.due,GPSQ.retryAt)-Date.now());
-  GPSQ.timer=setTimeout(()=>{GPSQ.timer=null;if(token===state.token&&owner===String(state.driverId))flushQueue();},delay);
-}
-function queuePoint(p,driverId,shiftId){
-  if(!GPS_KEEP_ROUTE)return null;
-  driverId=driverId==null?state.driverId:driverId;shiftId=shiftId==null?live.shiftId:shiftId;if(!driverId||!shiftId)return null;
-  const row={id:"gps-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2),driverId:String(driverId),shiftId:String(shiftId),point:{...p,at:p.at||new Date().toISOString()}};
-  live.queue.push(row);saveGPSQueue();
-  const {owner}=gpsQueueContext();if(gpsQueued(owner).length>=50&&!GPSQ.retryAt)GPSQ.due=Date.now();
-  scheduleGPSQueue();return row;
-}
-async function flushQueue(forShift,force){
-  const {owner,token}=gpsQueueContext();if(!owner||!token||navigator.onLine===false)return false;
-  if(GPSQ.promise){await GPSQ.promise;if(forShift&&owner===String(state.driverId)&&token===state.token)return flushQueue(forShift,true);return false;}
-  if(!forShift&&!force&&(Date.now()<GPSQ.retryAt||Date.now()<GPSQ.due)){scheduleGPSQueue();return false;}
-  if(GPSQ.timer){clearTimeout(GPSQ.timer);GPSQ.timer=null;}
-  if(!gpsQueued(owner,forShift).length)return true;
-  live.flushing=true;
-  const run=(async()=>{
-    let batches=0,failed=false;
-    const shifts=[...new Set(gpsQueued(owner,forShift).map(x=>x.shiftId))];
-    for(const sid of shifts){
-      while(batches<(forShift?20:5)){
-        if(token!==state.token||owner!==String(state.driverId)||navigator.onLine===false)return false;
-        const batch=gpsQueued(owner,sid).slice(0,100);if(!batch.length)break;batches++;
-        let error;try{({error}=await sb.rpc("driver_add_points_v2",{p_token:token,p_shift:sid,p_pts:batch.map(x=>({...x.point,client_point_id:x.id}))}));}catch(e){error=e;}
-        if(!error){
-          const ids=new Set(batch.map(x=>x.id));live.queue=live.queue.filter(x=>!ids.has(x.id));saveGPSQueue();
-          if(token===state.token&&owner===String(state.driverId)){GPSQ.failures=0;GPSQ.retryAt=0;}
-        }else{
-          failed=true;if(token!==state.token||owner!==String(state.driverId))return false;
-          const m=error.message||"";
-          if(/SESSION_EXPIRED/.test(m)){forceDriverLogout(friendly("SESSION_EXPIRED"));return false;}
-          if(/NOT_YOUR_SHIFT|NO_ACTIVE_SHIFT|NO_SHIFT|SHIFT_NOT_FOUND|BAD_POINT_ID|BAD_POINTS|BAD_POINT|BAD_SHIFT/.test(m))GPSQ.blocked.add(sid);
-          GPSQ.failures++;GPSQ.retryAt=Date.now()+gpsRetryDelay(GPSQ.failures);return false;
-        }
-      }
-      if(batches>=(forShift?20:5))break;
-    }
-    return !failed&&!gpsQueued(owner,forShift).length;
-  })();
-  GPSQ.promise=run;
-  try{return await run;}finally{
-    if(GPSQ.promise===run){GPSQ.promise=null;live.flushing=false;GPSQ.due=Date.now()+GPS_BATCH_MS;scheduleGPSQueue();}
-  }
-}
-function gpsResumeQueue(){GPSQ.retryAt=0;GPSQ.due=0;live.retryAt=0;live.failures=0;if(live.last&&!live.native)pushLive(false);flushQueue(null,true);}
+function gpsResumeLive(){discardLegacyGPSQueue();live.retryAt=0;live.failures=0;if(live.last&&!live.native)pushLive(false);gpsCheckNativeStatus();}
 function stopLiveWatch(){
   gpsStopNative(); /* also stops an inherited service after the JS process was restarted */
   if(live.watchId!=null){try{navigator.geolocation.clearWatch(live.watchId);}catch(e){}}
   if(live.hb)clearInterval(live.hb);
-  Object.assign(live,{shiftId:null,watchId:null,hb:null,last:null,sent:null,pointLast:null,busy:false,pending:null,starting:false,native:false,generation:live.generation+1,retryAt:0,failures:0});
-  saveGPSQueue();releaseWake();scheduleGPSQueue();
+  Object.assign(live,{shiftId:null,watchId:null,hb:null,last:null,sent:null,busy:false,pending:null,starting:false,native:false,nativeError:null,nativeRetryAt:0,generation:live.generation+1,retryAt:0,failures:0});
+  discardLegacyGPSQueue();releaseWake();if(typeof dgPaint==="function")dgPaint();
 }
-window.addEventListener("online",gpsResumeQueue);
+window.addEventListener("online",gpsResumeLive);
 
 /* ===== Compact fleet GPS sync: current positions only, business changes separately ===== */
 function smouKeepNewerGps(next,previous,camel){
@@ -2186,7 +2139,7 @@ sb.auth.onAuthStateChange((event,session)=>{
 let wakeLock=null;
 async function acquireWake(){try{if("wakeLock" in navigator)wakeLock=await navigator.wakeLock.request("screen");}catch(e){}}
 function releaseWake(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&state.screen==="driver"){const sh=activeShift(state.driverId);if(sh){acquireWake();startLiveWatch(sh.id);if(live.last)pushLive(true);if(live.queue.length)flushQueue(null,true);}}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&state.screen==="driver"){const sh=activeShift(state.driverId);if(sh){acquireWake();startLiveWatch(sh.id);if(live.last)pushLive(true);}}});
 
 /* ============================================================ ROUTER ============================================================ */
 function render(){
@@ -2432,7 +2385,7 @@ function secMap(){
       <div class="oa-maptop">
         <div><div class="oa-eyebrow">Kuwait · live fleet</div>
           <h1><span class="num">${live}</span> driver${live===1?"":"s"} on duty right now</h1>
-          <p>Tap <b>Follow</b> on a driver to track · amber route = trail since clock-in</p></div>
+          <p>Tap <b>Follow</b> on a driver to track · latest position only</p></div>
         <div class="oa-legend">
           <span class="oa-chip"><i style="background:var(--green)"></i>Login</span>
           <span class="oa-chip"><i style="background:var(--red)"></i>Logout</span>
@@ -2731,7 +2684,7 @@ async function dqPhoto(row,key,token,epoch){
 async function dqDone(row,owner,token,epoch){
   await dqRemove(row.id);if(!dqIdentity(owner,token,epoch))return;
   DQ.rows=DQ.rows.filter(function(r){return r.id!==row.id;});toast(dqText("sent"));
-  if(row.kind==="end"){stopLiveWatch();try{localStorage.removeItem("d2km-"+row.shiftId);}catch(e){}if(typeof d2loadHome==="function")d2loadHome(true);}
+  if(row.kind==="end"){if(String(live.shiftId)===String(row.shiftId))stopLiveWatch();try{localStorage.removeItem("d2km-"+row.shiftId);}catch(e){}if(typeof d2loadHome==="function")d2loadHome(true);}
 }
 async function dqRun(row,token,epoch,manual){
   var owner=row.driverId;
@@ -2750,7 +2703,7 @@ async function dqRun(row,token,epoch,manual){
   var payload={...row.payload,client_request_id:row.id,client_submitted_at:row.createdAt},fn,args;
   if(row.kind==="end"){
     payload.photo=await dqPhoto(row,"odo",token,epoch);payload.orders_photo=await dqPhoto(row,"orders",token,epoch);
-    await flushQueue(row.shiftId);guard();fn="driver_end_shift_v2";args={p_token:token,p_shift:String(row.shiftId),p:payload};
+    guard();fn="driver_end_shift_v2";args={p_token:token,p_shift:String(row.shiftId),p:payload};
   }else{payload.photo=await dqPhoto(row,"receipt",token,epoch);fn="driver_add_fuel_v2";args={p_token:token,p_shift:row.shiftId,p:payload};}
   guard();row.rpcStarted=true;await dqStore(row);guard();
   var result=await sb.rpc(fn,args);guard();
@@ -2826,20 +2779,75 @@ async function doAddDriver(){const name=$("#ndName").value.trim();if(!name)retur
   if(error){toast("Error: "+error.message);return;}
   const md=mapDriver(data);const i=state.drivers.findIndex(x=>x.id===md.id);if(i>=0)state.drivers[i]=md;else state.drivers.push(md);
   closeModal();toast("Driver registered ✓");render();}
+var gpsNotificationWarned=false;
+var gpsLegacyWarned=false;
+function gpsNotificationNotice(status){
+  if(!gpsNotificationWarned&&status&&status.notificationsEnabled===false){gpsNotificationWarned=true;toast(d3T("notification_allow"));}
+}
+async function gpsPrepareLegacyClockIn(current){
+  /* Published HTML also runs inside older APKs. Their start() requests location
+     permission itself; confirm the existing native API rather than blocking a
+     shift merely because the newer permission preflight is unavailable. */
+  if(typeof SGT.start!=="function"||typeof SGT.isRunning!=="function")return false;
+  const status=await SGT.isRunning();
+  if(!current()||!status||typeof status.running!=="boolean")return false;
+  gpsNotificationNotice(status);
+  if(!gpsLegacyWarned){gpsLegacyWarned=true;toast(d3T("background_legacy"));}
+  return true; /* startLiveWatch still confirms that the native service started. */
+}
+async function gpsPrepareClockIn(current){
+  current=current||(()=>true);
+  if(!isNativeApp)return true;
+  if(!SGT){toast(d3T("background_update"));return false;}
+  try{
+    if(typeof SGT.preparePermissions!=="function"){
+      if(await gpsPrepareLegacyClockIn(current))return true;
+      if(current())toast(d3T("background_update"));
+      return false;
+    }
+    const result=await SGT.preparePermissions();
+    if(!current())return false;
+    if(result&&result.ready===true){gpsNotificationNotice(result);return true;}
+    const reason=result&&result.reason||"";
+    toast(/LOCATION_PERMISSION_DENIED/.test(reason)?L10("gps_perm_off"):/LOCATION_DISABLED/.test(reason)?L10("gps_dev_off"):d3T("background_update"));
+  }catch(e){
+    /* Capacitor proxies expose missing methods as functions that reject with
+       UNIMPLEMENTED. Never treat permission denial or another failure as legacy. */
+    const unavailable=e&&(e.code==="UNIMPLEMENTED"||/SumouTracker\.preparePermissions\(\).*not implemented/i.test(e.message||""));
+    if(unavailable&&current()){
+      try{if(await gpsPrepareLegacyClockIn(current))return true;}catch(legacyError){}
+    }
+    if(current())toast(d3T("background_update"));
+  }
+  return false;
+}
 async function doStartDuty(){
-  const d=driverById(state.driverId);const odo=+$("#sdOdo").value;
+  const d=driverById(state.driverId),token=state.token,epoch=driverCacheEpoch,owner=String(state.driverId);
+  const current=()=>token===state.token&&epoch===driverCacheEpoch&&owner===String(state.driverId)&&state.screen==="driver";
+  if(!d||!token)return;
+  const odo=+$("#sdOdo").value,photo=photoBuf.odoin;
   if(!odo||odo<=0)return toast(L10("need_start_km"));
-  if(!photoBuf.odoin)return toast(L10("need_odo_photo"));
-  if((!state.gps.login&&gpsBusy.login)||geoPend.login){const b0=$('[data-act="startDuty"]');if(b0){b0.disabled=true;b0.textContent=L10("wait_loc");}if(!state.gps.login&&gpsBusy.login)await gpsWait.login;if(geoPend.login)await geoPend.login;if(b0){b0.disabled=false;b0.innerHTML=d2btn("bolt","confirm_in");}}
+  if(!photo)return toast(L10("need_odo_photo"));
+  if((!state.gps.login&&gpsBusy.login)||geoPend.login){
+    const b0=$('[data-act="startDuty"]');if(b0){b0.disabled=true;b0.textContent=L10("wait_loc");}
+    if(!state.gps.login&&gpsBusy.login){await gpsWait.login;if(!current())return;}
+    if(geoPend.login){await geoPend.login;if(!current())return;}
+    if(b0){b0.disabled=false;b0.innerHTML=d2btn("bolt","confirm_in");}
+  }
+  if(!current())return;
   if(!state.gps.login)return toast(L10("no_loc"));
+  const g={...state.gps.login},plat=state.mplat||state.selectedPlatform||(d.platforms||PLATFORMS)[0];
   const btn=$('[data-act="startDuty"]');if(btn){btn.disabled=true;btn.textContent=L10("uploading");}
   try{
-    const g=state.gps.login;const plat=state.mplat||state.selectedPlatform||(d.platforms||PLATFORMS)[0];
-    const photoUrl=await uploadPhoto(photoBuf.odoin,`odo/${d.id}-in-${Date.now()}.jpg`);
-    const data=await rpc("driver_start_shift",{p_token:state.token,p:{platform:plat,start_odo:odo,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,src:g.src||"gps"}});
+    const prepared=await gpsPrepareClockIn(current);if(!current())return;
+    if(!prepared){if(btn){btn.disabled=false;btn.innerHTML=d2btn("bolt","confirm_in");}return;}
+    const photoUrl=await uploadPhoto(photo,`odo/${d.id}-in-${Date.now()}.jpg`,token);if(!current())return;
+    const data=await rpc("driver_start_shift",{p_token:token,p:{platform:plat,start_odo:odo,photo:photoUrl,time:g.time,place:g.place,addr:g.addr,lat:g.lat,lng:g.lng,acc:g.acc,...(g.at?{at:g.at}:{}),src:g.src||"gps"}});
+    if(!current())return;
     const ms=mapShift(data);const i=state.shifts.findIndex(x=>x.id===ms.id);if(i>=0)state.shifts[i]=ms;else state.shifts.push(ms);
+    startLiveWatch(ms.id);await gpsNativeOp;if(!current())return;
     delete photoBuf.odoin;state.gps.login=null;closeModal();toast(L10("clocked_in"));render();
-  }catch(e){toast(L10("clockin_fail")+" "+friendly(e&&e.message||String(e)));if(btn){btn.disabled=false;btn.innerHTML=d2btn("bolt","confirm_in");}}
+  }catch(e){if(!current())return;toast(L10("clockin_fail")+" "+friendly(e&&e.message||String(e)));if(btn){btn.disabled=false;btn.innerHTML=d2btn("bolt","confirm_in");}}
 }
 async function doEndDuty(){
   if(DQ.saving)return;
@@ -3834,7 +3842,6 @@ if(state.ready)render();
       }
       if(!wasOn&&nowOn){startLiveWatch(nowOn.id);}  /* shift opened on another session */
       if(sig()!==before)paint();
-      if(live.queue&&live.queue.length)scheduleGPSQueue();
       d2loadHome(why==="focus"||why==="online");
     }).catch(function(e){
       if(syncToken!==state.token||syncEpoch!==driverCacheEpoch)return;
@@ -4515,6 +4522,11 @@ var D3X={
  bn:{gps_off:"লাইভ · GPS বন্ধ",off_t:"লোকেশন বন্ধ — অফিস আপনাকে দেখতে পাচ্ছে না",off_s:"লোকেশন চালু করুন এবং এই অ্যাপকে অনুমতি দিন (Precise · While Using)।",nosig_t:"GPS সিগন্যাল নেই",nosig_s:"খোলা জায়গায় যান, অথবা লোকেশন বন্ধ করে আবার চালু করুন।",fix:"আবার চেষ্টা করুন",upd_t:"অ্যাপের নতুন ভার্সন",upd_s:"আপডেট করতে ট্যাপ করুন — ২ সেকেন্ড লাগবে",upd_b:"আপডেট"},
  ne:{gps_off:"लाइभ · GPS बन्द",off_t:"लोकेसन बन्द छ — अफिसले तपाईंलाई देख्न सक्दैन",off_s:"लोकेसन खोल्नुहोस् र यो एपलाई अनुमति दिनुहोस् (Precise · While Using)।",nosig_t:"GPS सिग्नल छैन",nosig_s:"खुला ठाउँमा जानुहोस्, वा लोकेसन बन्द गरेर फेरि खोल्नुहोस्।",fix:"फेरि प्रयास गर्नुहोस्",upd_t:"एपको नयाँ संस्करण",upd_s:"अपडेट गर्न ट्याप गर्नुहोस् — २ सेकेन्ड लाग्छ",upd_b:"अपडेट"}
 };
+Object.assign(D3X.en,{notification_allow:"To see the tracking notification, open phone Settings → Apps → Sumou Fleet → Notifications and allow notifications.",background_update:"Install the latest Android app to enable background tracking before clocking in.",background_legacy:"You can clock in with this app version. Install the latest Android app for improved background tracking, and check that the tracking notification is visible after clock-in.",background_t:"Background tracking is not active",background_s:"Keep this app open. Turn on Location and allow location access, then tap Try again."});
+Object.assign(D3X.ar,{notification_allow:"لإظهار إشعار التتبع، افتح إعدادات الهاتف ← التطبيقات ← Sumou Fleet ← الإشعارات واسمح بها.",background_update:"ثبّت أحدث إصدار من تطبيق Android لتفعيل التتبع في الخلفية قبل تسجيل الدخول.",background_legacy:"يمكنك بدء الوردية بهذا الإصدار. ثبّت أحدث تطبيق Android لتحسين التتبع في الخلفية، وتحقق من ظهور إشعار التتبع بعد بدء الوردية.",background_t:"التتبع في الخلفية غير نشط",background_s:"أبقِ التطبيق مفتوحًا. شغّل الموقع واسمح للتطبيق بالوصول إليه، ثم اضغط حاول مرة أخرى."});
+Object.assign(D3X.hi,{notification_allow:"ट्रैकिंग का नोटिफिकेशन देखने के लिए फोन Settings → Apps → Sumou Fleet → Notifications में अनुमति दें।",background_update:"क्लॉक-इन से पहले बैकग्राउंड ट्रैकिंग के लिए नया Android ऐप इंस्टॉल करें।",background_legacy:"इस वर्ज़न से क्लॉक-इन कर सकते हैं। बेहतर बैकग्राउंड ट्रैकिंग के लिए नया Android ऐप इंस्टॉल करें और क्लॉक-इन के बाद ट्रैकिंग नोटिफिकेशन जाँचें।",background_t:"बैकग्राउंड ट्रैकिंग चालू नहीं है",background_s:"ऐप खुला रखें। लोकेशन चालू करके ऐप को अनुमति दें, फिर कोशिश करें दबाएँ।"});
+Object.assign(D3X.bn,{notification_allow:"ট্র্যাকিং নোটিফিকেশন দেখতে ফোনের Settings → Apps → Sumou Fleet → Notifications চালু করুন।",background_update:"ক্লক-ইনের আগে ব্যাকগ্রাউন্ড ট্র্যাকিং চালু করতে সর্বশেষ Android অ্যাপ ইনস্টল করুন।",background_legacy:"এই ভার্সন দিয়ে ক্লক-ইন করতে পারবেন। উন্নত ব্যাকগ্রাউন্ড ট্র্যাকিংয়ের জন্য নতুন Android অ্যাপ ইনস্টল করুন এবং ক্লক-ইনের পরে ট্র্যাকিং নোটিফিকেশন দেখুন।",background_t:"ব্যাকগ্রাউন্ড ট্র্যাকিং চালু নেই",background_s:"অ্যাপ খোলা রাখুন। লোকেশন চালু করে অ্যাপকে অনুমতি দিন, তারপর আবার চেষ্টা চাপুন।"});
+Object.assign(D3X.ne,{notification_allow:"ट्र्याकिङ सूचना हेर्न फोनको Settings → Apps → Sumou Fleet → Notifications मा अनुमति दिनुहोस्।",background_update:"क्लक-इन अघि ब्याकग्राउन्ड ट्र्याकिङका लागि नयाँ Android एप इन्स्टल गर्नुहोस्।",background_legacy:"यो संस्करणबाट क्लक-इन गर्न सकिन्छ। राम्रो ब्याकग्राउन्ड ट्र्याकिङका लागि नयाँ Android एप इन्स्टल गर्नुहोस् र क्लक-इनपछि ट्र्याकिङ सूचना देखिएको जाँच्नुहोस्।",background_t:"ब्याकग्राउन्ड ट्र्याकिङ चलेको छैन",background_s:"एप खुला राख्नुहोस्। लोकेसन खोलेर एपलाई अनुमति दिनुहोस्, अनि फेरि प्रयास थिच्नुहोस्।"});
 function d3T(k){var l=D3X[(typeof D2!=="undefined"&&D2.lang)||"en"]||D3X.en;return l[k]!=null?l[k]:D3X.en[k];}
 function d3E(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 
@@ -4531,7 +4543,9 @@ startWebWatch=function(){
   dgPaint();
 };
 function dgState(){
-  if(!live.shiftId||live.watchId==null||document.hidden)return "";
+  if(!live.shiftId||document.hidden)return "";
+  if(isNativeApp&&live.nativeError)return "background";
+  if(live.watchId==null)return "";
   if(DG.err===1||DG.err===2)return "off";
   if(Date.now()-Math.max(DG.fix,DG.start)>90000)return "nosig";
   return "";
@@ -4541,11 +4555,12 @@ function dgPaint(){
   if(!st){if(el)el.remove();return;}
   if(!el){el=document.createElement("div");el.id="dgps";el.setAttribute("role","alert");document.body.appendChild(el);}
   el.setAttribute("dir",(typeof D2!=="undefined"&&D2.lang==="ar")?"rtl":"ltr");
-  var k=st==="off"?"off":"nosig";
+  var k=st==="background"?"background":st==="off"?"off":"nosig";
   el.innerHTML='<span class="dg-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><path d="m4 4 16 16"/></svg></span>'+
     '<span class="dg-t"><b>'+d3E(d3T(k+"_t"))+'</b><small>'+d3E(d3T(k+"_s"))+'</small></span><button type="button" data-dgfix="1">'+d3E(d3T("fix"))+'</button>';
 }
 function dgRetry(){
+  live.nativeRetryAt=0;gpsCheckNativeStatus();
   const generation=live.generation,token=state.token;
   var b=document.querySelector("[data-dgfix]");if(b){b.disabled=true;b.textContent="…";}
   try{navigator.geolocation.getCurrentPosition(function(p){if(generation!==live.generation||token!==state.token)return;DG.fix=Date.now();DG.err=0;dgPaint();var c=p.coords;onFix(c.latitude,c.longitude,c.accuracy,c.heading,c.speed,p.timestamp);},
@@ -4554,7 +4569,7 @@ function dgRetry(){
   setTimeout(function(){var b2=document.querySelector("[data-dgfix]");if(b2){b2.disabled=false;b2.textContent=d3T("fix");}},4000);
 }
 document.addEventListener("click",function(e){if(e.target.closest("[data-dgfix]"))dgRetry();});
-(function(){var _tt=tt;tt=function(k){if(k==="live_gps"&&DG.err&&live.shiftId)return d3T("gps_off");return _tt.apply(this,arguments);};})();   /* the “Live · GPS on” pill must not lie */
+(function(){var _tt=tt;tt=function(k){if(k==="live_gps"&&(DG.err||live.nativeError)&&live.shiftId)return d3T("gps_off");return _tt.apply(this,arguments);};})();   /* the “Live · GPS on” pill must not lie */
 document.addEventListener("visibilitychange",function(){if(!document.hidden)DG.start=Date.now();dgPaint();});
 setInterval(dgPaint,10000);
 
